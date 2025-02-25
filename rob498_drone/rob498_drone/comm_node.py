@@ -20,9 +20,38 @@ class DroneCommNode(Node):
         # MAVROS clients
         self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
+        
+        # VICON Subscriber
+        self.pose_sub = self.create_subscription(
+            PoseStamped,
+            "/vicon/ROB498_Drone/ROB498_Drone",
+            self.vicon_callback,
+            10
+        )
+        self.current_pose = PoseStamped()  # Store latest pose
+        
+        # Publisher for waypoints
+        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", 10)
 
         self.get_logger().info("Drone communication node started.")
 
+    def vicon_callback(self, msg):
+        """Callback function for VICON pose updates"""
+        self.current_pose = msg  # Store latest pose
+        self.get_logger().info(
+            f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}"
+        )
+
+    def publish_waypoint(self, x=0.0, y=0.0, z=2.0):
+        """ Publish a target waypoint. Defaults to (0,0,2) to hold position. """
+        pose = PoseStamped()
+        pose.header.stamp = self.get_clock().now().to_msg()
+        pose.header.frame_id = "map"
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.position.z = z
+        self.pose_publisher.publish(pose)
+        
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
 
