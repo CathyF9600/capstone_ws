@@ -1,0 +1,9 @@
+running egg_info
+creating ../build/rob498_drone/rob498_drone.egg-info
+writing ../build/rob498_drone/rob498_drone.egg-info/PKG-INFO
+writing dependency_links to ../build/rob498_drone/rob498_drone.egg-info/dependency_links.txt
+writing entry points to ../build/rob498_drone/rob498_drone.egg-info/entry_points.txt
+writing requirements to ../build/rob498_drone/rob498_drone.egg-info/requires.txt
+writing top-level names to ../build/rob498_drone/rob498_drone.egg-info/top_level.txt
+writing manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'
+reading manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'

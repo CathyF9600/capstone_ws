@@ -1,25 +1,21 @@
 from setuptools import setup
 
-package_name = 'rob498_drone'
+package_name = "rob498_drone"
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version="0.0.1",
     packages=[package_name],
-    data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-    ],
-    install_requires=['setuptools'],
+    install_requires=["setuptools"],
     zip_safe=True,
-    maintainer='jetson',
-    maintainer_email='yuchun.feng@mail.utoronto.ca',
-    description='TODO: Package description',
-    license='TODO: License declaration',
-    tests_require=['pytest'],
+    maintainer="your_name",
+    maintainer_email="your_email@example.com",
+    description="ROS2 package for Flight Exercise #2",
+    license="MIT",
+    tests_require=["pytest"],
     entry_points={
-        'console_scripts': [
+        "console_scripts": [
+            "comm_node = rob498_drone.comm_node:main",
         ],
     },
 )
