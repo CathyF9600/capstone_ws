@@ -26,10 +26,26 @@ class DroneCommNode(Node):
 
         self.get_logger().info("Drone communication node started.")
 
-    def publish_waypoint(self, x=0.0, y)
+    def publish_waypoint(self, x=0.0, y=0.0, z=2.0):
+        """ Publish a target waypoint. Defaults to (0,0,2) to hold position. """
+        pose = PoseStamped()
+        pose.header.stamp = self.get_clock().now().to_msg()
+        pose.header.frame_id = "map"
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.position.z = z
+        self.pose_publisher.publish(pose)
+    
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
-
+        
+        # Publish waypoints at 20 Hz for 1 second (PX4 requires ~10 messages)
+        start_time = time.time()
+        rate = 0.05  # 20 Hz
+        while time.time() - start_time < 1.0:
+            self.publish_waypoint()
+            time.sleep(rate)
+            
         # Set mode to OFFBOARD
         mode_req = SetMode.Request()
         mode_req.custom_mode = "OFFBOARD"
