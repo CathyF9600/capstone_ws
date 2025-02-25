@@ -1,0 +1,73 @@
+[0.079s] Invoking command in '/home/jetson/capstone_ws/build/px4_autonomy_modules': CMAKE_PREFIX_PATH=/opt/ros/foxy /usr/bin/cmake /home/jetson/capstone_ws/src/px4_autonomy_modules -DCMAKE_INSTALL_PREFIX=/home/jetson/capstone_ws/install/px4_autonomy_modules
+[1.115s] -- The C compiler identification is GNU 8.4.0
+[1.633s] -- The CXX compiler identification is GNU 8.4.0
+[1.689s] -- Check for working C compiler: /usr/bin/cc
+[1.981s] -- Check for working C compiler: /usr/bin/cc -- works
+[1.988s] -- Detecting C compiler ABI info
+[2.348s] -- Detecting C compiler ABI info - done
+[2.412s] -- Detecting C compile features
+[2.415s] -- Detecting C compile features - done
+[2.445s] -- Check for working CXX compiler: /usr/bin/c++
+[2.834s] -- Check for working CXX compiler: /usr/bin/c++ -- works
+[2.839s] -- Detecting CXX compiler ABI info
+[3.194s] -- Detecting CXX compiler ABI info - done
+[3.251s] -- Detecting CXX compile features
+[3.255s] -- Detecting CXX compile features - done
+[3.301s] -- Found ament_cmake: 0.9.12 (/opt/ros/foxy/share/ament_cmake/cmake)
+[3.476s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[3.477s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[5.081s] -- Found rclcpp: 2.4.3 (/opt/ros/foxy/share/rclcpp/cmake)
+[5.414s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[5.463s] -- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[5.970s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[6.097s] -- Found FastRTPS: /opt/ros/foxy/include  
+[6.518s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[6.896s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[6.905s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[6.911s] -- Looking for pthread.h
+[7.216s] -- Looking for pthread.h - found
+[7.217s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[7.490s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+[7.491s] -- Looking for pthread_create in pthreads
+[7.702s] -- Looking for pthread_create in pthreads - not found
+[7.702s] -- Looking for pthread_create in pthread
+[7.955s] -- Looking for pthread_create in pthread - found
+[7.959s] -- Found Threads: TRUE  
+[9.124s] -- Found rclpy: 1.0.13 (/opt/ros/foxy/share/rclpy/cmake)
+[9.125s] -- Found nav_msgs: 2.0.5 (/opt/ros/foxy/share/nav_msgs/cmake)
+[9.530s] -- Found sensor_msgs: 2.0.5 (/opt/ros/foxy/share/sensor_msgs/cmake)
+[9.911s] -- Found mavros: 2.4.0 (/opt/ros/foxy/share/mavros/cmake)
+[9.962s] -- Found mavros_extras: 2.4.0 (/opt/ros/foxy/share/mavros_extras/cmake)
+[9.985s] -- Found ament_lint_auto: 0.9.8 (/opt/ros/foxy/share/ament_lint_auto/cmake)
+[10.362s] -- Added test 'flake8' to check Python code syntax and style conventions
+[10.365s] -- Added test 'lint_cmake' to check CMake code style
+[10.367s] -- Added test 'pep257' to check Python code against some of the style conventions in PEP 257
+[10.373s] -- Added test 'xmllint' to check XML markup files
+[10.396s] -- Configuring done
+[10.406s] -- Generating done
+[10.412s] -- Build files have been written to: /home/jetson/capstone_ws/build/px4_autonomy_modules
+[10.445s] Invoked command in '/home/jetson/capstone_ws/build/px4_autonomy_modules' returned '0': CMAKE_PREFIX_PATH=/opt/ros/foxy /usr/bin/cmake /home/jetson/capstone_ws/src/px4_autonomy_modules -DCMAKE_INSTALL_PREFIX=/home/jetson/capstone_ws/install/px4_autonomy_modules
+[10.452s] Invoking command in '/home/jetson/capstone_ws/build/px4_autonomy_modules': CMAKE_PREFIX_PATH=/opt/ros/foxy /usr/bin/cmake --build /home/jetson/capstone_ws/build/px4_autonomy_modules -- -j4 -l4
+[10.613s] Invoked command in '/home/jetson/capstone_ws/build/px4_autonomy_modules' returned '0': CMAKE_PREFIX_PATH=/opt/ros/foxy /usr/bin/cmake --build /home/jetson/capstone_ws/build/px4_autonomy_modules -- -j4 -l4
+[10.735s] Invoking command in '/home/jetson/capstone_ws/build/px4_autonomy_modules': CMAKE_PREFIX_PATH=/opt/ros/foxy /usr/bin/cmake --install /home/jetson/capstone_ws/build/px4_autonomy_modules
+[10.766s] -- Install configuration: ""
+[10.768s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch
+[10.768s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch/px4_config.yaml
+[10.770s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch/px4_pluginlists.yaml
+[10.772s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch/mavros.launch.py
+[10.774s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/ament_index/resource_index/package_run_dependencies/px4_autonomy_modules
+[10.775s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/ament_index/resource_index/parent_prefix_path/px4_autonomy_modules
+[10.775s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/ament_prefix_path.sh
+[10.776s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/ament_prefix_path.dsv
+[10.776s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/path.sh
+[10.777s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/path.dsv
+[10.778s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.bash
+[10.778s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.sh
+[10.779s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.zsh
+[10.780s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.dsv
+[10.780s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/package.dsv
+[10.781s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/ament_index/resource_index/packages/px4_autonomy_modules
+[10.782s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/cmake/px4_autonomy_modulesConfig.cmake
+[10.782s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/cmake/px4_autonomy_modulesConfig-version.cmake
+[10.783s] -- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/package.xml
+[10.792s] Invoked command in '/home/jetson/capstone_ws/build/px4_autonomy_modules' returned '0': CMAKE_PREFIX_PATH=/opt/ros/foxy /usr/bin/cmake --install /home/jetson/capstone_ws/build/px4_autonomy_modules
