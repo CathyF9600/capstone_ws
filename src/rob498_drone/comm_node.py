@@ -21,8 +21,12 @@ class DroneCommNode(Node):
         self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
 
+        # Publisher for waypoints
+        self.pose_publisher = self.create_publisher(PoseStamped, '/mavros/setpoint_position/local', 10) # at least 10 msgs
+
         self.get_logger().info("Drone communication node started.")
 
+    def publish_waypoint(self, x=0.0, y)
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
 

@@ -1,0 +1,56 @@
+[0.000000] (-) TimerEvent: {}
+[0.001387] (px4_autonomy_modules) JobQueued: {'identifier': 'px4_autonomy_modules', 'dependencies': OrderedDict()}
+[0.002544] (rob498_drone) JobQueued: {'identifier': 'rob498_drone', 'dependencies': OrderedDict()}
+[0.003414] (px4_autonomy_modules) JobStarted: {'identifier': 'px4_autonomy_modules'}
+[0.071685] (rob498_drone) JobStarted: {'identifier': 'rob498_drone'}
+[0.099015] (-) TimerEvent: {}
+[0.201987] (-) TimerEvent: {}
+[0.303980] (-) TimerEvent: {}
+[0.409120] (-) TimerEvent: {}
+[0.511128] (-) TimerEvent: {}
+[0.611941] (-) TimerEvent: {}
+[0.712682] (-) TimerEvent: {}
+[0.813579] (-) TimerEvent: {}
+[0.914439] (-) TimerEvent: {}
+[1.017290] (-) TimerEvent: {}
+[1.118201] (-) TimerEvent: {}
+[1.218875] (-) TimerEvent: {}
+[1.319767] (-) TimerEvent: {}
+[1.420752] (-) TimerEvent: {}
+[1.521443] (-) TimerEvent: {}
+[1.622546] (-) TimerEvent: {}
+[1.724155] (-) TimerEvent: {}
+[1.824971] (-) TimerEvent: {}
+[1.926106] (-) TimerEvent: {}
+[2.026884] (-) TimerEvent: {}
+[2.129366] (-) TimerEvent: {}
+[2.232885] (-) TimerEvent: {}
+[2.290751] (px4_autonomy_modules) StderrLine: {'line': b'Traceback (most recent call last):\n  File "/usr/lib/python3/dist-packages/colcon_core/executor/__init__.py", line 91, in __call__\n    rc = await self.task(*args, **kwargs)\n  File "/usr/lib/python3/dist-packages/colcon_core/task/__init__.py", line 93, in __call__\n    return await task_method(*args, **kwargs)\n  File "/usr/lib/python3/dist-packages/colcon_ros/task/ament_python/build.py", line 102, in build\n    return await extension.build(additional_hooks=additional_hooks)\n  File "/usr/lib/python3/dist-packages/colcon_core/task/python/build.py", line 96, in build\n    available_commands = await self._get_available_commands(\n  File "/usr/lib/python3/dist-packages/colcon_core/task/python/build.py", line 194, in _get_available_commands\n    output = await check_output(\n  File "/usr/lib/python3/dist-packages/colcon_core/subprocess.py", line 129, in check_output\n    assert not rc, f\'Expected {args} to pass: {stderr_data}\'\nAssertionError: Expected [\'/usr/bin/python3\', \'-W\', \'ignore:setup.py install is deprecated\', \'-W\', \'ignore:easy_install command is deprecated\', \'setup.py\', \'--help-commands\'] to pass: /usr/bin/python3: can\'t open file \'setup.py\': [Errno 2] No such file or directory\n\n'}
+[2.292619] (px4_autonomy_modules) JobEnded: {'identifier': 'px4_autonomy_modules', 'rc': 1}
+[2.332898] (-) TimerEvent: {}
+[2.433534] (-) TimerEvent: {}
+[2.534310] (-) TimerEvent: {}
+[2.635425] (-) TimerEvent: {}
+[2.736604] (-) TimerEvent: {}
+[2.837344] (-) TimerEvent: {}
+[2.939108] (-) TimerEvent: {}
+[3.040795] (-) TimerEvent: {}
+[3.142986] (-) TimerEvent: {}
+[3.244264] (-) TimerEvent: {}
+[3.345636] (-) TimerEvent: {}
+[3.447696] (-) TimerEvent: {}
+[3.548361] (-) TimerEvent: {}
+[3.649212] (-) TimerEvent: {}
+[3.751341] (-) TimerEvent: {}
+[3.852156] (-) TimerEvent: {}
+[3.952947] (-) TimerEvent: {}
+[4.053824] (-) TimerEvent: {}
+[4.154698] (-) TimerEvent: {}
+[4.256173] (-) TimerEvent: {}
+[4.356870] (-) TimerEvent: {}
+[4.457556] (-) TimerEvent: {}
+[4.558362] (-) TimerEvent: {}
+[4.659348] (-) TimerEvent: {}
+[4.761396] (-) TimerEvent: {}
+[4.783109] (rob498_drone) JobEnded: {'identifier': 'rob498_drone', 'rc': 'SIGINT'}
+[4.795077] (-) EventReactorShutdown: {}

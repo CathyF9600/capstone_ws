@@ -1,0 +1,108 @@
+[0.000000] (-) TimerEvent: {}
+[0.000697] (-) JobUnselected: {'identifier': 'px4_autonomy_modules'}
+[0.001306] (rob498_drone) JobQueued: {'identifier': 'rob498_drone', 'dependencies': OrderedDict()}
+[0.002212] (rob498_drone) JobStarted: {'identifier': 'rob498_drone'}
+[0.099228] (-) TimerEvent: {}
+[0.200123] (-) TimerEvent: {}
+[0.302805] (-) TimerEvent: {}
+[0.404313] (-) TimerEvent: {}
+[0.506148] (-) TimerEvent: {}
+[0.608643] (-) TimerEvent: {}
+[0.709318] (-) TimerEvent: {}
+[0.810083] (-) TimerEvent: {}
+[0.912196] (-) TimerEvent: {}
+[1.015894] (-) TimerEvent: {}
+[1.117541] (-) TimerEvent: {}
+[1.218212] (-) TimerEvent: {}
+[1.319517] (-) TimerEvent: {}
+[1.420230] (-) TimerEvent: {}
+[1.520887] (-) TimerEvent: {}
+[1.621536] (-) TimerEvent: {}
+[1.722443] (-) TimerEvent: {}
+[1.824804] (-) TimerEvent: {}
+[1.925923] (-) TimerEvent: {}
+[2.029315] (-) TimerEvent: {}
+[2.132603] (-) TimerEvent: {}
+[2.233821] (-) TimerEvent: {}
+[2.336707] (-) TimerEvent: {}
+[2.437784] (-) TimerEvent: {}
+[2.538811] (-) TimerEvent: {}
+[2.640300] (-) TimerEvent: {}
+[2.740971] (-) TimerEvent: {}
+[2.841688] (-) TimerEvent: {}
+[2.942577] (-) TimerEvent: {}
+[3.043463] (-) TimerEvent: {}
+[3.144102] (-) TimerEvent: {}
+[3.244784] (-) TimerEvent: {}
+[3.345817] (-) TimerEvent: {}
+[3.446585] (-) TimerEvent: {}
+[3.547597] (-) TimerEvent: {}
+[3.648577] (-) TimerEvent: {}
+[3.750545] (-) TimerEvent: {}
+[3.852651] (-) TimerEvent: {}
+[3.953759] (-) TimerEvent: {}
+[4.055135] (-) TimerEvent: {}
+[4.156895] (-) TimerEvent: {}
+[4.258288] (-) TimerEvent: {}
+[4.359959] (-) TimerEvent: {}
+[4.461809] (-) TimerEvent: {}
+[4.562919] (-) TimerEvent: {}
+[4.664338] (-) TimerEvent: {}
+[4.765385] (-) TimerEvent: {}
+[4.867625] (-) TimerEvent: {}
+[4.968942] (-) TimerEvent: {}
+[5.070660] (-) TimerEvent: {}
+[5.137396] (rob498_drone) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'egg_info', '--egg-base', '../build/rob498_drone', 'build', '--build-base', '/home/jetson/capstone_ws/build/rob498_drone/build', 'install', '--record', '/home/jetson/capstone_ws/build/rob498_drone/install.log', '--install-scripts', '$base/lib/rob498_drone', '--single-version-externally-managed'], 'cwd': '/home/jetson/capstone_ws/rob498_drone', 'env': {'GJS_DEBUG_TOPICS': 'JS ERROR;JS LOG', 'LESSOPEN': '| /usr/bin/lesspipe %s', 'LANGUAGE': 'en_CA:en', 'USER': 'jetson', 'LC_TIME': 'en_CA.UTF-8', 'SSH_AGENT_PID': '7420', 'ROS_PACKAGE_PATH': '/home/jetson/capstone_ws/install/rob498_drone/share', 'XDG_SESSION_TYPE': 'x11', 'GIT_ASKPASS': '/usr/share/code/resources/app/extensions/git/dist/askpass.sh', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib', 'HOME': '/home/jetson', 'CHROME_DESKTOP': 'code.desktop', 'TERM_PROGRAM_VERSION': '1.97.2', 'DESKTOP_SESSION': 'ubuntu', 'JETSON_L4T': '32.6.1', 'GIO_LAUNCHED_DESKTOP_FILE': '/usr/share/applications/code.desktop', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'JETSON_MODEL': 'NVIDIA Jetson Nano Developer Kit', 'VSCODE_GIT_ASKPASS_MAIN': '/usr/share/code/resources/app/extensions/git/dist/askpass-main.js', 'LC_MONETARY': 'en_CA.UTF-8', 'VSCODE_GIT_ASKPASS_NODE': '/usr/share/code/code', 'MANAGERPID': '7218', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLORTERM': 'truecolor', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '11471', 'MANDATORY_PATH': '/usr/share/gconf/ubuntu.mandatory.path', 'IM_CONFIG_PHASE': '1', 'COLCON_PREFIX_PATH': '/home/jetson/capstone_ws/install', 'ROS_DISTRO': 'foxy', 'LOGNAME': 'jetson', 'JETSON_MODULE': 'NVIDIA Jetson Nano (4 GB ram)', 'JETSON_SERIAL_NUMBER': '1423221001506', 'JOURNAL_STREAM': '8:38329', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'PKG_CONFIG_PATH': '/home/jetson/capstone_ws/install/rob498_drone/lib/aarch64-linux-gnu/pkgconfig:/home/jetson/capstone_ws/install/rob498_drone/lib/pkgconfig', 'JETSON_CODENAME': 'Porg', 'XDG_SESSION_CLASS': 'user', 'DEFAULTS_PATH': '/usr/share/gconf/ubuntu.default.path', 'USERNAME': 'jetson', 'TERM': 'xterm-256color', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'ROS_LOCALHOST_ONLY': '0', 'WINDOWPATH': '2', 'PATH': '/opt/ros/foxy/bin:/usr/local/cuda/bin:/home/jetson/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'SESSION_MANAGER': 'local/nano:@/tmp/.ICE-unix/7456,unix/nano:/tmp/.ICE-unix/7456', 'INVOCATION_ID': '51ac3a02bb684efe9312c7e3e25378d8', 'PAPERSIZE': 'letter', 'XDG_MENU_PREFIX': 'gnome-', 'LC_ADDRESS': 'en_CA.UTF-8', 'XDG_RUNTIME_DIR': '/run/user/1000', 'GDK_BACKEND': 'x11', 'DISPLAY': ':0', 'LANG': 'en_CA.UTF-8', 'XDG_CURRENT_DESKTOP': 'Unity', 'LC_TELEPHONE': 'en_CA.UTF-8', 'XMODIFIERS': '@im=ibus', 'XDG_SESSION_DESKTOP': 'ubuntu', 'XAUTHORITY': '/run/user/1000/gdm/Xauthority', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'JETSON_SOC': 'tegra210', 'VSCODE_GIT_IPC_HANDLE': '/run/user/1000/vscode-git-899a41daed.sock', 'TERM_PROGRAM': 'vscode', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'ROS_DOMAIN_ID': '3', 'AMENT_PREFIX_PATH': '/home/jetson/capstone_ws/install/rob498_drone:/home/jetson/capstone_ws/install/px4_autonomy_modules:/opt/ros/foxy', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'SHELL': '/bin/bash', 'LC_NAME': 'en_CA.UTF-8', 'QT_ACCESSIBILITY': '1', 'GDMSESSION': 'ubuntu', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'JETSON_BOARDIDS': 'p3448', 'LC_MEASUREMENT': 'en_CA.UTF-8', 'GPG_AGENT_INFO': '/run/user/1000/gnupg/S.gpg-agent:0:1', 'GJS_DEBUG_OUTPUT': 'stderr', 'LC_IDENTIFICATION': 'en_CA.UTF-8', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '', 'QT_IM_MODULE': 'ibus', 'JETSON_CUDA_ARCH_BIN': '5.3', 'PWD': '/home/jetson/capstone_ws/build/rob498_drone', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu:/etc/xdg', 'XDG_DATA_DIRS': '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/jetson/capstone_ws/build/rob498_drone/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages', 'LC_NUMERIC': 'en_CA.UTF-8', 'LC_PAPER': 'en_CA.UTF-8', 'COLCON': '1', 'JETSON_JETPACK': '4.6', 'CMAKE_PREFIX_PATH': '/home/jetson/capstone_ws/install/rob498_drone:/home/jetson/capstone_ws/install/px4_autonomy_modules', 'JETSON_P_NUMBER': 'p3448-0000'}, 'shell': False}
+[5.177580] (-) TimerEvent: {}
+[5.279466] (-) TimerEvent: {}
+[5.381515] (-) TimerEvent: {}
+[5.482197] (-) TimerEvent: {}
+[5.583013] (-) TimerEvent: {}
+[5.686345] (-) TimerEvent: {}
+[5.789292] (-) TimerEvent: {}
+[5.892998] (-) TimerEvent: {}
+[5.995529] (-) TimerEvent: {}
+[6.096353] (-) TimerEvent: {}
+[6.198605] (-) TimerEvent: {}
+[6.301321] (-) TimerEvent: {}
+[6.403572] (-) TimerEvent: {}
+[6.504648] (-) TimerEvent: {}
+[6.608146] (-) TimerEvent: {}
+[6.709146] (-) TimerEvent: {}
+[6.811683] (-) TimerEvent: {}
+[6.912987] (-) TimerEvent: {}
+[7.015298] (-) TimerEvent: {}
+[7.119929] (-) TimerEvent: {}
+[7.157763] (rob498_drone) StderrLine: {'line': b"/usr/local/lib/python3.8/dist-packages/setuptools/dist.py:717: UserWarning: Usage of dash-separated 'script-dir' will not be supported in future versions. Please use the underscore name 'script_dir' instead\n"}
+[7.162411] (rob498_drone) StderrLine: {'line': b'  warnings.warn(\n'}
+[7.220566] (-) TimerEvent: {}
+[7.329120] (-) TimerEvent: {}
+[7.430210] (-) TimerEvent: {}
+[7.504352] (rob498_drone) StdoutLine: {'line': b'running egg_info\n'}
+[7.508975] (rob498_drone) StdoutLine: {'line': b'writing ../build/rob498_drone/rob498_drone.egg-info/PKG-INFO\n'}
+[7.511980] (rob498_drone) StdoutLine: {'line': b'writing dependency_links to ../build/rob498_drone/rob498_drone.egg-info/dependency_links.txt\n'}
+[7.514085] (rob498_drone) StdoutLine: {'line': b'writing entry points to ../build/rob498_drone/rob498_drone.egg-info/entry_points.txt\n'}
+[7.514990] (rob498_drone) StdoutLine: {'line': b'writing requirements to ../build/rob498_drone/rob498_drone.egg-info/requires.txt\n'}
+[7.515788] (rob498_drone) StdoutLine: {'line': b'writing top-level names to ../build/rob498_drone/rob498_drone.egg-info/top_level.txt\n'}
+[7.530456] (-) TimerEvent: {}
+[7.537406] (rob498_drone) StdoutLine: {'line': b"reading manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'\n"}
+[7.542600] (rob498_drone) StdoutLine: {'line': b"writing manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'\n"}
+[7.543614] (rob498_drone) StdoutLine: {'line': b'running build\n'}
+[7.544121] (rob498_drone) StdoutLine: {'line': b'running build_py\n'}
+[7.544741] (rob498_drone) StdoutLine: {'line': b'copying rob498_drone/comm_node.py -> /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone\n'}
+[7.547343] (rob498_drone) StdoutLine: {'line': b'running install\n'}
+[7.549870] (rob498_drone) StdoutLine: {'line': b'running install_lib\n'}
+[7.554149] (rob498_drone) StdoutLine: {'line': b'copying /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone/comm_node.py -> /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone\n'}
+[7.556733] (rob498_drone) StdoutLine: {'line': b'byte-compiling /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone/comm_node.py to comm_node.cpython-38.pyc\n'}
+[7.560279] (rob498_drone) StdoutLine: {'line': b'running install_egg_info\n'}
+[7.570905] (rob498_drone) StdoutLine: {'line': b"removing '/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone-0.0.1-py3.8.egg-info' (and everything under it)\n"}
+[7.572049] (rob498_drone) StdoutLine: {'line': b'Copying ../build/rob498_drone/rob498_drone.egg-info to /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone-0.0.1-py3.8.egg-info\n'}
+[7.579340] (rob498_drone) StdoutLine: {'line': b'running install_scripts\n'}
+[7.630590] (-) TimerEvent: {}
+[7.707440] (rob498_drone) StdoutLine: {'line': b'Installing comm_node script to /home/jetson/capstone_ws/install/rob498_drone/lib/rob498_drone\n'}
+[7.710311] (rob498_drone) StdoutLine: {'line': b"writing list of installed files to '/home/jetson/capstone_ws/build/rob498_drone/install.log'\n"}
+[7.730775] (-) TimerEvent: {}
+[7.831579] (-) TimerEvent: {}
+[7.849271] (rob498_drone) CommandEnded: {'returncode': 0}
+[7.923757] (rob498_drone) JobEnded: {'identifier': 'rob498_drone', 'rc': 0}
+[7.930859] (-) EventReactorShutdown: {}

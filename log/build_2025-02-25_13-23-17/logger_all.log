@@ -1,0 +1,181 @@
+[2.982s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--packages-select', 'rob498_drone']
+[2.983s] DEBUG:colcon:Parsed command line arguments: Namespace(allow_overriding=[], ament_cmake_args=None, base_paths=['.'], build_base='build', catkin_cmake_args=None, catkin_skip_building_tests=False, cmake_args=None, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, cmake_target=None, cmake_target_skip_unavailable=False, continue_on_error=False, event_handlers=None, executor='parallel', ignore_user_meta=False, install_base='install', log_base=None, log_level=None, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x7f8cee3340>>, merge_install=False, metas=['./colcon.meta'], packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_end=None, packages_ignore=None, packages_ignore_regex=None, packages_select=['rob498_drone'], packages_select_build_failed=False, packages_select_by_dep=None, packages_select_regex=None, packages_select_test_failures=False, packages_skip=None, packages_skip_build_finished=False, packages_skip_by_dep=None, packages_skip_regex=None, packages_skip_test_passed=False, packages_skip_up_to=None, packages_start=None, packages_up_to=None, packages_up_to_regex=None, parallel_workers=4, paths=None, symlink_install=False, test_result_base=None, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x7f8cee3340>, verb_name='build', verb_parser=<colcon_defaults.argument_parser.defaults.DefaultArgumentsDecorator object at 0x7f8ce69bb0>)
+[5.294s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[5.296s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[5.298s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[5.302s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[5.302s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[5.305s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[5.306s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/jetson/capstone_ws'
+[5.307s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[5.308s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[5.312s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[5.314s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[5.314s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[5.315s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[5.315s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[5.316s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[5.316s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[5.517s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[5.518s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[5.519s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[5.519s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[5.520s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[5.521s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[5.522s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[5.522s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[5.523s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[5.524s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[5.524s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[5.525s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[5.526s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[5.526s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[5.527s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extensions ['ignore', 'ignore_ament_install']
+[5.528s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extension 'ignore'
+[5.528s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extension 'ignore_ament_install'
+[5.528s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extensions ['colcon_pkg']
+[5.529s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extension 'colcon_pkg'
+[5.529s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extensions ['colcon_meta']
+[5.529s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extension 'colcon_meta'
+[5.530s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extensions ['ros']
+[5.530s] Level 1:colcon.colcon_core.package_identification:_identify(rob498_drone) by extension 'ros'
+[5.676s] DEBUG:colcon.colcon_core.package_identification:Package 'rob498_drone' with type 'ros.ament_python' and name 'rob498_drone'
+[5.679s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[5.682s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[5.684s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[5.688s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[5.689s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[5.689s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[5.690s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[5.690s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[5.691s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[5.691s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[5.692s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[5.692s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[5.693s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[5.693s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[5.694s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extensions ['ignore', 'ignore_ament_install']
+[5.695s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extension 'ignore'
+[5.695s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extension 'ignore_ament_install'
+[5.697s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extensions ['colcon_pkg']
+[5.697s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extension 'colcon_pkg'
+[5.698s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extensions ['colcon_meta']
+[5.698s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extension 'colcon_meta'
+[5.698s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extensions ['ros']
+[5.699s] Level 1:colcon.colcon_core.package_identification:_identify(src/px4_autonomy_modules) by extension 'ros'
+[5.709s] DEBUG:colcon.colcon_core.package_identification:Package 'src/px4_autonomy_modules' with type 'ros.ament_python' and name 'px4_autonomy_modules'
+[5.710s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extensions ['ignore', 'ignore_ament_install']
+[5.711s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'ignore'
+[5.711s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'ignore_ament_install'
+[5.712s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extensions ['colcon_pkg']
+[5.712s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'colcon_pkg'
+[5.713s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extensions ['colcon_meta']
+[5.713s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'colcon_meta'
+[5.714s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extensions ['ros']
+[5.714s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'ros'
+[5.716s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extensions ['cmake', 'python']
+[5.717s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'cmake'
+[5.717s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'python'
+[5.718s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extensions ['python_setup_py']
+[5.718s] Level 1:colcon.colcon_core.package_identification:_identify(src/rob498_drone) by extension 'python_setup_py'
+[5.719s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extensions ['ignore', 'ignore_ament_install']
+[5.721s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'ignore'
+[5.721s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'ignore_ament_install'
+[5.721s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extensions ['colcon_pkg']
+[5.722s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'colcon_pkg'
+[5.722s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extensions ['colcon_meta']
+[5.722s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'colcon_meta'
+[5.723s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extensions ['ros']
+[5.723s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'ros'
+[5.724s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extensions ['cmake', 'python']
+[5.724s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'cmake'
+[5.725s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'python'
+[5.725s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extensions ['python_setup_py']
+[5.726s] Level 1:colcon.colcon_core.package_identification:_identify(src/scripts) by extension 'python_setup_py'
+[5.727s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extensions ['ignore', 'ignore_ament_install']
+[5.728s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'ignore'
+[5.728s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'ignore_ament_install'
+[5.729s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extensions ['colcon_pkg']
+[5.730s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'colcon_pkg'
+[5.731s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extensions ['colcon_meta']
+[5.732s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'colcon_meta'
+[5.733s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extensions ['ros']
+[5.734s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'ros'
+[5.735s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extensions ['cmake', 'python']
+[5.735s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'cmake'
+[5.735s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'python'
+[5.736s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extensions ['python_setup_py']
+[5.736s] Level 1:colcon.colcon_core.package_identification:_identify(src/srv) by extension 'python_setup_py'
+[5.737s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[5.737s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[5.737s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[5.738s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[5.738s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[6.112s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'px4_autonomy_modules' in 'src/px4_autonomy_modules'
+[6.139s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[6.140s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[6.184s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 266 installed packages in /opt/ros/foxy
+[6.207s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[7.091s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'cmake_args' from command line to 'None'
+[7.091s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'cmake_target' from command line to 'None'
+[7.091s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[7.091s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'cmake_clean_cache' from command line to 'False'
+[7.092s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'cmake_clean_first' from command line to 'False'
+[7.092s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'cmake_force_configure' from command line to 'False'
+[7.092s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'ament_cmake_args' from command line to 'None'
+[7.092s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'catkin_cmake_args' from command line to 'None'
+[7.092s] Level 5:colcon.colcon_core.verb:set package 'rob498_drone' build argument 'catkin_skip_building_tests' from command line to 'False'
+[7.092s] DEBUG:colcon.colcon_core.verb:Building package 'rob498_drone' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/jetson/capstone_ws/build/rob498_drone', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/jetson/capstone_ws/install/rob498_drone', 'merge_install': False, 'path': '/home/jetson/capstone_ws/rob498_drone', 'symlink_install': False, 'test_result_base': None}
+[7.093s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[7.098s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[7.100s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/jetson/capstone_ws/rob498_drone' with build type 'ament_python'
+[7.101s] Level 1:colcon.colcon_core.shell:create_environment_hook('rob498_drone', 'ament_prefix_path')
+[7.128s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[7.129s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/hook/ament_prefix_path.ps1'
+[7.134s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/hook/ament_prefix_path.dsv'
+[7.138s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/hook/ament_prefix_path.sh'
+[7.143s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[7.143s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[9.550s] WARNING:colcon.colcon_ros.task.ament_python.build:Package 'rob498_drone' doesn't explicitly install a marker in the package index (colcon-ros currently does it implicitly but that fallback will be removed in the future)
+[9.555s] WARNING:colcon.colcon_ros.task.ament_python.build:Package 'rob498_drone' doesn't explicitly install the 'package.xml' file (colcon-ros currently does it implicitly but that fallback will be removed in the future)
+[9.568s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/jetson/capstone_ws/rob498_drone'
+[9.573s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[9.574s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[12.416s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/jetson/capstone_ws/rob498_drone': PYTHONPATH=/home/jetson/capstone_ws/build/rob498_drone/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/rob498_drone build --build-base /home/jetson/capstone_ws/build/rob498_drone/build install --record /home/jetson/capstone_ws/build/rob498_drone/install.log --install-scripts $base/lib/rob498_drone --single-version-externally-managed
+[14.490s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/jetson/capstone_ws/rob498_drone' returned '0': PYTHONPATH=/home/jetson/capstone_ws/build/rob498_drone/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/rob498_drone build --build-base /home/jetson/capstone_ws/build/rob498_drone/build install --record /home/jetson/capstone_ws/build/rob498_drone/install.log --install-scripts $base/lib/rob498_drone --single-version-externally-managed
+[14.533s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone' for CMake module files
+[14.536s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone' for CMake config files
+[14.540s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone/lib'
+[14.541s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone/bin'
+[14.541s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone/lib/pkgconfig/rob498_drone.pc'
+[14.542s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages'
+[14.543s] Level 1:colcon.colcon_core.shell:create_environment_hook('rob498_drone', 'pythonpath')
+[14.544s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/hook/pythonpath.ps1'
+[14.550s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/hook/pythonpath.dsv'
+[14.554s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/hook/pythonpath.sh'
+[14.558s] Level 1:colcon.colcon_core.environment:checking '/home/jetson/capstone_ws/install/rob498_drone/bin'
+[14.558s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(rob498_drone)
+[14.560s] INFO:colcon.colcon_core.shell:Creating package script '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/package.ps1'
+[14.565s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/package.dsv'
+[14.569s] INFO:colcon.colcon_core.shell:Creating package script '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/package.sh'
+[14.573s] INFO:colcon.colcon_core.shell:Creating package script '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/package.bash'
+[14.580s] INFO:colcon.colcon_core.shell:Creating package script '/home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone/package.zsh'
+[14.587s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/jetson/capstone_ws/install/rob498_drone/share/colcon-core/packages/rob498_drone)
+[14.588s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[14.590s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[14.590s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[14.591s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[14.650s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[14.650s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[14.650s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[14.995s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[14.997s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/jetson/capstone_ws/install/local_setup.ps1'
+[15.003s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/jetson/capstone_ws/install/_local_setup_util_ps1.py'
+[15.015s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/jetson/capstone_ws/install/setup.ps1'
+[15.022s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/jetson/capstone_ws/install/local_setup.sh'
+[15.027s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/jetson/capstone_ws/install/_local_setup_util_sh.py'
+[15.030s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/jetson/capstone_ws/install/setup.sh'
+[15.036s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/jetson/capstone_ws/install/local_setup.bash'
+[15.042s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/jetson/capstone_ws/install/setup.bash'
+[15.118s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/jetson/capstone_ws/install/local_setup.zsh'
+[15.123s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/jetson/capstone_ws/install/setup.zsh'
