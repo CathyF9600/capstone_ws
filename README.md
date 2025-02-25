@@ -10,3 +10,6 @@ Setup Notes:
 3. Jetson nano fan: in terminal run `fan_on` or `fan_off`
  - their command are encoded in ~/.bashrc: eg. `sudo sh -c 'sudo echo 255 > /sys/devices/pwm-fan/target_pwm'`
 
+## Getting Realsense-Viewer to work:
+- https://github.com/IntelRealSense/librealsense/blob/master/doc/installation_jetson.md
+- https://unix.stackexchange.com/questions/399027/gpg-keyserver-receive-failed-server-indicated-a-failure

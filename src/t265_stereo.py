@@ -105,6 +105,7 @@ def callback(frame):
 
 # Declare RealSense pipeline, encapsulating the actual device and sensors
 pipe = rs.pipeline()
+pipeline.start()
 
 # Build config object and stream everything
 cfg = rs.config()
