@@ -1,5 +1,7 @@
 src/task2.py
 
+install/
+log/
 devel/
 logs/
 build/
