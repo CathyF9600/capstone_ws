@@ -1,0 +1,38 @@
+[5.486s] Invoking command in '/home/jetson/capstone_ws/rob498_drone': PYTHONPATH=/home/jetson/capstone_ws/build/rob498_drone/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/rob498_drone build --build-base /home/jetson/capstone_ws/build/rob498_drone/build install --record /home/jetson/capstone_ws/build/rob498_drone/install.log --install-scripts $base/lib/rob498_drone --single-version-externally-managed install_data
+[7.053s] /usr/local/lib/python3.8/dist-packages/setuptools/dist.py:717: UserWarning: Usage of dash-separated 'script-dir' will not be supported in future versions. Please use the underscore name 'script_dir' instead
+[7.054s]   warnings.warn(
+[7.239s] running egg_info
+[7.242s] creating ../build/rob498_drone/rob498_drone.egg-info
+[7.243s] writing ../build/rob498_drone/rob498_drone.egg-info/PKG-INFO
+[7.244s] writing dependency_links to ../build/rob498_drone/rob498_drone.egg-info/dependency_links.txt
+[7.244s] writing entry points to ../build/rob498_drone/rob498_drone.egg-info/entry_points.txt
+[7.245s] writing requirements to ../build/rob498_drone/rob498_drone.egg-info/requires.txt
+[7.245s] writing top-level names to ../build/rob498_drone/rob498_drone.egg-info/top_level.txt
+[7.258s] writing manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'
+[7.267s] reading manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'
+[7.270s] writing manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'
+[7.271s] running build
+[7.272s] running build_py
+[7.272s] creating /home/jetson/capstone_ws/build/rob498_drone/build
+[7.272s] creating /home/jetson/capstone_ws/build/rob498_drone/build/lib
+[7.273s] creating /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone
+[7.274s] copying rob498_drone/task_2.py -> /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone
+[7.274s] copying rob498_drone/__init__.py -> /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone
+[7.275s] running install
+[7.281s] running install_lib
+[7.286s] creating /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone
+[7.287s] copying /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone/task_2.py -> /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone
+[7.288s] copying /home/jetson/capstone_ws/build/rob498_drone/build/lib/rob498_drone/__init__.py -> /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone
+[7.290s] byte-compiling /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone/task_2.py to task_2.cpython-38.pyc
+[7.292s] byte-compiling /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone/__init__.py to __init__.cpython-38.pyc
+[7.294s] running install_data
+[7.294s] creating /home/jetson/capstone_ws/install/rob498_drone/share/ament_index
+[7.295s] creating /home/jetson/capstone_ws/install/rob498_drone/share/ament_index/resource_index
+[7.296s] creating /home/jetson/capstone_ws/install/rob498_drone/share/ament_index/resource_index/packages
+[7.296s] copying resource/rob498_drone -> /home/jetson/capstone_ws/install/rob498_drone/share/ament_index/resource_index/packages
+[7.296s] copying package.xml -> /home/jetson/capstone_ws/install/rob498_drone/share/rob498_drone
+[7.297s] running install_egg_info
+[7.304s] Copying ../build/rob498_drone/rob498_drone.egg-info to /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone-0.0.0-py3.8.egg-info
+[7.311s] running install_scripts
+[7.406s] writing list of installed files to '/home/jetson/capstone_ws/build/rob498_drone/install.log'
+[7.538s] Invoked command in '/home/jetson/capstone_ws/rob498_drone' returned '0': PYTHONPATH=/home/jetson/capstone_ws/build/rob498_drone/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../build/rob498_drone build --build-base /home/jetson/capstone_ws/build/rob498_drone/build install --record /home/jetson/capstone_ws/build/rob498_drone/install.log --install-scripts $base/lib/rob498_drone --single-version-externally-managed install_data
