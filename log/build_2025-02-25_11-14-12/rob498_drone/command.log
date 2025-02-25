@@ -1,0 +1,6 @@
+Invoking command in '/home/autoronto/capstone_ws/build/rob498_drone': /usr/local/bin/cmake /home/autoronto/capstone_ws/src/rob498_drone -DCATKIN_INSTALL_INTO_PREFIX_ROOT=0 -DCMAKE_INSTALL_PREFIX=/home/autoronto/capstone_ws/install/rob498_drone
+Invoked command in '/home/autoronto/capstone_ws/build/rob498_drone' returned '0': /usr/local/bin/cmake /home/autoronto/capstone_ws/src/rob498_drone -DCATKIN_INSTALL_INTO_PREFIX_ROOT=0 -DCMAKE_INSTALL_PREFIX=/home/autoronto/capstone_ws/install/rob498_drone
+Invoking command in '/home/autoronto/capstone_ws/build/rob498_drone': /usr/local/bin/cmake --build /home/autoronto/capstone_ws/build/rob498_drone -- -j8 -l8
+Invoked command in '/home/autoronto/capstone_ws/build/rob498_drone' returned '0': /usr/local/bin/cmake --build /home/autoronto/capstone_ws/build/rob498_drone -- -j8 -l8
+Invoking command in '/home/autoronto/capstone_ws/build/rob498_drone': /usr/local/bin/cmake --install /home/autoronto/capstone_ws/build/rob498_drone
+Invoked command in '/home/autoronto/capstone_ws/build/rob498_drone' returned '0': /usr/local/bin/cmake --install /home/autoronto/capstone_ws/build/rob498_drone
