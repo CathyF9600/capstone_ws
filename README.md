@@ -1,5 +1,5 @@
 # rob489-capstone
-Setup Notes:
+## Setup Notes:
 1. Wireless connection with jetson (ssh)
  - connect both laptop and jetson to TP-link course wifi
  - on laptop, run `ssh jetson@10.42.0.103` password is `jetson`
@@ -9,4 +9,22 @@ Setup Notes:
  - connect jetson to a wifi with internet service
 3. Jetson nano fan: in terminal run `fan_on` or `fan_off`
  - their command are encoded in ~/.bashrc: eg. `sudo sh -c 'sudo echo 255 > /sys/devices/pwm-fan/target_pwm'`
+
+## Exercise 2:
+### Check for MAVROS Connections:
+1. Ensure MAVROS is Connected to PX4
+    - `ls /dev/ttyUSB*` expected to see `ttyUSB0`
+    - `ros2 launch px4_autonomy_modules mavros.launch.py`
+  
+2. Run Your Drone Communication Node
+    - `ros2 run rob498_drone comm_node`
+3. Echo Vicon Topic to Verify It Works
+   - `ros2 topic echo /vicon/ROB498_Drone/ROB498_Drone`
+4. Send Commands Using ROS 2 Services
+   - `ros2 service call /comm/launch std_srvs/srv/Trigger`
+   - `ros2 service call /comm/land std_srvs/srv/Trigger`
+   - `ros2 service call /comm/abort std_srvs/srv/Trigger`
+
+
+
 
