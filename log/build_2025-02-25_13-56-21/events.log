@@ -1,0 +1,228 @@
+[0.000000] (-) TimerEvent: {}
+[0.000988] (px4_autonomy_modules) JobQueued: {'identifier': 'px4_autonomy_modules', 'dependencies': OrderedDict()}
+[0.001164] (rob498_drone) JobQueued: {'identifier': 'rob498_drone', 'dependencies': OrderedDict()}
+[0.002193] (px4_autonomy_modules) JobStarted: {'identifier': 'px4_autonomy_modules'}
+[0.038420] (rob498_drone) JobStarted: {'identifier': 'rob498_drone'}
+[0.094107] (px4_autonomy_modules) JobProgress: {'identifier': 'px4_autonomy_modules', 'progress': 'cmake'}
+[0.097725] (px4_autonomy_modules) Command: {'cmd': ['/usr/bin/cmake', '/home/jetson/capstone_ws/src/px4_autonomy_modules', '-DCMAKE_INSTALL_PREFIX=/home/jetson/capstone_ws/install/px4_autonomy_modules'], 'cwd': '/home/jetson/capstone_ws/build/px4_autonomy_modules', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('LANGUAGE', 'en_CA:en'), ('USER', 'jetson'), ('LC_TIME', 'en_CA.UTF-8'), ('SSH_AGENT_PID', '7420'), ('XDG_SESSION_TYPE', 'x11'), ('GIT_ASKPASS', '/usr/share/code/resources/app/extensions/git/dist/askpass.sh'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib'), ('HOME', '/home/jetson'), ('CHROME_DESKTOP', 'code.desktop'), ('TERM_PROGRAM_VERSION', '1.97.2'), ('DESKTOP_SESSION', 'ubuntu'), ('JETSON_L4T', '32.6.1'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('JETSON_MODEL', 'NVIDIA Jetson Nano Developer Kit'), ('VSCODE_GIT_ASKPASS_MAIN', '/usr/share/code/resources/app/extensions/git/dist/askpass-main.js'), ('LC_MONETARY', 'en_CA.UTF-8'), ('VSCODE_GIT_ASKPASS_NODE', '/usr/share/code/code'), ('MANAGERPID', '7218'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', 'truecolor'), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '23373'), ('MANDATORY_PATH', '/usr/share/gconf/ubuntu.mandatory.path'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/jetson/capstone_ws/install'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'jetson'), ('JETSON_MODULE', 'NVIDIA Jetson Nano (4 GB ram)'), ('JETSON_SERIAL_NUMBER', '1423221001506'), ('JOURNAL_STREAM', '8:38329'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('JETSON_CODENAME', 'Porg'), ('XDG_SESSION_CLASS', 'user'), ('DEFAULTS_PATH', '/usr/share/gconf/ubuntu.default.path'), ('USERNAME', 'jetson'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/usr/local/cuda/bin:/home/jetson/.local/bin:/opt/ros/foxy/bin:/usr/local/cuda/bin:/home/jetson/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'), ('SESSION_MANAGER', 'local/nano:@/tmp/.ICE-unix/7456,unix/nano:/tmp/.ICE-unix/7456'), ('INVOCATION_ID', '51ac3a02bb684efe9312c7e3e25378d8'), ('PAPERSIZE', 'letter'), ('XDG_MENU_PREFIX', 'gnome-'), ('LC_ADDRESS', 'en_CA.UTF-8'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'en_CA.UTF-8'), ('XDG_CURRENT_DESKTOP', 'Unity'), ('LC_TELEPHONE', 'en_CA.UTF-8'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('JETSON_SOC', 'tegra210'), ('VSCODE_GIT_IPC_HANDLE', '/run/user/1000/vscode-git-899a41daed.sock'), ('TERM_PROGRAM', 'vscode'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('ROS_DOMAIN_ID', '3'), ('AMENT_PREFIX_PATH', '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy'), ('ORIGINAL_XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('SHELL', '/bin/bash'), ('LC_NAME', 'en_CA.UTF-8'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('JETSON_BOARDIDS', 'p3448'), ('LC_MEASUREMENT', 'en_CA.UTF-8'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('LC_IDENTIFICATION', 'en_CA.UTF-8'), ('VSCODE_GIT_ASKPASS_EXTRA_ARGS', ''), ('QT_IM_MODULE', 'ibus'), ('JETSON_CUDA_ARCH_BIN', '5.3'), ('PWD', '/home/jetson/capstone_ws/build/px4_autonomy_modules'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages'), ('LC_NUMERIC', 'en_CA.UTF-8'), ('LC_PAPER', 'en_CA.UTF-8'), ('COLCON', '1'), ('JETSON_JETPACK', '4.6'), ('JETSON_P_NUMBER', 'p3448-0000'), ('CMAKE_PREFIX_PATH', '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy')]), 'shell': False}
+[0.104766] (-) TimerEvent: {}
+[0.205793] (-) TimerEvent: {}
+[0.306838] (-) TimerEvent: {}
+[0.407906] (-) TimerEvent: {}
+[0.509501] (-) TimerEvent: {}
+[0.610882] (-) TimerEvent: {}
+[0.711876] (-) TimerEvent: {}
+[0.812941] (-) TimerEvent: {}
+[0.913695] (-) TimerEvent: {}
+[1.012217] (px4_autonomy_modules) StdoutLine: {'line': b'-- The C compiler identification is GNU 8.4.0\n'}
+[1.013801] (-) TimerEvent: {}
+[1.114485] (-) TimerEvent: {}
+[1.215549] (-) TimerEvent: {}
+[1.316739] (-) TimerEvent: {}
+[1.417646] (-) TimerEvent: {}
+[1.518499] (-) TimerEvent: {}
+[1.525930] (px4_autonomy_modules) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 8.4.0\n'}
+[1.571524] (px4_autonomy_modules) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc\n'}
+[1.618701] (-) TimerEvent: {}
+[1.720059] (-) TimerEvent: {}
+[1.820859] (-) TimerEvent: {}
+[1.922590] (-) TimerEvent: {}
+[2.025728] (-) TimerEvent: {}
+[2.034682] (px4_autonomy_modules) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc -- works\n'}
+[2.050210] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[2.125866] (-) TimerEvent: {}
+[2.226632] (-) TimerEvent: {}
+[2.327415] (-) TimerEvent: {}
+[2.428141] (-) TimerEvent: {}
+[2.521527] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[2.528314] (-) TimerEvent: {}
+[2.605955] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[2.609940] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[2.627337] (px4_autonomy_modules) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++\n'}
+[2.628917] (-) TimerEvent: {}
+[2.729923] (-) TimerEvent: {}
+[2.830830] (-) TimerEvent: {}
+[2.931871] (-) TimerEvent: {}
+[2.988980] (px4_autonomy_modules) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ -- works\n'}
+[2.994832] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[3.032043] (-) TimerEvent: {}
+[3.133153] (-) TimerEvent: {}
+[3.234207] (-) TimerEvent: {}
+[3.334992] (-) TimerEvent: {}
+[3.356792] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[3.418573] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[3.420621] (px4_autonomy_modules) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[3.435142] (-) TimerEvent: {}
+[3.459387] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found ament_cmake: 0.9.12 (/opt/ros/foxy/share/ament_cmake/cmake)\n'}
+[3.535377] (-) TimerEvent: {}
+[3.609095] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") \n'}
+[3.609906] (px4_autonomy_modules) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[3.635534] (-) TimerEvent: {}
+[3.736205] (-) TimerEvent: {}
+[3.837049] (-) TimerEvent: {}
+[3.937727] (-) TimerEvent: {}
+[4.038428] (-) TimerEvent: {}
+[4.139198] (-) TimerEvent: {}
+[4.239883] (-) TimerEvent: {}
+[4.340679] (-) TimerEvent: {}
+[4.441525] (-) TimerEvent: {}
+[4.543894] (-) TimerEvent: {}
+[4.644667] (-) TimerEvent: {}
+[4.746556] (-) TimerEvent: {}
+[4.847393] (-) TimerEvent: {}
+[4.948235] (-) TimerEvent: {}
+[5.017960] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found rclcpp: 2.4.3 (/opt/ros/foxy/share/rclcpp/cmake)\n'}
+[5.048486] (-) TimerEvent: {}
+[5.149235] (-) TimerEvent: {}
+[5.250033] (-) TimerEvent: {}
+[5.350773] (-) TimerEvent: {}
+[5.381947] (px4_autonomy_modules) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[5.441421] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)\n'}
+[5.451077] (-) TimerEvent: {}
+[5.456587] (rob498_drone) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'egg_info', '--egg-base', '../build/rob498_drone', 'build', '--build-base', '/home/jetson/capstone_ws/build/rob498_drone/build', 'install', '--record', '/home/jetson/capstone_ws/build/rob498_drone/install.log', '--install-scripts', '$base/lib/rob498_drone', '--single-version-externally-managed'], 'cwd': '/home/jetson/capstone_ws/rob498_drone', 'env': {'GJS_DEBUG_TOPICS': 'JS ERROR;JS LOG', 'LESSOPEN': '| /usr/bin/lesspipe %s', 'LANGUAGE': 'en_CA:en', 'USER': 'jetson', 'LC_TIME': 'en_CA.UTF-8', 'SSH_AGENT_PID': '7420', 'XDG_SESSION_TYPE': 'x11', 'GIT_ASKPASS': '/usr/share/code/resources/app/extensions/git/dist/askpass.sh', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib', 'HOME': '/home/jetson', 'CHROME_DESKTOP': 'code.desktop', 'TERM_PROGRAM_VERSION': '1.97.2', 'DESKTOP_SESSION': 'ubuntu', 'JETSON_L4T': '32.6.1', 'GIO_LAUNCHED_DESKTOP_FILE': '/usr/share/applications/code.desktop', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'JETSON_MODEL': 'NVIDIA Jetson Nano Developer Kit', 'VSCODE_GIT_ASKPASS_MAIN': '/usr/share/code/resources/app/extensions/git/dist/askpass-main.js', 'LC_MONETARY': 'en_CA.UTF-8', 'VSCODE_GIT_ASKPASS_NODE': '/usr/share/code/code', 'MANAGERPID': '7218', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLORTERM': 'truecolor', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '23373', 'MANDATORY_PATH': '/usr/share/gconf/ubuntu.mandatory.path', 'IM_CONFIG_PHASE': '1', 'COLCON_PREFIX_PATH': '/home/jetson/capstone_ws/install', 'ROS_DISTRO': 'foxy', 'LOGNAME': 'jetson', 'JETSON_MODULE': 'NVIDIA Jetson Nano (4 GB ram)', 'JETSON_SERIAL_NUMBER': '1423221001506', 'JOURNAL_STREAM': '8:38329', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'JETSON_CODENAME': 'Porg', 'XDG_SESSION_CLASS': 'user', 'DEFAULTS_PATH': '/usr/share/gconf/ubuntu.default.path', 'USERNAME': 'jetson', 'TERM': 'xterm-256color', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'ROS_LOCALHOST_ONLY': '0', 'WINDOWPATH': '2', 'PATH': '/usr/local/cuda/bin:/home/jetson/.local/bin:/opt/ros/foxy/bin:/usr/local/cuda/bin:/home/jetson/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'SESSION_MANAGER': 'local/nano:@/tmp/.ICE-unix/7456,unix/nano:/tmp/.ICE-unix/7456', 'INVOCATION_ID': '51ac3a02bb684efe9312c7e3e25378d8', 'PAPERSIZE': 'letter', 'XDG_MENU_PREFIX': 'gnome-', 'LC_ADDRESS': 'en_CA.UTF-8', 'XDG_RUNTIME_DIR': '/run/user/1000', 'GDK_BACKEND': 'x11', 'DISPLAY': ':0', 'LANG': 'en_CA.UTF-8', 'XDG_CURRENT_DESKTOP': 'Unity', 'LC_TELEPHONE': 'en_CA.UTF-8', 'XMODIFIERS': '@im=ibus', 'XDG_SESSION_DESKTOP': 'ubuntu', 'XAUTHORITY': '/run/user/1000/gdm/Xauthority', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'JETSON_SOC': 'tegra210', 'VSCODE_GIT_IPC_HANDLE': '/run/user/1000/vscode-git-899a41daed.sock', 'TERM_PROGRAM': 'vscode', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'ROS_DOMAIN_ID': '3', 'AMENT_PREFIX_PATH': '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'SHELL': '/bin/bash', 'LC_NAME': 'en_CA.UTF-8', 'QT_ACCESSIBILITY': '1', 'GDMSESSION': 'ubuntu', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'JETSON_BOARDIDS': 'p3448', 'LC_MEASUREMENT': 'en_CA.UTF-8', 'GPG_AGENT_INFO': '/run/user/1000/gnupg/S.gpg-agent:0:1', 'GJS_DEBUG_OUTPUT': 'stderr', 'LC_IDENTIFICATION': 'en_CA.UTF-8', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '', 'QT_IM_MODULE': 'ibus', 'JETSON_CUDA_ARCH_BIN': '5.3', 'PWD': '/home/jetson/capstone_ws/build/rob498_drone', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu:/etc/xdg', 'XDG_DATA_DIRS': '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/jetson/capstone_ws/build/rob498_drone/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages', 'LC_NUMERIC': 'en_CA.UTF-8', 'LC_PAPER': 'en_CA.UTF-8', 'COLCON': '1', 'JETSON_JETPACK': '4.6', 'JETSON_P_NUMBER': 'p3448-0000'}, 'shell': False}
+[5.551345] (-) TimerEvent: {}
+[5.652099] (-) TimerEvent: {}
+[5.752919] (-) TimerEvent: {}
+[5.854212] (-) TimerEvent: {}
+[5.954940] (-) TimerEvent: {}
+[5.967311] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "1.1.1f")  \n'}
+[6.055211] (-) TimerEvent: {}
+[6.103965] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/foxy/include  \n'}
+[6.155336] (-) TimerEvent: {}
+[6.257387] (-) TimerEvent: {}
+[6.358333] (-) TimerEvent: {}
+[6.459259] (-) TimerEvent: {}
+[6.559405] (px4_autonomy_modules) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[6.560024] (-) TimerEvent: {}
+[6.662373] (-) TimerEvent: {}
+[6.763243] (-) TimerEvent: {}
+[6.841359] (rob498_drone) StderrLine: {'line': b"/usr/local/lib/python3.8/dist-packages/setuptools/dist.py:717: UserWarning: Usage of dash-separated 'script-dir' will not be supported in future versions. Please use the underscore name 'script_dir' instead\n"}
+[6.842122] (rob498_drone) StderrLine: {'line': b'  warnings.warn(\n'}
+[6.863251] (-) TimerEvent: {}
+[6.928534] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)\n'}
+[6.939430] (px4_autonomy_modules) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[6.947884] (px4_autonomy_modules) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[6.963413] (-) TimerEvent: {}
+[7.028216] (rob498_drone) StdoutLine: {'line': b'running egg_info\n'}
+[7.034443] (rob498_drone) StdoutLine: {'line': b'writing ../build/rob498_drone/rob498_drone.egg-info/PKG-INFO\n'}
+[7.035139] (rob498_drone) StdoutLine: {'line': b'writing dependency_links to ../build/rob498_drone/rob498_drone.egg-info/dependency_links.txt\n'}
+[7.036433] (rob498_drone) StdoutLine: {'line': b'writing entry points to ../build/rob498_drone/rob498_drone.egg-info/entry_points.txt\n'}
+[7.037037] (rob498_drone) StdoutLine: {'line': b'writing requirements to ../build/rob498_drone/rob498_drone.egg-info/requires.txt\n'}
+[7.037574] (rob498_drone) StdoutLine: {'line': b'writing top-level names to ../build/rob498_drone/rob498_drone.egg-info/top_level.txt\n'}
+[7.063135] (rob498_drone) StdoutLine: {'line': b"reading manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'\n"}
+[7.063742] (-) TimerEvent: {}
+[7.068845] (rob498_drone) StdoutLine: {'line': b"writing manifest file '../build/rob498_drone/rob498_drone.egg-info/SOURCES.txt'\n"}
+[7.069714] (rob498_drone) StdoutLine: {'line': b'running build\n'}
+[7.070254] (rob498_drone) StdoutLine: {'line': b'running build_py\n'}
+[7.075172] (rob498_drone) StdoutLine: {'line': b'running install\n'}
+[7.078805] (rob498_drone) StdoutLine: {'line': b'running install_lib\n'}
+[7.084368] (rob498_drone) StdoutLine: {'line': b'running install_egg_info\n'}
+[7.092891] (rob498_drone) StdoutLine: {'line': b"removing '/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone-0.0.1-py3.8.egg-info' (and everything under it)\n"}
+[7.101253] (rob498_drone) StdoutLine: {'line': b'Copying ../build/rob498_drone/rob498_drone.egg-info to /home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages/rob498_drone-0.0.1-py3.8.egg-info\n'}
+[7.104758] (rob498_drone) StdoutLine: {'line': b'running install_scripts\n'}
+[7.163993] (-) TimerEvent: {}
+[7.195728] (rob498_drone) StdoutLine: {'line': b'Installing comm_node script to /home/jetson/capstone_ws/install/rob498_drone/lib/rob498_drone\n'}
+[7.198673] (rob498_drone) StdoutLine: {'line': b"writing list of installed files to '/home/jetson/capstone_ws/build/rob498_drone/install.log'\n"}
+[7.264183] (-) TimerEvent: {}
+[7.339137] (px4_autonomy_modules) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[7.341483] (px4_autonomy_modules) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[7.342073] (rob498_drone) CommandEnded: {'returncode': 0}
+[7.364356] (-) TimerEvent: {}
+[7.424724] (rob498_drone) JobEnded: {'identifier': 'rob498_drone', 'rc': 0}
+[7.464570] (-) TimerEvent: {}
+[7.565360] (-) TimerEvent: {}
+[7.660550] (px4_autonomy_modules) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed\n'}
+[7.661183] (px4_autonomy_modules) StdoutLine: {'line': b'-- Looking for pthread_create in pthreads\n'}
+[7.665555] (-) TimerEvent: {}
+[7.766259] (-) TimerEvent: {}
+[7.866915] (-) TimerEvent: {}
+[7.889904] (px4_autonomy_modules) StdoutLine: {'line': b'-- Looking for pthread_create in pthreads - not found\n'}
+[7.890849] (px4_autonomy_modules) StdoutLine: {'line': b'-- Looking for pthread_create in pthread\n'}
+[7.967237] (-) TimerEvent: {}
+[8.067943] (-) TimerEvent: {}
+[8.168681] (-) TimerEvent: {}
+[8.172970] (px4_autonomy_modules) StdoutLine: {'line': b'-- Looking for pthread_create in pthread - found\n'}
+[8.177018] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[8.268837] (-) TimerEvent: {}
+[8.369501] (-) TimerEvent: {}
+[8.470155] (-) TimerEvent: {}
+[8.570812] (-) TimerEvent: {}
+[8.671463] (-) TimerEvent: {}
+[8.772112] (-) TimerEvent: {}
+[8.872956] (-) TimerEvent: {}
+[8.973604] (-) TimerEvent: {}
+[9.034543] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found geometry_msgs: 2.0.5 (/opt/ros/foxy/share/geometry_msgs/cmake)\n'}
+[9.073773] (-) TimerEvent: {}
+[9.174444] (-) TimerEvent: {}
+[9.229430] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found std_srvs: 2.0.5 (/opt/ros/foxy/share/std_srvs/cmake)\n'}
+[9.274611] (-) TimerEvent: {}
+[9.293285] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found mavros_msgs: 2.4.0 (/opt/ros/foxy/share/mavros_msgs/cmake)\n'}
+[9.374784] (-) TimerEvent: {}
+[9.475416] (-) TimerEvent: {}
+[9.576121] (-) TimerEvent: {}
+[9.676861] (-) TimerEvent: {}
+[9.777584] (-) TimerEvent: {}
+[9.879443] (-) TimerEvent: {}
+[9.980629] (-) TimerEvent: {}
+[10.082516] (-) TimerEvent: {}
+[10.183216] (-) TimerEvent: {}
+[10.284397] (-) TimerEvent: {}
+[10.385222] (-) TimerEvent: {}
+[10.486400] (-) TimerEvent: {}
+[10.587461] (-) TimerEvent: {}
+[10.688102] (-) TimerEvent: {}
+[10.789127] (-) TimerEvent: {}
+[10.889795] (-) TimerEvent: {}
+[10.990752] (-) TimerEvent: {}
+[11.091471] (-) TimerEvent: {}
+[11.200593] (-) TimerEvent: {}
+[11.302641] (-) TimerEvent: {}
+[11.403993] (-) TimerEvent: {}
+[11.505154] (-) TimerEvent: {}
+[11.605808] (-) TimerEvent: {}
+[11.706704] (-) TimerEvent: {}
+[11.807853] (-) TimerEvent: {}
+[11.908602] (-) TimerEvent: {}
+[12.009288] (-) TimerEvent: {}
+[12.096190] (px4_autonomy_modules) StdoutLine: {'line': b'-- Found mavros: 2.4.0 (/opt/ros/foxy/share/mavros/cmake)\n'}
+[12.109443] (-) TimerEvent: {}
+[12.210051] (-) TimerEvent: {}
+[12.310922] (-) TimerEvent: {}
+[12.411676] (-) TimerEvent: {}
+[12.489008] (px4_autonomy_modules) StdoutLine: {'line': b'-- Configuring done\n'}
+[12.498094] (px4_autonomy_modules) StdoutLine: {'line': b'-- Generating done\n'}
+[12.507576] (px4_autonomy_modules) StdoutLine: {'line': b'-- Build files have been written to: /home/jetson/capstone_ws/build/px4_autonomy_modules\n'}
+[12.511824] (-) TimerEvent: {}
+[12.546633] (px4_autonomy_modules) CommandEnded: {'returncode': 0}
+[12.550489] (px4_autonomy_modules) JobProgress: {'identifier': 'px4_autonomy_modules', 'progress': 'build'}
+[12.553540] (px4_autonomy_modules) Command: {'cmd': ['/usr/bin/cmake', '--build', '/home/jetson/capstone_ws/build/px4_autonomy_modules', '--', '-j4', '-l4'], 'cwd': '/home/jetson/capstone_ws/build/px4_autonomy_modules', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('LANGUAGE', 'en_CA:en'), ('USER', 'jetson'), ('LC_TIME', 'en_CA.UTF-8'), ('SSH_AGENT_PID', '7420'), ('XDG_SESSION_TYPE', 'x11'), ('GIT_ASKPASS', '/usr/share/code/resources/app/extensions/git/dist/askpass.sh'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib'), ('HOME', '/home/jetson'), ('CHROME_DESKTOP', 'code.desktop'), ('TERM_PROGRAM_VERSION', '1.97.2'), ('DESKTOP_SESSION', 'ubuntu'), ('JETSON_L4T', '32.6.1'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('JETSON_MODEL', 'NVIDIA Jetson Nano Developer Kit'), ('VSCODE_GIT_ASKPASS_MAIN', '/usr/share/code/resources/app/extensions/git/dist/askpass-main.js'), ('LC_MONETARY', 'en_CA.UTF-8'), ('VSCODE_GIT_ASKPASS_NODE', '/usr/share/code/code'), ('MANAGERPID', '7218'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', 'truecolor'), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '23373'), ('MANDATORY_PATH', '/usr/share/gconf/ubuntu.mandatory.path'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/jetson/capstone_ws/install'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'jetson'), ('JETSON_MODULE', 'NVIDIA Jetson Nano (4 GB ram)'), ('JETSON_SERIAL_NUMBER', '1423221001506'), ('JOURNAL_STREAM', '8:38329'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('JETSON_CODENAME', 'Porg'), ('XDG_SESSION_CLASS', 'user'), ('DEFAULTS_PATH', '/usr/share/gconf/ubuntu.default.path'), ('USERNAME', 'jetson'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/usr/local/cuda/bin:/home/jetson/.local/bin:/opt/ros/foxy/bin:/usr/local/cuda/bin:/home/jetson/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'), ('SESSION_MANAGER', 'local/nano:@/tmp/.ICE-unix/7456,unix/nano:/tmp/.ICE-unix/7456'), ('INVOCATION_ID', '51ac3a02bb684efe9312c7e3e25378d8'), ('PAPERSIZE', 'letter'), ('XDG_MENU_PREFIX', 'gnome-'), ('LC_ADDRESS', 'en_CA.UTF-8'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'en_CA.UTF-8'), ('XDG_CURRENT_DESKTOP', 'Unity'), ('LC_TELEPHONE', 'en_CA.UTF-8'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('JETSON_SOC', 'tegra210'), ('VSCODE_GIT_IPC_HANDLE', '/run/user/1000/vscode-git-899a41daed.sock'), ('TERM_PROGRAM', 'vscode'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('ROS_DOMAIN_ID', '3'), ('AMENT_PREFIX_PATH', '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy'), ('ORIGINAL_XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('SHELL', '/bin/bash'), ('LC_NAME', 'en_CA.UTF-8'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('JETSON_BOARDIDS', 'p3448'), ('LC_MEASUREMENT', 'en_CA.UTF-8'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('LC_IDENTIFICATION', 'en_CA.UTF-8'), ('VSCODE_GIT_ASKPASS_EXTRA_ARGS', ''), ('QT_IM_MODULE', 'ibus'), ('JETSON_CUDA_ARCH_BIN', '5.3'), ('PWD', '/home/jetson/capstone_ws/build/px4_autonomy_modules'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages'), ('LC_NUMERIC', 'en_CA.UTF-8'), ('LC_PAPER', 'en_CA.UTF-8'), ('COLCON', '1'), ('JETSON_JETPACK', '4.6'), ('JETSON_P_NUMBER', 'p3448-0000'), ('CMAKE_PREFIX_PATH', '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy')]), 'shell': False}
+[12.612131] (-) TimerEvent: {}
+[12.713033] (-) TimerEvent: {}
+[12.738597] (px4_autonomy_modules) CommandEnded: {'returncode': 0}
+[12.743458] (px4_autonomy_modules) JobProgress: {'identifier': 'px4_autonomy_modules', 'progress': 'install'}
+[12.787572] (px4_autonomy_modules) Command: {'cmd': ['/usr/bin/cmake', '--install', '/home/jetson/capstone_ws/build/px4_autonomy_modules'], 'cwd': '/home/jetson/capstone_ws/build/px4_autonomy_modules', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('LANGUAGE', 'en_CA:en'), ('USER', 'jetson'), ('LC_TIME', 'en_CA.UTF-8'), ('SSH_AGENT_PID', '7420'), ('XDG_SESSION_TYPE', 'x11'), ('GIT_ASKPASS', '/usr/share/code/resources/app/extensions/git/dist/askpass.sh'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib'), ('HOME', '/home/jetson'), ('CHROME_DESKTOP', 'code.desktop'), ('TERM_PROGRAM_VERSION', '1.97.2'), ('DESKTOP_SESSION', 'ubuntu'), ('JETSON_L4T', '32.6.1'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('JETSON_MODEL', 'NVIDIA Jetson Nano Developer Kit'), ('VSCODE_GIT_ASKPASS_MAIN', '/usr/share/code/resources/app/extensions/git/dist/askpass-main.js'), ('LC_MONETARY', 'en_CA.UTF-8'), ('VSCODE_GIT_ASKPASS_NODE', '/usr/share/code/code'), ('MANAGERPID', '7218'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', 'truecolor'), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '23373'), ('MANDATORY_PATH', '/usr/share/gconf/ubuntu.mandatory.path'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/jetson/capstone_ws/install'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'jetson'), ('JETSON_MODULE', 'NVIDIA Jetson Nano (4 GB ram)'), ('JETSON_SERIAL_NUMBER', '1423221001506'), ('JOURNAL_STREAM', '8:38329'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('JETSON_CODENAME', 'Porg'), ('XDG_SESSION_CLASS', 'user'), ('DEFAULTS_PATH', '/usr/share/gconf/ubuntu.default.path'), ('USERNAME', 'jetson'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/usr/local/cuda/bin:/home/jetson/.local/bin:/opt/ros/foxy/bin:/usr/local/cuda/bin:/home/jetson/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'), ('SESSION_MANAGER', 'local/nano:@/tmp/.ICE-unix/7456,unix/nano:/tmp/.ICE-unix/7456'), ('INVOCATION_ID', '51ac3a02bb684efe9312c7e3e25378d8'), ('PAPERSIZE', 'letter'), ('XDG_MENU_PREFIX', 'gnome-'), ('LC_ADDRESS', 'en_CA.UTF-8'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'en_CA.UTF-8'), ('XDG_CURRENT_DESKTOP', 'Unity'), ('LC_TELEPHONE', 'en_CA.UTF-8'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('JETSON_SOC', 'tegra210'), ('VSCODE_GIT_IPC_HANDLE', '/run/user/1000/vscode-git-899a41daed.sock'), ('TERM_PROGRAM', 'vscode'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('ROS_DOMAIN_ID', '3'), ('AMENT_PREFIX_PATH', '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy'), ('ORIGINAL_XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('SHELL', '/bin/bash'), ('LC_NAME', 'en_CA.UTF-8'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('JETSON_BOARDIDS', 'p3448'), ('LC_MEASUREMENT', 'en_CA.UTF-8'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('LC_IDENTIFICATION', 'en_CA.UTF-8'), ('VSCODE_GIT_ASKPASS_EXTRA_ARGS', ''), ('QT_IM_MODULE', 'ibus'), ('JETSON_CUDA_ARCH_BIN', '5.3'), ('PWD', '/home/jetson/capstone_ws/build/px4_autonomy_modules'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/home/jetson/capstone_ws/install/rob498_drone/lib/python3.8/site-packages:/opt/ros/foxy/lib/python3.8/site-packages'), ('LC_NUMERIC', 'en_CA.UTF-8'), ('LC_PAPER', 'en_CA.UTF-8'), ('COLCON', '1'), ('JETSON_JETPACK', '4.6'), ('JETSON_P_NUMBER', 'p3448-0000'), ('CMAKE_PREFIX_PATH', '/home/jetson/capstone_ws/install/rob498_drone:/opt/ros/foxy')]), 'shell': False}
+[12.813250] (-) TimerEvent: {}
+[12.824090] (px4_autonomy_modules) StdoutLine: {'line': b'-- Install configuration: ""\n'}
+[12.825775] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch\n'}
+[12.826180] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch/px4_config.yaml\n'}
+[12.827631] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch/px4_pluginlists.yaml\n'}
+[12.829466] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/launch/mavros.launch.py\n'}
+[12.830588] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/ament_index/resource_index/package_run_dependencies/px4_autonomy_modules\n'}
+[12.833276] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/ament_index/resource_index/parent_prefix_path/px4_autonomy_modules\n'}
+[12.833960] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/ament_prefix_path.sh\n'}
+[12.834473] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/ament_prefix_path.dsv\n'}
+[12.834932] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/path.sh\n'}
+[12.835392] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/environment/path.dsv\n'}
+[12.835766] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.bash\n'}
+[12.836205] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.sh\n'}
+[12.836746] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.zsh\n'}
+[12.837624] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/local_setup.dsv\n'}
+[12.838225] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/package.dsv\n'}
+[12.838670] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/ament_index/resource_index/packages/px4_autonomy_modules\n'}
+[12.839270] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/cmake/px4_autonomy_modulesConfig.cmake\n'}
+[12.839743] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/cmake/px4_autonomy_modulesConfig-version.cmake\n'}
+[12.840274] (px4_autonomy_modules) StdoutLine: {'line': b'-- Installing: /home/jetson/capstone_ws/install/px4_autonomy_modules/share/px4_autonomy_modules/package.xml\n'}
+[12.847032] (px4_autonomy_modules) CommandEnded: {'returncode': 0}
+[12.913609] (-) TimerEvent: {}
+[12.939227] (px4_autonomy_modules) JobEnded: {'identifier': 'px4_autonomy_modules', 'rc': 0}
+[12.944993] (-) EventReactorShutdown: {}
