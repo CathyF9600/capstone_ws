@@ -1,4 +1,6 @@
 # rob489-capstone
+## Clone this repository
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 ## Setup Notes:
 1. Wireless connection with jetson (ssh)
  - connect both laptop and jetson to TP-link course wifi
