@@ -11,7 +11,6 @@
  - their command are encoded in ~/.bashrc: eg. `sudo sh -c 'sudo echo 255 > /sys/devices/pwm-fan/target_pwm'`
 
 ## Exercise 2:
-### Check for MAVROS Connections:
 1. Ensure MAVROS is Connected to PX4
     - `ls /dev/ttyUSB*` expected to see `ttyUSB0`
     - `ros2 launch px4_autonomy_modules mavros.launch.py`
