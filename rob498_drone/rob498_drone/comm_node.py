@@ -1,49 +1,76 @@
+#!/usr/bin/env python3
+
 import rclpy
 from rclpy.node import Node
-from std_srvs.srv import Trigger, Trigger_Response
+from std_srvs.srv import Trigger
+from geometry_msgs.msg import PoseStamped
+from mavros_msgs.srv import CommandBool, SetMode
+from mavros_msgs.msg import State
 
-class CommNode(Node):
+class DroneCommNode(Node):
     def __init__(self):
-        super().__init__('comm_node')
+        super().__init__("drone_comm")
 
-        # Create services
-        self.srv_launch = self.create_service(Trigger, '/comm/launch', self.launch_callback)
-        self.srv_test = self.create_service(Trigger, '/comm/test', self.test_callback)
-        self.srv_land = self.create_service(Trigger, '/comm/land', self.land_callback)
-        self.srv_abort = self.create_service(Trigger, '/comm/abort', self.abort_callback)
+        # Create service servers
+        self.srv_launch = self.create_service(Trigger, "comm/launch", self.handle_launch)
+        self.srv_land = self.create_service(Trigger, "comm/land", self.handle_land)
+        self.srv_abort = self.create_service(Trigger, "comm/abort", self.handle_abort)
+        self.srv_test = self.create_service(Trigger, "comm/test", self.handle_test)
 
-        self.get_logger().info("Drone communication node started")
+        # MAVROS clients
+        self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
+        self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
 
-    def launch_callback(self, request, response):
-        # Define logic for launch
-        response.success = True
-        response.message = "Launch command received"
-        return response
+        self.get_logger().info("Drone communication node started.")
 
-    def test_callback(self, request, response):
-        # Define logic for test
-        response.success = True
-        response.message = "Test command received"
-        return response
+    def handle_launch(self, request, response):
+        self.get_logger().info("Launch command received. Taking off...")
 
-    def land_callback(self, request, response):
-        # Define logic for land
-        response.success = True
-        response.message = "Land command received"
-        return response
+        # Set mode to OFFBOARD
+        mode_req = SetMode.Request()
+        mode_req.custom_mode = "OFFBOARD"
+        future = self.set_mode_client.call_async(mode_req)
+        self.get_logger().info("OFFBOARD mode request sent.")
 
-    def abort_callback(self, request, response):
-        # Define logic for abort
-        response.success = True
-        response.message = "Abort command received"
-        return response
+        # Arm the drone
+        arm_req = CommandBool.Request()
+        arm_req.value = True
+        future = self.arming_client.call_async(arm_req)
+        self.get_logger().info("Arming request sent.")
+
+        return Trigger.Response(success=True, message="Takeoff initiated.")
+
+    def handle_land(self, request, response):
+        self.get_logger().info("Land command received. Landing...")
+
+        mode_req = SetMode.Request()
+        mode_req.custom_mode = "AUTO.LAND"
+        self.set_mode_client.call_async(mode_req)
+        self.get_logger().info("Landing mode request sent.")
+
+        return Trigger.Response(success=True, message="Landing initiated.")
+
+    def handle_abort(self, request, response):
+        self.get_logger().info("Abort command received! Stopping flight.")
+
+        mode_req = SetMode.Request()
+        mode_req.custom_mode = "AUTO.RTL"
+        self.set_mode_client.call_async(mode_req)
+        self.get_logger().info("Return-to-launch (RTL) mode request sent.")
+
+        return Trigger.Response(success=True, message="Abort initiated.")
+
+    def handle_test(self, request, response):
+        self.get_logger().info("Test command received. Hovering...")
+        return Trigger.Response(success=True, message="Test acknowledged.")
+
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CommNode()
+    node = DroneCommNode()
     rclpy.spin(node)
-    node.destroy_node()
     rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
