@@ -78,7 +78,7 @@ class DroneCommNode(Node):
     
     def publish_waypoint(self):
     """Continuously publish the latest pose to MAVROS at 20 Hz, forcing a hover height."""
-        if self.latest_pose is not None:
+        if self.initial_pose is not None and mode_req.custom_mode == "OFFBOARD":
             hover_pose = PoseStamped()
             hover_pose.header.stamp = self.get_clock().now().to_msg()
             hover_pose.header.frame_id = "map"
@@ -86,6 +86,17 @@ class DroneCommNode(Node):
             hover_pose.pose.position.x = self.initial_pose.pose.position.x
             hover_pose.pose.position.y = self.initial_pose.pose.position.y
             hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters
+        
+            self.pose_publisher.publish(hover_pose)
+            self.get_logger().info(f"Published hover waypoint at z=2.0 from {self.source}")
+        else:
+            hover_pose = PoseStamped()
+            hover_pose.header.stamp = self.get_clock().now().to_msg()
+            hover_pose.header.frame_id = "map"
+        
+            hover_pose.pose.position.x = 0 #self.initial_pose.pose.position.x
+            hover_pose.pose.position.y = 0 # self.initial_pose.pose.position.y
+            hover_pose.pose.position.z = 0  # Force drone to hover at 2 meters
         
             self.pose_publisher.publish(hover_pose)
             self.get_logger().info(f"Published hover waypoint at z=2.0 from {self.source}")
