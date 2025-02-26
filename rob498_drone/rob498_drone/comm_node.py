@@ -22,36 +22,55 @@ class DroneCommNode(Node):
         self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
         
         # VICON Subscriber
-        self.pose_sub = self.create_subscription(
+        self.vicon_sub = self.create_subscription(
             PoseStamped,
             "/vicon/ROB498_Drone/ROB498_Drone",
             self.vicon_callback,
             10
         )
-        self.current_pose = PoseStamped()  # Store latest pose
-        
-        # Publisher for waypoints
-        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", 10)
 
-        self.get_logger().info("Drone communication node started.")
-
-    def vicon_callback(self, msg):
-        """Callback function for VICON pose updates"""
-        self.current_pose = msg  # Store latest pose
-        self.get_logger().info(
-            f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}"
+        # RealSense Subscriber
+        self.realsense_sub = self.create_subscription(
+            PoseStamped,
+            "/camera/pose/sample",
+            self.realsense_callback,
+            10
         )
 
-    def publish_waypoint(self, x=0.0, y=0.0, z=2.0):
-        """ Publish a target waypoint. Defaults to (0,0,2) to hold position. """
-        pose = PoseStamped()
-        pose.header.stamp = self.get_clock().now().to_msg()
-        pose.header.frame_id = "map"
-        pose.pose.position.x = x
-        pose.pose.position.y = y
-        pose.pose.position.z = z
-        self.pose_publisher.publish(pose)
-        
+        # Publisher for MAVROS setpoints
+        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", 10)
+
+        # Timer to publish waypoints at 20 Hz
+        self.create_timer(1/20, self.publish_waypoint)
+
+        # Store latest pose (default to None)
+        self.latest_pose = None
+        self.source = None  # 'vicon' or 'realsense'
+
+        self.get_logger().info("Drone communication node started. Listening to VICON and RealSense.")
+
+    
+    def vicon_callback(self, msg):
+        """Update pose from VICON."""
+        self.latest_pose = msg
+        self.source = "vicon"
+        self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
+
+    
+    def realsense_callback(self, msg):
+        """Update pose from RealSense."""
+        self.latest_pose = msg
+        self.source = "realsense"
+        self.get_logger().info(f"RealSense Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
+
+    
+    def publish_waypoint(self):
+        """Continuously publish the latest pose to MAVROS at 20 Hz."""
+        if self.latest_pose is not None:
+            self.pose_publisher.publish(self.latest_pose)
+            self.get_logger().info(f"Published waypoint from {self.source}")
+
+    
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
 
@@ -69,6 +88,7 @@ class DroneCommNode(Node):
 
         return Trigger.Response(success=True, message="Takeoff initiated.")
 
+    
     def handle_land(self, request, response):
         self.get_logger().info("Land command received. Landing...")
 
@@ -79,6 +99,7 @@ class DroneCommNode(Node):
 
         return Trigger.Response(success=True, message="Landing initiated.")
 
+    
     def handle_abort(self, request, response):
         self.get_logger().info("Abort command received! Stopping flight.")
 
@@ -89,6 +110,7 @@ class DroneCommNode(Node):
 
         return Trigger.Response(success=True, message="Abort initiated.")
 
+    
     def handle_test(self, request, response):
         self.get_logger().info("Test command received. Hovering...")
         return Trigger.Response(success=True, message="Test acknowledged.")
