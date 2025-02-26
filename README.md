@@ -1,6 +1,5 @@
 # rob489-capstone
 ## Clone this repository
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEDvm1g1FO7IVLGIdpcbmxbdfjWy63LzS3GxCLmVsqyU cathyfeng9600@gmail.com
 https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 ## Setup Notes:
 1. Wireless connection with jetson (ssh)
