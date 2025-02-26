@@ -42,8 +42,9 @@ class DroneCommNode(Node):
 
         # Timer to publish waypoints at 20 Hz
         self.create_timer(1/20, self.publish_waypoint)
-
+        
         # Store latest pose (default to None)
+        self.initial_pose = None
         self.latest_pose = None
         self.source = None  # 'vicon' or 'realsense'
 
@@ -52,6 +53,8 @@ class DroneCommNode(Node):
     
     def vicon_callback(self, msg):
         """Update pose from VICON."""
+        if not self.initial_pose:
+            self.initial_pose = msg
         self.latest_pose = msg
         self.source = "vicon"
         self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
@@ -59,6 +62,8 @@ class DroneCommNode(Node):
     
     def realsense_callback(self, msg):
         """Update pose from RealSense."""
+        if not self.initial_pose:
+            self.initial_pose = msg
         self.latest_pose = msg
         self.source = "realsense"
         self.get_logger().info(f"RealSense Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
@@ -78,8 +83,8 @@ class DroneCommNode(Node):
             hover_pose.header.stamp = self.get_clock().now().to_msg()
             hover_pose.header.frame_id = "map"
         
-            hover_pose.pose.position.x = self.latest_pose.pose.position.x
-            hover_pose.pose.position.y = self.latest_pose.pose.position.y
+            hover_pose.pose.position.x = self.initial_pose.pose.position.x
+            hover_pose.pose.position.y = self.initial_pose.pose.position.y
             hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters
         
             self.pose_publisher.publish(hover_pose)
