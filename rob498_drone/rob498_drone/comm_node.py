@@ -63,13 +63,27 @@ class DroneCommNode(Node):
         self.source = "realsense"
         self.get_logger().info(f"RealSense Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
 
-    
+    '''
     def publish_waypoint(self):
         """Continuously publish the latest pose to MAVROS at 20 Hz."""
         if self.latest_pose is not None:
             self.pose_publisher.publish(self.latest_pose)
             self.get_logger().info(f"Published waypoint from {self.source}")
-
+    '''
+    
+    def publish_waypoint(self):
+    """Continuously publish the latest pose to MAVROS at 20 Hz, forcing a hover height."""
+        if self.latest_pose is not None:
+            hover_pose = PoseStamped()
+            hover_pose.header.stamp = self.get_clock().now().to_msg()
+            hover_pose.header.frame_id = "map"
+        
+            hover_pose.pose.position.x = self.latest_pose.pose.position.x
+            hover_pose.pose.position.y = self.latest_pose.pose.position.y
+            hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters
+        
+            self.pose_publisher.publish(hover_pose)
+            self.get_logger().info(f"Published hover waypoint at z=2.0 from {self.source}")
     
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
