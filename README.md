@@ -13,14 +13,16 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
  - their command are encoded in ~/.bashrc: eg. `sudo sh -c 'sudo echo 255 > /sys/devices/pwm-fan/target_pwm'`
 
 ## Exercise 2:
-1. Ensure MAVROS is Connected to PX4
-    - `ls /dev/ttyUSB*` expected to see `ttyUSB0`
+1. Start MAVROS & PX4
     - `ros2 launch px4_autonomy_modules mavros.launch.py`
-  
-2. Run Your Drone Communication Node
+    - If not working correctly, `ls /dev/ttyUSB*`, expected to see `ttyUSB0`
+2. Start RealSense Pose Estimation
+    - `ros2 launch realsense2_camera rs_launch.py`
+3. Run the Drone Communication Node
     - `ros2 run rob498_drone comm_node`
-3. Echo Vicon Topic to Verify It Works
+4. Check VICON & RealSense Pose Data (Optional)
    - `ros2 topic echo /vicon/ROB498_Drone/ROB498_Drone`
+   - `ros2 topic echo /camera/pose/sample`
 4. Send Commands Using ROS 2 Services
    - `ros2 service call /comm/launch std_srvs/srv/Trigger`
    - `ros2 service call /comm/land std_srvs/srv/Trigger`
