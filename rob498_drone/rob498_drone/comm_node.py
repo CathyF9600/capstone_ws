@@ -6,6 +6,7 @@ from std_srvs.srv import Trigger
 from geometry_msgs.msg import PoseStamped
 from mavros_msgs.srv import CommandBool, SetMode
 from mavros_msgs.msg import State
+import rospy
 
 class DroneCommNode(Node):
     def __init__(self):
@@ -78,18 +79,22 @@ class DroneCommNode(Node):
     
     def publish_waypoint(self):
     """Continuously publish the latest pose to MAVROS at 20 Hz, forcing a hover height."""
+        # last_req = rospy.Time.now()
+
         if self.initial_pose is not None and mode_req.custom_mode == "OFFBOARD":
             hover_pose = PoseStamped()
             hover_pose.header.stamp = self.get_clock().now().to_msg()
             hover_pose.header.frame_id = "map"
         
-            hover_pose.pose.position.x = self.initial_pose.pose.position.x
-            hover_pose.pose.position.y = self.initial_pose.pose.position.y
+            hover_pose.pose.position.x = 0 # self.initial_pose.pose.position.x
+            hover_pose.pose.position.y = 0 # self.initial_pose.pose.position.y
             hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters
         
             self.pose_publisher.publish(hover_pose)
             self.get_logger().info(f"Published hover waypoint at z=2.0 from {self.source}")
         else:
+            self.get_logger().info(f"Sending a few setpoints before starting...")
+            for i in range(100):
             hover_pose = PoseStamped()
             hover_pose.header.stamp = self.get_clock().now().to_msg()
             hover_pose.header.frame_id = "map"
@@ -112,7 +117,7 @@ class DroneCommNode(Node):
 
         # Arm the drone
         arm_req = CommandBool.Request()
-        arm_req.value = True
+        arm_req.value = Truerospu
         future = self.arming_client.call_async(arm_req)
         self.get_logger().info("Arming request sent.")
 
