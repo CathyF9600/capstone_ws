@@ -18,7 +18,6 @@ class DroneCommNode(Node):
             depth=1
         )
         # Store latest pose (default to None)
-        self.state = State()
         self.initial_pose = None
         self.latest_pose = None
         self.source = None  # 'vicon' or 'realsense'
@@ -31,10 +30,6 @@ class DroneCommNode(Node):
         self.srv_land = self.create_service(Trigger, "comm/land", self.handle_land)
         self.srv_abort = self.create_service(Trigger, "comm/abort", self.handle_abort)
         self.srv_test = self.create_service(Trigger, "comm/test", self.handle_test)
-
-        # MAVROS clients
-        self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
-        self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
 
         # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
         #     self.get_logger().warn('Waiting for set_mode service...')
@@ -65,7 +60,12 @@ class DroneCommNode(Node):
 
         # Publisher for MAVROS setpoints
         self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile)
-
+        # MAVROS clients
+        self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
+        self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
+        self.state = State()
+        self.timer = self.create_timer(0.02, self.cmdloop_callback) # set arm and offboard mode if haven't
+        
         # Timer to publish waypoints at 20 Hz
         self.create_timer(1/20, self.publish_waypoint)
 
@@ -74,7 +74,25 @@ class DroneCommNode(Node):
     def state_cb(self, msg):
         self.state = msg
         self.get_logger().info(f"Current mode: {self.state.mode}")
-
+    
+    def set_mode(self, mode):
+        if self.set_mode_client.service_is_ready():
+            req = SetMode.Request()
+            req.custom_mode = mode
+            self.set_mode_client.call_async(req)
+    
+    def arm(self, arm_status):
+        if self.arming_client.service_is_ready():
+            req = CommandBool.Request()
+            req.value = arm_status
+            self.arming_client.call_async(req)
+            
+    def cmdloop_callback(self):
+        if self.state.mode != "OFFBOARD":
+            self.set_mode("OFFBOARD")
+        if not self.state.armed:
+            self.arm(True)
+        
     def vicon_callback(self, msg):
         """Update pose from VICON."""
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -185,6 +203,7 @@ def main(args=None):
     rclpy.init(args=args)
     node = DroneCommNode()
     rclpy.spin(node)
+    offboard_control.destroy_node()
     rclpy.shutdown()
 
 
