@@ -11,7 +11,8 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
  - connect jetson to a wifi with internet service
 3. Jetson nano fan: in terminal run `fan_on` or `fan_off`
  - their command are encoded in ~/.bashrc: eg. `sudo sh -c 'sudo echo 255 > /sys/devices/pwm-fan/target_pwm'`
-
+4. Build
+ - `colcon build --symlink-install`
 ## Exercise 2:
 1. Start MAVROS & PX4
     - `ros2 launch px4_autonomy_modules mavros.launch.py`
