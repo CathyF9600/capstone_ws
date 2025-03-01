@@ -6,6 +6,7 @@ from std_srvs.srv import Trigger
 from geometry_msgs.msg import PoseStamped
 from mavros_msgs.srv import CommandBool, SetMode
 from mavros_msgs.msg import State
+from rclpy.qos import qos_profile_system_default
 
 class DroneCommNode(Node):
     def __init__(self):
@@ -17,12 +18,7 @@ class DroneCommNode(Node):
         self.source = None  # 'vicon' or 'realsense'
 
         self.hover_pose = PoseStamped()
-        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.header.frame_id = "map"
-    
-        self.hover_pose.pose.position.x = 0.0
-        self.hover_pose.pose.position.y = 0.0
-        self.hover_pose.pose.position.z = 0.0 
+        self.update_hover_pose(0.0, 0.0, 0.0)
         
         # Create service servers
         self.srv_launch = self.create_service(Trigger, "comm/launch", self.handle_launch)
@@ -37,7 +33,7 @@ class DroneCommNode(Node):
         # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
         #     self.get_logger().warn('Waiting for set_mode service...')
         
-        self.create_subscription(State, '/mavros/state', self.state_cb, 10)
+        self.create_subscription(State, '/mavros/state', self.state_cb, qos_profile_system_default)
 
         # dummy publisher
         self.vicon_pub = None # self.create_publisher(PoseStamped,'/mavros/vision_pose/pose',10) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
@@ -50,7 +46,7 @@ class DroneCommNode(Node):
             '/mavros/vision_pose/pose',
             # "/vicon/ROB498_Drone/ROB498_Drone",
             self.vicon_callback,
-            10
+            qos_profile_system_default
         )
 
         # RealSense Subscriber
@@ -58,7 +54,7 @@ class DroneCommNode(Node):
             PoseStamped,
             "/camera/pose/sample",
             self.realsense_callback,
-            10
+            qos_profile_system_default
         )
 
         # Publisher for MAVROS setpoints
@@ -75,21 +71,31 @@ class DroneCommNode(Node):
 
     def vicon_callback(self, msg):
         """Update pose from VICON."""
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "map"
         if not self.initial_pose:
             self.initial_pose = msg
         self.latest_pose = msg
         self.source = "vicon"
         self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
 
-    
     def realsense_callback(self, msg):
         """Update pose from RealSense."""
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "map"
         if not self.initial_pose:
             self.initial_pose = msg
         self.latest_pose = msg
         self.source = "realsense"
         self.get_logger().info(f"RealSense Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
-
+    
+    def update_hover_pose(self, x, y, z):
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        self.hover_pose.header.frame_id = "map"
+        self.hover_pose.pose.position.x = x
+        self.hover_pose.pose.position.y = y
+        self.hover_pose.pose.position.z = z
+        
     def publish_dummy(self):
         hover_pose_d = PoseStamped()
         hover_pose_d.header.stamp = self.get_clock().now().to_msg()
@@ -106,7 +112,7 @@ class DroneCommNode(Node):
     def publish_waypoint(self):
         """Continuously publish the latest pose to MAVROS at 20 Hz, forcing a hover height."""
         mode_req = SetMode.Request()
-
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         self.pose_publisher.publish(self.hover_pose)
         self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
         # self.get_logger().info(f"Published hover waypoint at (0,0,0) from {self.source}, in {mode_req.custom_mode}")
@@ -159,13 +165,11 @@ class DroneCommNode(Node):
 
     
     def handle_test(self, request, response):
-        self.hover_pose = PoseStamped()
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.header.frame_id = "map"
-    
-        self.hover_pose.pose.position.x = 0.0 #self.initial_pose.pose.position.x
-        self.hover_pose.pose.position.y = 0.0 # self.initial_pose.pose.position.y
-        self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters    
+        # self.hover_pose.header.frame_id = "map"
+        # self.hover_pose.pose.position.x = 0.0 #self.initial_pose.pose.position.x
+        # self.hover_pose.pose.position.y = 0.0 # self.initial_pose.pose.position.y
+        self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters   
         # for i in range(1000):
         #     self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
         return Trigger.Response(success=True, message="Test acknowledged.")
