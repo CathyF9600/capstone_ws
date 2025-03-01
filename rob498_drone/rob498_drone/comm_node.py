@@ -6,11 +6,17 @@ from std_srvs.srv import Trigger
 from geometry_msgs.msg import PoseStamped
 from mavros_msgs.srv import CommandBool, SetMode
 from mavros_msgs.msg import State
-from rclpy.qos import qos_profile_system_default
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
 class DroneCommNode(Node):
     def __init__(self):
         super().__init__("drone_comm")
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            depth=1
+        )
         # Store latest pose (default to None)
         self.state = State()
         self.initial_pose = None
@@ -58,7 +64,7 @@ class DroneCommNode(Node):
         )
 
         # Publisher for MAVROS setpoints
-        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", 10)
+        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile)
 
         # Timer to publish waypoints at 20 Hz
         self.create_timer(1/20, self.publish_waypoint)
