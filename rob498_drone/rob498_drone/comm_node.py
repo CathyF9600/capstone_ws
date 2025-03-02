@@ -47,7 +47,7 @@ class DroneCommNode(Node):
             '/mavros/vision_pose/pose',
             # "/vicon/ROB498_Drone/ROB498_Drone",
             self.vicon_callback,
-            qos_profile_system_default
+            qos_profile
         )
 
         # RealSense Subscriber
@@ -55,7 +55,7 @@ class DroneCommNode(Node):
             PoseStamped,
             "/camera/pose/sample",
             self.realsense_callback,
-            qos_profile_system_default
+            qos_profile
         )
 
         # Publisher for MAVROS setpoints
