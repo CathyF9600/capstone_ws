@@ -34,7 +34,7 @@ class DroneCommNode(Node):
         # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
         #     self.get_logger().warn('Waiting for set_mode service...')
         
-        self.create_subscription(State, '/mavros/state', self.state_cb, qos_profile_system_default)
+        self.create_subscription(State, '/mavros/state', self.state_cb, qos_profile)
 
         # dummy publisher
         self.vicon_pub = None # self.create_publisher(PoseStamped,'/mavros/vision_pose/pose',10) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
