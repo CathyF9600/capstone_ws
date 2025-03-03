@@ -26,6 +26,7 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
    - `ros2 topic echo /camera/pose/sample`
 4. Send Commands Using ROS 2 Services
    - `ros2 service call /comm/launch std_srvs/srv/Trigger`
+   - `ros2 service call /comm/test std_srvs/srv/Trigger`
    - `ros2 service call /comm/land std_srvs/srv/Trigger`
    - `ros2 service call /comm/abort std_srvs/srv/Trigger`
 
