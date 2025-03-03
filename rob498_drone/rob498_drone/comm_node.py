@@ -197,17 +197,41 @@ class DroneCommNode(Node):
         return Trigger.Response(success=True, message="Takeoff initiated.")
 
     
-    def handle_land(self, request, response):
+    def handle_land2(self, request, response):
         self.get_logger().info("Land command received. Landing...")
 
         mode_req = SetMode.Request()
         mode_req.custom_mode = "AUTO.LAND"
-        self.set_mode_client.call_async(mode_req)
+        future = self.set_mode_client.call_async(mode_req)
+        # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
+        #     self.get_logger().warn('Waiting for set_mode service...')
         self.get_logger().info("Landing mode request sent.")
 
         return Trigger.Response(success=True, message="Landing initiated.")
 
     
+    def handle_land(self, request, response):
+        self.get_logger().info("Land command received. Landing...")
+
+        # Ensure the service is available before making the request
+        if not self.set_mode_client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error("Set mode service not available.")
+            return Trigger.Response(success=False, message="Set mode service unavailable.")
+
+        mode_req = SetMode.Request()
+        mode_req.custom_mode = "AUTO.LAND"
+
+        # Synchronous service call
+        future = self.set_mode_client.call_async(mode_req)
+        rclpy.spin_until_future_complete(self, future)
+
+        if future.result() and future.result().mode_sent:
+            self.get_logger().info("Landing mode set successfully.")
+            return Trigger.Response(success=True, message="Landing initiated.")
+        else:
+            self.get_logger().error("Failed to set landing mode.")
+            return Trigger.Response(success=False, message="Failed to initiate landing.")
+
     def handle_abort(self, request, response):
         self.get_logger().info("Abort command received! Stopping flight.")
 
