@@ -53,7 +53,7 @@ class DroneCommNode(Node):
         )
 
         # dummy publisher
-        self.vicon_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
+        self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
         # Timer to publish waypoints at 20 Hz
         self.create_timer(1/20, self.publish_vision_pose)
 
@@ -154,14 +154,14 @@ class DroneCommNode(Node):
             # hover_pose_d.pose = self.latest_pose
             self.get_logger().info(f"Latest pose: x={hover_pose_d.pose.position.x}, y={hover_pose_d.pose.position.y}, z={hover_pose_d.pose.position.z}")
 
-            self.vicon_pub.publish(hover_pose_d)
+            self.ego_pub.publish(hover_pose_d)
             self.get_logger().info(f"Published itself's pose from {self.source}.")
         else:
             self.get_logger().info(f"Published itself's pose from nowhere!")
             
     def publish_waypoint(self):
         """Continuously publish the latest pose to MAVROS at 20 Hz, forcing a hover height."""
-        mode_req = SetMode.Request()
+        # mode_req = SetMode.Request()
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         self.pose_publisher.publish(self.hover_pose)
         self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
@@ -211,26 +211,31 @@ class DroneCommNode(Node):
 
     
     def handle_land(self, request, response):
-        self.get_logger().info("Land command received. Landing...")
+        # self.get_logger().info("Land command received. Landing...")
 
-        # Ensure the service is available before making the request
-        if not self.set_mode_client.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error("Set mode service not available.")
-            return Trigger.Response(success=False, message="Set mode service unavailable.")
+        # # Ensure the service is available before making the request
+        # if not self.set_mode_client.wait_for_service(timeout_sec=5.0):
+        #     self.get_logger().error("Set mode service not available. Changing setpoint height instead.")
 
-        mode_req = SetMode.Request()
-        mode_req.custom_mode = "AUTO.LAND"
+        #     return Trigger.Response(success=False, message="Set mode service unavailable.")
 
-        # Synchronous service call
-        future = self.set_mode_client.call_async(mode_req)
-        rclpy.spin_until_future_complete(self, future)
+        # mode_req = SetMode.Request()
+        # mode_req.custom_mode = "AUTO.LAND"
 
-        if future.result() and future.result().mode_sent:
-            self.get_logger().info("Landing mode set successfully.")
-            return Trigger.Response(success=True, message="Landing initiated.")
-        else:
-            self.get_logger().error("Failed to set landing mode.")
-            return Trigger.Response(success=False, message="Failed to initiate landing.")
+        # # Synchronous service call
+        # future = self.set_mode_client.call_async(mode_req)
+        # rclpy.spin_until_future_complete(self, future)
+
+        # if future.result() and future.result().mode_sent:
+        #     self.get_logger().info("Landing mode set successfully.")
+        #     return Trigger.Response(success=True, message="Landing initiated.")
+        # else:
+        #     self.get_logger().error("Failed to set landing mode.")
+        #     return Trigger.Response(success=False, message="Failed to initiate landing.")
+
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        self.hover_pose.pose.position.z = 0.2  # Set to lower height and kill it
+        return Trigger.Response(success=True, message="Landing initiated.")
 
     def handle_abort(self, request, response):
         self.get_logger().info("Abort command received! Stopping flight.")
@@ -249,6 +254,8 @@ class DroneCommNode(Node):
         # self.hover_pose.pose.position.x = 0.0 #self.initial_pose.pose.position.x
         # self.hover_pose.pose.position.y = 0.0 # self.initial_pose.pose.position.y
         self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters   
+        if self.source == 'realsense':
+            self.hover_pose.pose.position.z = 1.5 - 0.15  # Force drone to hover at 2 meters   
         # for i in range(1000):
         #     self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
         return Trigger.Response(success=True, message="Test acknowledged.")
