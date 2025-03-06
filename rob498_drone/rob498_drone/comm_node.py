@@ -26,7 +26,7 @@ class DroneCommNode(Node):
         
         # Create service servers
         self.srv_launch = self.create_service(Trigger, "comm/launch", self.handle_launch)
-        self.srv_land = self.create_service(Trigger, "comm/land", self.handle_land)
+        self.srv_land = self.create_service(Trigger, "comm/land", self.handle_test) #handle_land)
         self.srv_abort = self.create_service(Trigger, "comm/abort", self.handle_abort)
         self.srv_test = self.create_service(Trigger, "comm/test", self.handle_test)
 
