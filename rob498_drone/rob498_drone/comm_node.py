@@ -25,10 +25,10 @@ class DroneCommNode(Node):
         self.source = None  # 'vicon' or 'realsense'
         
         # Create service servers
-        self.srv_launch = self.create_service(Trigger, "comm/launch", self.handle_launch)
-        self.srv_land = self.create_service(Trigger, "comm/land", self.handle_test) #handle_land)
-        self.srv_abort = self.create_service(Trigger, "comm/abort", self.handle_abort)
-        self.srv_test = self.create_service(Trigger, "comm/test", self.handle_test)
+        self.srv_launch = self.create_service(Trigger, "rob498_drone_3/comm/launch", self.handle_launch)
+        self.srv_land = self.create_service(Trigger, "rob498_drone_3/comm/land", self.handle_land)
+        self.srv_abort = self.create_service(Trigger, "rob498_drone_3/comm/abort", self.handle_abort)
+        self.srv_test = self.create_service(Trigger, "rob498_drone_3/comm/test", self.handle_test)
 
         # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
         #     self.get_logger().warn('Waiting for set_mode service...')
@@ -167,7 +167,7 @@ class DroneCommNode(Node):
         self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
         # self.get_logger().info(f"Published hover waypoint at (0,0,0) from {self.source}, in {mode_req.custom_mode}")
     
-    def handle_launch(self, request, response):
+    def handle_launch1(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
 
         if self.state.mode != "OFFBOARD":
@@ -192,35 +192,62 @@ class DroneCommNode(Node):
         arm_req = CommandBool.Request()
         arm_req.value = True
         future = self.arming_client.call_async(arm_req)
-        self.get_logger().info("Arming request sent.")
+        self.get_logger().info("Launch request sent.")
 
         return Trigger.Response(success=True, message="Takeoff initiated.")
 
-    
-    def handle_land2(self, request, response):
-        self.get_logger().info("Land command received. Landing...")
+    def handle_launch(self, request, response):
+        self.get_logger().info("Launch command received. Taking off...")
+
+        if self.state.mode != "OFFBOARD":
+            self.set_mode("OFFBOARD")
+        if not self.state.armed:
+            self.arm(True)
+        # Change the altitude
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        # self.hover_pose.header.frame_id = "map"
+        # self.hover_pose.pose.position.x = 0.0 #self.initial_pose.pose.position.x
+        # self.hover_pose.pose.position.y = 0.0 # self.initial_pose.pose.position.y
+        self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters   
+        if self.source == 'realsense':
+            self.hover_pose.pose.position.z = 1.5 - 0.15
+        # Arm the drone
+        arm_req = CommandBool.Request()
+        arm_req.value = True
+        future = self.arming_client.call_async(arm_req)
+        self.get_logger().info("Launch request sent.")
+        # return Trigger.Response(success=True, message="Takeoff initiated.")
+        # Ensure a response is returned
+        response.success = True
+        response.message = "Takeoff initiated."
+        return response  # <-- Add this
+ 
+    def handle_land(self, request, response):
+        self.get_logger().info("Land command received. Trying to land...")
 
         mode_req = SetMode.Request()
         mode_req.custom_mode = "AUTO.LAND"
         future = self.set_mode_client.call_async(mode_req)
         # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
         #     self.get_logger().warn('Waiting for set_mode service...')
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        self.hover_pose.pose.position.z = 0.2 
         self.get_logger().info("Landing mode request sent.")
-
-        return Trigger.Response(success=True, message="Landing initiated.")
+        response.success = True
+        return response # Trigger.Response(success=True, message="Landing initiated.")
 
     
-    def handle_land(self, request, response):
+    def handle_land2(self, request, response):
         # self.get_logger().info("Land command received. Landing...")
 
-        # # Ensure the service is available before making the request
+        # Ensure the service is available before making the request
         # if not self.set_mode_client.wait_for_service(timeout_sec=5.0):
         #     self.get_logger().error("Set mode service not available. Changing setpoint height instead.")
 
         #     return Trigger.Response(success=False, message="Set mode service unavailable.")
 
-        # mode_req = SetMode.Request()
-        # mode_req.custom_mode = "AUTO.LAND"
+        mode_req = SetMode.Request()
+        mode_req.custom_mode = "AUTO.LAND"
 
         # # Synchronous service call
         # future = self.set_mode_client.call_async(mode_req)
