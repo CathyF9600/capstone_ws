@@ -12,39 +12,65 @@ from rclpy.qos import qos_profile_system_default
 
 class DroneCommNode(Node):
     def __init__(self):
+        # Book Keeping ######################################################################################################################
+        # node name = "drone_comm"
         super().__init__("drone_comm")
+        # Policies
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
-            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-            depth=1
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT, # Most reliable
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL, # Transient Local
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST, # Keep Last
+            depth=1 # Only the last message is kept
         )
-        # Store latest pose (default to None)
+
+        # Initialize ########################################################################################################################
+        # Timers: 
+        self.timer = self.create_timer(0.02, self.cmdloop_callback)
+        self.create_timer(1/20, self.publish_vision_pose)       # Timer to publish vision poses at 20 Hz
+        self.create_timer(1/20, self.publish_waypoint)          # Timer to publish waypoints at 20 Hz
+
+        self.source = None  # 'vicon' or 'realsense'
+        self.state = State()
+        
+        # Pose info - start with NONE and reset to (0,0,0)
         self.initial_pose = None
         self.latest_pose = None
-        self.source = None  # 'vicon' or 'realsense'
+        if self.latest_pose:
+            self.hover_pose = self.latest_pose
+        else:
+            self.hover_pose = PoseStamped()
+        self.update_hover_pose(0.0, 0.0, 0.0)
         
-        # Create service servers
+        # SERVERS ############################################################################################################################
+        # Sends out a task, want response upon completed
         self.srv_launch = self.create_service(Trigger, "rob498_drone_3/comm/launch", self.handle_launch)
         self.srv_land = self.create_service(Trigger, "rob498_drone_3/comm/land", self.handle_land)
         self.srv_abort = self.create_service(Trigger, "rob498_drone_3/comm/abort", self.handle_abort)
         self.srv_test = self.create_service(Trigger, "rob498_drone_3/comm/test", self.handle_test)
 
-        # while not self.set_mode_client.wait_for_service(timeout_sec=5.0):
-        #     self.get_logger().warn('Waiting for set_mode service...')
-        
-        self.create_subscription(State, '/mavros/state', self.state_cb, qos_profile_system_default)
+        # SUBSCRIBERS ########################################################################################################################
+        # Information coming in from yappers I mean Publishers
 
-        # VICON Subscriber
-        self.vicon_sub = self.create_subscription(
-            PoseStamped,
-            # '/mavros/vision_pose/pose',
-            "/vicon/ROB498_Drone/ROB498_Drone",
-            self.vicon_callback,
+        # CommNode is subscribed to mavros... self.mavros_sub is a subscriber to mavros
+        # Type = State means the subscriber is expecting to receive messages of the State type.
+        self.mavros_sub = self.create_subscription(
+            State, 
+            '/mavros/state', 
+            self.state_cb, 
             qos_profile_system_default
         )
 
-        # RealSense Subscriber
+        # CommNode is subscribed to VICON... self.vicon_sub is a subscriber to VICON
+        # Type = PoseStamped has position and orientation
+        self.vicon_sub = self.create_subscription(
+            PoseStamped,  # Message type
+            "/vicon/ROB498_Drone/ROB498_Drone",  # Topic name
+            self.vicon_callback,  # Callback function
+            qos_profile_system_default  # QoS (Quality of Service) settings
+        )
+
+        # CommNode is subscribed to RealSense... self.realsense_sub is a subscriber to VICON
+        # Type = Odometry has linear and angular velocity whereas type = PoseStamped doesn't have those. 
         self.realsense_sub = self.create_subscription(
             Odometry,
             "/camera/pose/sample",
@@ -52,34 +78,34 @@ class DroneCommNode(Node):
             qos_profile_system_default
         )
 
+        # PUBLISHERS ######################################################################################################################
+        # Yapping I mean infomation going out
         # dummy publisher
-        self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
-        # Timer to publish waypoints at 20 Hz
-        self.create_timer(1/20, self.publish_vision_pose)
-
+        self.ego_pub = self.create_publisher(
+            PoseStamped,
+            '/mavros/vision_pose/pose', 
+            # "/vicon/ROB498_Drone/ROB498_Drone", 10)
+            qos_profile_system_default
+        ) 
+        
         # Publisher for MAVROS setpoints
-        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile_system_default)
+        self.pose_publisher = self.create_publisher(
+            PoseStamped, 
+            "/mavros/setpoint_position/local", 
+            qos_profile_system_default
+        )
+
+        # CLIENTS ##########################################################################################################################
+        # Sending some other node responses when we are done
         # MAVROS clients
         self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
-        self.state = State()
-        self.timer = self.create_timer(0.02, self.cmdloop_callback) # set arm and offboard mode if haven't
-        
-        if self.latest_pose:
-            self.hover_pose = self.latest_pose
-        else:
-            self.hover_pose = PoseStamped()
-        self.update_hover_pose(0.0, 0.0, 0.0)
 
-        # Timer to publish waypoints at 20 Hz
-        self.create_timer(1/20, self.publish_waypoint)
-
+        # init finished
         self.get_logger().info("Drone communication node started. Listening to VICON and RealSense.")
 
-    def state_cb(self, msg):
-        self.state = msg
-        self.get_logger().info(f"Current mode: {self.state.mode}")
-    
+
+    # Functionality functions ##############################################################################################################
     def set_mode(self, mode):
         if self.set_mode_client.service_is_ready():
             req = SetMode.Request()
@@ -91,6 +117,19 @@ class DroneCommNode(Node):
             req = CommandBool.Request()
             req.value = arm_status
             self.arming_client.call_async(req)
+
+    def update_hover_pose(self, x, y, z):
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        self.hover_pose.header.frame_id = "map"
+        self.hover_pose.pose.position.x = x
+        self.hover_pose.pose.position.y = y
+        self.hover_pose.pose.position.z = z
+
+
+    # Call back function - execute when a message is received #################################################################################
+    def state_cb(self, msg):
+        self.state = msg
+        self.get_logger().info(f"Current mode: {self.state.mode}")
             
     def cmdloop_callback(self):
         if self.state.mode != "OFFBOARD":
@@ -133,14 +172,11 @@ class DroneCommNode(Node):
         # self.vicon_pub.publish(current_pose_d)
         # self.get_logger().info(f"RealSense Pose Received: x={msg.pose.pose.x}, y={msg.pose.pose.y}, z={msg.pose.pose.z}")
     
-    def update_hover_pose(self, x, y, z):
-        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.header.frame_id = "map"
-        self.hover_pose.pose.position.x = x
-        self.hover_pose.pose.position.y = y
-        self.hover_pose.pose.position.z = z
 
-        
+
+
+    # Publisher functions ###########################################################################################################
+    # Fancy FYIs
     def publish_vision_pose(self):
         if self.latest_pose:
             # hover_pose_d = PoseStamped()
@@ -167,54 +203,18 @@ class DroneCommNode(Node):
         self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
         # self.get_logger().info(f"Published hover waypoint at (0,0,0) from {self.source}, in {mode_req.custom_mode}")
     
-    def handle_launch1(self, request, response):
-        self.get_logger().info("Launch command received. Taking off...")
-
-        if self.state.mode != "OFFBOARD":
-            self.set_mode("OFFBOARD")
-        if not self.state.armed:
-            self.arm(True)
-
-        # # Set mode to OFFBOARD
-        # mode_req = SetMode.Request()
-        # mode_req.custom_mode = "OFFBOARD"
-        # future = self.set_mode_client.call_async(mode_req)
-        # while not future.done():
-        #     self.get_logger().info(f"Waiting for OFFBOARD mode to be set, currently in {self.state.mode} mode")
-        # rclpy.spin_until_future_complete(self, future)
-        # if future.result() and future.result().mode_sent:
-        #     self.get_logger().info("OFFBOARD mode enabled.")
-        # else:
-        #     self.get_logger().error("Failed to set OFFBOARD mode.")
-        #     return Trigger.Response(success=false, message="Failed to set OFFBOARD mode.")
-
-        # Arm the drone
-        arm_req = CommandBool.Request()
-        arm_req.value = True
-        future = self.arming_client.call_async(arm_req)
-        self.get_logger().info("Launch request sent.")
-
-        return Trigger.Response(success=True, message="Takeoff initiated.")
-
+    # TRIGGER POINTS ###############################################################################################################
+    # Make the drone do shit
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
-
-        if self.state.mode != "OFFBOARD":
-            self.set_mode("OFFBOARD")
-        if not self.state.armed:
-            self.arm(True)
+        
         # Change the altitude
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        # self.hover_pose.header.frame_id = "map"
-        # self.hover_pose.pose.position.x = 0.0 #self.initial_pose.pose.position.x
-        # self.hover_pose.pose.position.y = 0.0 # self.initial_pose.pose.position.y
         self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 2 meters   
         if self.source == 'realsense':
             self.hover_pose.pose.position.z = 1.5 - 0.15
-        # Arm the drone
-        arm_req = CommandBool.Request()
-        arm_req.value = True
-        future = self.arming_client.call_async(arm_req)
+
+        # Take off complete affirmation
         self.get_logger().info("Launch request sent.")
         # return Trigger.Response(success=True, message="Takeoff initiated.")
         # Ensure a response is returned
@@ -234,35 +234,9 @@ class DroneCommNode(Node):
         self.hover_pose.pose.position.z = 0.2 
         self.get_logger().info("Landing mode request sent.")
         response.success = True
+        response.message = "Landing initiated"
         return response # Trigger.Response(success=True, message="Landing initiated.")
 
-    
-    def handle_land2(self, request, response):
-        # self.get_logger().info("Land command received. Landing...")
-
-        # Ensure the service is available before making the request
-        # if not self.set_mode_client.wait_for_service(timeout_sec=5.0):
-        #     self.get_logger().error("Set mode service not available. Changing setpoint height instead.")
-
-        #     return Trigger.Response(success=False, message="Set mode service unavailable.")
-
-        mode_req = SetMode.Request()
-        mode_req.custom_mode = "AUTO.LAND"
-
-        # # Synchronous service call
-        # future = self.set_mode_client.call_async(mode_req)
-        # rclpy.spin_until_future_complete(self, future)
-
-        # if future.result() and future.result().mode_sent:
-        #     self.get_logger().info("Landing mode set successfully.")
-        #     return Trigger.Response(success=True, message="Landing initiated.")
-        # else:
-        #     self.get_logger().error("Failed to set landing mode.")
-        #     return Trigger.Response(success=False, message="Failed to initiate landing.")
-
-        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.pose.position.z = 0.2  # Set to lower height and kill it
-        return Trigger.Response(success=True, message="Landing initiated.")
 
     def handle_abort(self, request, response):
         self.get_logger().info("Abort command received! Stopping flight.")
@@ -272,7 +246,7 @@ class DroneCommNode(Node):
         self.set_mode_client.call_async(mode_req)
         self.get_logger().info("Return-to-launch (RTL) mode request sent.")
 
-        return Trigger.Response(success=True, message="Abort initiated.")
+        return Trigger.Response(success=True, message="Aborted")
 
     
     def handle_test(self, request, response):
