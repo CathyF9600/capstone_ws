@@ -140,7 +140,7 @@ class DroneCommNode(Node):
         ])
 
         # 90-degree yaw quaternion (0, 0, sin(π/4), cos(π/4))
-        q_yaw = np.array([np.cos(np.pi/4), 0, 0, np.sin(np.pi/4)])
+        q_yaw = np.array([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
 
         # Apply rotation
         q_new = quaternion_multiply(q_yaw, q_orig)
