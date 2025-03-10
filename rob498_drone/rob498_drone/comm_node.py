@@ -3,12 +3,24 @@
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Quaternion
 from nav_msgs.msg import Odometry
 from mavros_msgs.srv import CommandBool, SetMode
 from mavros_msgs.msg import State
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from rclpy.qos import qos_profile_system_default
+import numpy as np
+
+def quaternion_multiply(q1, q2):
+    """Perform quaternion multiplication."""
+    w1, x1, y1, z1 = q1
+    w2, x2, y2, z2 = q2
+    return np.array([
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2
+    ])
 
 class DroneCommNode(Node):
     def __init__(self):
@@ -110,27 +122,57 @@ class DroneCommNode(Node):
         # self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
 
     def realsense_callback(self, msg):
-        """Update pose from RealSense."""
+        """Update pose from RealSense with 90-degree yaw rotation."""
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "map"
 
         current_pose_d = PoseStamped()
         current_pose_d.header.stamp = self.get_clock().now().to_msg()
         current_pose_d.header.frame_id = "map"
-    
         current_pose_d.pose = msg.pose.pose
+
+        # Original orientation
+        q_orig = np.array([
+            msg.pose.pose.orientation.w,
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z
+        ])
+
+        # 90-degree yaw quaternion (0, 0, sin(π/4), cos(π/4))
+        q_yaw = np.array([np.cos(np.pi/4), 0, 0, np.sin(np.pi/4)])
+
+        # Apply rotation
+        q_new = quaternion_multiply(q_yaw, q_orig)
+
+        # Update orientation
+        current_pose_d.pose.orientation = Quaternion(
+            w=float(q_new[0]),
+            x=float(q_new[1]),
+            y=float(q_new[2]),
+            z=float(q_new[3])
+        )
 
         if not self.initial_pose:
             self.initial_pose = current_pose_d
         self.latest_pose = current_pose_d
         self.source = "realsense"
 
-        # .position.x = 4.2 #self.initial_pose.pose.position.x
-        # current_pose_d.pose.position.y = 4.2 # self.initial_pose.pose.position.y
-        # current_pose_d.pose.position.z = 0.0  # Force drone to hover at 2 meters
-        # current_pose_d.pose = self.latest_pose
+    # def realsense_callback(self, msg):
+    #     """Update pose from RealSense."""
+    #     msg.header.stamp = self.get_clock().now().to_msg()
+    #     msg.header.frame_id = "map"
 
-        # self.vicon_pub.publish(current_pose_d)
+    #     current_pose_d = PoseStamped()
+    #     current_pose_d.header.stamp = self.get_clock().now().to_msg()
+    #     current_pose_d.header.frame_id = "map"
+    
+    #     current_pose_d.pose = msg.pose.pose
+
+    #     if not self.initial_pose:
+    #         self.initial_pose = current_pose_d
+    #     self.latest_pose = current_pose_d
+    #     self.source = "realsense"
         # self.get_logger().info(f"RealSense Pose Received: x={msg.pose.pose.x}, y={msg.pose.pose.y}, z={msg.pose.pose.z}")
     
     def update_hover_pose(self, x, y, z):
@@ -220,7 +262,7 @@ class DroneCommNode(Node):
         # Ensure a response is returned
         response.success = True
         response.message = "Takeoff initiated."
-        return response  # <-- Add this
+        return response
  
     def handle_land(self, request, response):
         self.get_logger().info("Land command received. Trying to land...")

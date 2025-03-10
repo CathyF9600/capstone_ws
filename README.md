@@ -30,6 +30,19 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
    - `ros2 service call /comm/land std_srvs/srv/Trigger` (<-)
    - `ros2 service call /comm/abort std_srvs/srv/Trigger`
 
+## Installing PX4 Simulation on Ubuntu 20.04 arm64
+- First upgrade your cmake to above 3.22 (https://answers.ros.org/question/293119/)
+    - tar -xzvf cmake-3.30.8.tar.gz # source tar.gz (no distro)
+    - cd ~/Downloads/cmake-3.30.8/   
+    - ./bootstrap --prefix=$HOME/cmake-install
+    - make -j$(nproc)
+    - sudo make install
+    - echo 'PATH=$HOME/cmake-install/bin:$PATH' >> ~/.bashrc
+    - echo 'CMAKE_PREFIX_PATH=$HOME/cmake-install:$CMAKE_PREFIX_PATH' >> ~/.bashrc
+    - NEVER RUN purge -autoremove cmake!!
+- Setup PX4-Autopilot following (https://github.com/PX4/PX4-Autopilot/issues/21117)
+- Setup Micro XRCE-DDS Agent & Client (https://github.com/PX4/PX4-user_guide/blob/main/tr/ros2/user_guide.md)
+
 
 
 
