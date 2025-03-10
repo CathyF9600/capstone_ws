@@ -109,6 +109,7 @@ class DroneCommNode(Node):
         # self.vicon_pub.publish(msg)
         # self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
 
+    
     def realsense_callback(self, msg):
         """Update pose from RealSense."""
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -124,13 +125,6 @@ class DroneCommNode(Node):
             self.initial_pose = current_pose_d
         self.latest_pose = current_pose_d
         self.source = "realsense"
-
-        # .position.x = 4.2 #self.initial_pose.pose.position.x
-        # current_pose_d.pose.position.y = 4.2 # self.initial_pose.pose.position.y
-        # current_pose_d.pose.position.z = 0.0  # Force drone to hover at 2 meters
-        # current_pose_d.pose = self.latest_pose
-
-        # self.vicon_pub.publish(current_pose_d)
         # self.get_logger().info(f"RealSense Pose Received: x={msg.pose.pose.x}, y={msg.pose.pose.y}, z={msg.pose.pose.z}")
     
     def update_hover_pose(self, x, y, z):
