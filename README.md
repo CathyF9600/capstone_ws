@@ -40,7 +40,10 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
     - echo 'PATH=$HOME/cmake-install/bin:$PATH' >> ~/.bashrc
     - echo 'CMAKE_PREFIX_PATH=$HOME/cmake-install:$CMAKE_PREFIX_PATH' >> ~/.bashrc
     - NEVER RUN purge -autoremove cmake!!
-- Upgrade your numpy to above 1.24 (optional)
+- Upgrade your numpy to above 1.24 (it might affect ROS2 foxy packages but will
+    - `sudo apt remove python3-numpy`
+    - `pip3 install numpy`
+    - `sudo apt install ros-foxy-desktop python3-argcomplete`
 - Setup PX4-Autopilot following (https://github.com/PX4/PX4-Autopilot/issues/21117)
     - git clone https://github.com/PX4/PX4-Autopilot.git
     - cd PX4-Autopilot.git
