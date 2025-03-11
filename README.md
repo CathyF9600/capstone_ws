@@ -50,6 +50,7 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
     - make px4_sitl gazebo
 - (Optional) Setup Micro XRCE-DDS Agent & Client (https://github.com/PX4/PX4-user_guide/blob/main/tr/ros2/user_guide.md)
     - you don't need the Micro XRCE-DDS Agent unless you are running ROS 2 on a microcontroller (using Micro-ROS)
+![image](https://github.com/user-attachments/assets/fbd46d9b-0250-4550-bcc9-7ee5bf4b6224)
 
 
 ## Install VS Code on Ubuntu 20.04 arm64
