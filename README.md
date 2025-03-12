@@ -61,3 +61,5 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
 - `sudo apt update` `sudo apt install code` `code`
 
 
+## Realsense Frame Offset
+- transformation of -0.07 m in z direction for now
