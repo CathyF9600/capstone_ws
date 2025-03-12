@@ -21,7 +21,6 @@ def quaternion_multiply(q1, q2):
         w1*y2 - x1*z2 + y1*w2 + z1*x2,
         w1*z2 + x1*y2 - y1*x2 + z1*w2
     ])
-import rospy
 
 class DroneCommNode(Node):
     def __init__(self):
