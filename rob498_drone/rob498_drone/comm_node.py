@@ -3,13 +3,13 @@
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from geometry_msgs.msg import PoseStamped, Quaternion
+from geometry_msgs.msg import PoseStamped, Quaternion, PoseArray
 from nav_msgs.msg import Odometry
 from mavros_msgs.srv import CommandBool, SetMode
 from mavros_msgs.msg import State
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from rclpy.qos import qos_profile_system_default
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
 import numpy as np
+import time
 
 def quaternion_multiply(q1, q2):
     """Perform quaternion multiplication."""

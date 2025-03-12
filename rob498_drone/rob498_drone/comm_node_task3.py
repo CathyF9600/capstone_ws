@@ -7,9 +7,14 @@ from geometry_msgs.msg import PoseStamped, Quaternion, PoseArray
 from nav_msgs.msg import Odometry
 from mavros_msgs.srv import CommandBool, SetMode
 from mavros_msgs.msg import State
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from rclpy.qos import qos_profile_system_default
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
 import numpy as np
+import time
+
+WAYPOINT_RADIUS = 0.40  # 40 cm tolerance
+TEST_ALTITUDE = 1.5  # Hover altitude
+MAX_TEST_TIME = 90  # Maximum test duration
+WAYPOINT_TIMEOUT = 10  # Maximum time to reach a waypoint
 
 def quaternion_multiply(q1, q2):
     """Perform quaternion multiplication."""
@@ -34,7 +39,11 @@ class DroneCommNodeTask3(Node):
         # Store latest pose (default to None)
         self.latest_pose = None
         self.source = None  # 'vicon' or 'realsense'
-        
+        self.state = State()
+        self.waypoints = None
+        self.current_waypoint_idx = 0
+        self.start_time = None  # To track test time
+
         # Create service servers
         self.srv_launch = self.create_service(Trigger, "rob498_drone_3/comm/launch", self.handle_launch)
         self.srv_land = self.create_service(Trigger, "rob498_drone_3/comm/land", self.handle_land)
@@ -70,7 +79,6 @@ class DroneCommNodeTask3(Node):
         # MAVROS clients
         self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
-        self.state = State()
         self.timer = self.create_timer(0.02, self.cmdloop_callback) # set arm and offboard mode if haven't
         
         if self.latest_pose:
@@ -84,15 +92,17 @@ class DroneCommNodeTask3(Node):
         self.get_logger().info("Waiting for waypoints...")
         self.subscription = self.create_subscription(
             PoseArray,
-            f"rob498_drone_3/comm/waypoints",
+            "rob498_drone_3/comm/waypoints",
             self.waypoints_callback,
             10
         )
-        self.waypoints = None
 
     def waypoints_callback(self, msg):
-        self.get_logger().info("Received waypoints.")
-        self.waypoints = msg
+        """Receives the list of waypoints."""
+        self.waypoints = msg.poses
+        self.current_waypoint_idx = 0
+        self.get_logger().info(f"Received {len(self.waypoints)} waypoints.")
+
 
     def state_cb(self, msg):
         self.state = msg
@@ -159,7 +169,6 @@ class DroneCommNodeTask3(Node):
         )
         # self.get_logger().info(f"Cam Converted: x={current_pose_d.pose.orientation.x}, y={current_pose_d.pose.orientation.y}, z={current_pose_d.pose.orientation.z}")
 
-
         self.latest_pose = current_pose_d
         self.source = "realsense"
 
@@ -195,10 +204,11 @@ class DroneCommNodeTask3(Node):
             self.arm(True)
         # Change the altitude
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        # for testing purpose, set it to 0.5 for now.
-        self.hover_pose.pose.position.z = 0.5   # Force drone to hover at 1.5 meters   
-        # if self.source == 'realsense':
-        #     self.hover_pose.pose.position.z = 1.5 - 0.07
+        # Ascend to 1.5 meters upon launching
+        target_height = 1.5
+        self.hover_pose.pose.position.z = target_height
+        if self.source == 'realsense':
+            self.hover_pose.pose.position.z = target_height + 0.07
         # Arm the drone
         arm_req = CommandBool.Request()
         arm_req.value = True
@@ -210,14 +220,14 @@ class DroneCommNodeTask3(Node):
         return response
  
     def handle_land(self, request, response):
-        self.get_logger().info("Land command received. Trying to land...")
+        self.get_logger().info("Land command received. Landing...")
 
         mode_req = SetMode.Request()
         mode_req.custom_mode = "AUTO.LAND"
         future = self.set_mode_client.call_async(mode_req)
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         self.hover_pose.pose.position.z = 0.2 
-        self.get_logger().info("Landing mode request sent.")
+        # self.get_logger().info("Landing mode request sent.")
         response.success = True
         return response
 
@@ -234,22 +244,62 @@ class DroneCommNodeTask3(Node):
 
     
     def handle_test(self, request, response):
-        if self.waypoints is None:
+        """Handles the TEST command by navigating through waypoints."""
+        if not self.waypoints:
             self.get_logger().error("No waypoints received.")
+            response.success = False
+            response.message = "No waypoints available."
             return response
 
-        waypoint_list = []
-        for waypoint_pose in self.waypoints.poses:
-            waypoint_pose_stamped = PoseStamped()
-            waypoint_pose_stamped.header.stamp = self.get_clock().now().to_msg()
-            waypoint_pose_stamped.header.frame_id = "vicon" # need to verify
-            waypoint_pose_stamped.pose = waypoint_pose
-            waypoint_list.append(waypoint_pose_stamped)
-            self.hover_pose = waypoint_pose_stamped
-            self.hover_pose.header.stamp = self.get_clock().now().to_msg() 
-            # unsure if this is the way to publish a list of waypoints
+        self.get_logger().info("Starting waypoint navigation...")
+        self.start_time = time.time()  # Start the timer
 
+        while self.current_waypoint_idx < len(self.waypoints):
+            elapsed_time = time.time() - self.start_time
+            if elapsed_time > MAX_TEST_TIME:
+                self.get_logger().warn("Time limit exceeded. Landing...")
+                break
+
+            # Get current target waypoint
+            target_wp = self.waypoints[self.current_waypoint_idx]
+            self.publish_target_waypoint(target_wp)
+
+            # Wait until the drone reaches the waypoint or times out
+            waypoint_start_time = time.time()
+            while not self.is_within_waypoint(target_wp):
+                if time.time() - waypoint_start_time > WAYPOINT_TIMEOUT:
+                    self.get_logger().warn(f"Waypoint {self.current_waypoint_idx + 1} timeout. Moving to next.")
+                    break  # Move to next waypoint even if not reached
+
+                time.sleep(0.2)  # Avoid busy-waiting
+
+            self.get_logger().info(f"Reached waypoint {self.current_waypoint_idx + 1}")
+            self.current_waypoint_idx += 1  # Move to the next waypoint
+
+        self.get_logger().info("Waypoint navigation complete. Landing...")
+        self.handle_land(None, response)
         return response
+
+
+    def publish_target_waypoint(self, waypoint):
+        """Publishes the given waypoint to MAVROS."""
+        target_pose = PoseStamped()
+        target_pose.header.stamp = self.get_clock().now().to_msg()
+        target_pose.header.frame_id = "map"
+        target_pose.pose = waypoint
+        self.pose_publisher.publish(target_pose)
+
+    def is_within_waypoint(self, waypoint):
+        """Checks if the drone is within the target waypoint radius."""
+        if not self.latest_pose:
+            return False
+
+        dx = self.latest_pose.pose.position.x - waypoint.position.x
+        dy = self.latest_pose.pose.position.y - waypoint.position.y
+        dz = self.latest_pose.pose.position.z - waypoint.position.z
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+
+        return distance <= WAYPOINT_RADIUS
 
 def main(args=None):
     rclpy.init(args=args)
