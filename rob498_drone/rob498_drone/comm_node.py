@@ -50,7 +50,6 @@ class DroneCommNode(Node):
         # VICON Subscriber
         self.vicon_sub = self.create_subscription(
             PoseStamped,
-            # '/mavros/vision_pose/pose',
             "/vicon/ROB498_Drone/ROB498_Drone",
             self.vicon_callback,
             qos_profile_system_default
@@ -64,9 +63,9 @@ class DroneCommNode(Node):
             qos_profile_system_default
         )
 
-        # dummy publisher
-        self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
-        # Timer to publish waypoints at 20 Hz
+        # vision publisher
+        self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default)
+        # Timer to publish vision pose at 20 Hz
         self.create_timer(1/20, self.publish_vision_pose)
 
         # Publisher for MAVROS setpoints
@@ -125,7 +124,7 @@ class DroneCommNode(Node):
         """Update pose from RealSense with 90-degree yaw rotation."""
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "map"
-
+        # Convert Odometry to PoseStamped
         current_pose_d = PoseStamped()
         current_pose_d.header.stamp = self.get_clock().now().to_msg()
         current_pose_d.header.frame_id = "map"
@@ -159,23 +158,7 @@ class DroneCommNode(Node):
         self.latest_pose = current_pose_d
         self.source = "realsense"
 
-    # def realsense_callback(self, msg):
-    #     """Update pose from RealSense."""
-    #     msg.header.stamp = self.get_clock().now().to_msg()
-    #     msg.header.frame_id = "map"
 
-    #     current_pose_d = PoseStamped()
-    #     current_pose_d.header.stamp = self.get_clock().now().to_msg()
-    #     current_pose_d.header.frame_id = "map"
-    
-    #     current_pose_d.pose = msg.pose.pose
-
-    #     if not self.initial_pose:
-    #         self.initial_pose = current_pose_d
-    #     self.latest_pose = current_pose_d
-    #     self.source = "realsense"
-        # self.get_logger().info(f"RealSense Pose Received: x={msg.pose.pose.x}, y={msg.pose.pose.y}, z={msg.pose.pose.z}")
-    
     def update_hover_pose(self, x, y, z):
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         self.hover_pose.header.frame_id = "map"
@@ -183,18 +166,14 @@ class DroneCommNode(Node):
         self.hover_pose.pose.position.y = y
         self.hover_pose.pose.position.z = z
 
-        
+     # publish to mavros, update latest ego pose from either vicon or realsense
     def publish_vision_pose(self):
         if self.latest_pose:
             # hover_pose_d = PoseStamped()
             hover_pose_d = self.latest_pose
             hover_pose_d.header.stamp = self.get_clock().now().to_msg()
             hover_pose_d.header.frame_id = "map"
-        
-            # hover_pose_d.pose.position.x = 4.2 #self.initial_pose.pose.position.x
-            # hover_pose_d.pose.position.y = 4.2 # self.initial_pose.pose.position.y
-            # hover_pose_d.pose.position.z = 0.0  # Force drone to hover at 2 meters
-            # hover_pose_d.pose = self.latest_pose
+            
             self.get_logger().info(f"Latest pose: x={hover_pose_d.pose.position.x}, y={hover_pose_d.pose.position.y}, z={hover_pose_d.pose.position.z}")
 
             self.ego_pub.publish(hover_pose_d)
@@ -209,35 +188,6 @@ class DroneCommNode(Node):
         self.pose_publisher.publish(self.hover_pose)
         self.get_logger().info(f"Test cmd Received: x={self.hover_pose.pose.position.x}, y={self.hover_pose.pose.position.y}, z={self.hover_pose.pose.position.z}")
         # self.get_logger().info(f"Published hover waypoint at (0,0,0) from {self.source}, in {mode_req.custom_mode}")
-    
-    def handle_launch1(self, request, response):
-        self.get_logger().info("Launch command received. Taking off...")
-
-        if self.state.mode != "OFFBOARD":
-            self.set_mode("OFFBOARD")
-        if not self.state.armed:
-            self.arm(True)
-
-        # # Set mode to OFFBOARD
-        # mode_req = SetMode.Request()
-        # mode_req.custom_mode = "OFFBOARD"
-        # future = self.set_mode_client.call_async(mode_req)
-        # while not future.done():
-        #     self.get_logger().info(f"Waiting for OFFBOARD mode to be set, currently in {self.state.mode} mode")
-        # rclpy.spin_until_future_complete(self, future)
-        # if future.result() and future.result().mode_sent:
-        #     self.get_logger().info("OFFBOARD mode enabled.")
-        # else:
-        #     self.get_logger().error("Failed to set OFFBOARD mode.")
-        #     return Trigger.Response(success=false, message="Failed to set OFFBOARD mode.")
-
-        # Arm the drone
-        arm_req = CommandBool.Request()
-        arm_req.value = True
-        future = self.arming_client.call_async(arm_req)
-        self.get_logger().info("Launch request sent.")
-
-        return Trigger.Response(success=True, message="Takeoff initiated.")
 
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
@@ -288,7 +238,8 @@ class DroneCommNode(Node):
     
     def handle_test(self, request, response):
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.pose.position.z = 0.5  # Force drone to hover at 1.5 meters   
+        # test is not used for task 2
+        # self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 1.5 meters   
         return response # Trigger.Response(success=True, message="Test acknowledged.")
 
 
