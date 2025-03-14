@@ -200,8 +200,8 @@ class DroneCommNode(Node):
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # for testing purpose, set it to 0.5 for now.
         self.hover_pose.pose.position.z = 0.5   # Force drone to hover at 1.5 meters   
-        # if self.source == 'realsense':
-        #     self.hover_pose.pose.position.z = 1.5 - 0.07
+        if self.source == 'realsense':
+            self.hover_pose.pose.position.z = 1.5 - 0.2
         # Arm the drone
         arm_req = CommandBool.Request()
         arm_req.value = True
@@ -239,7 +239,7 @@ class DroneCommNode(Node):
     def handle_test(self, request, response):
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # test is not used for task 2
-        # self.hover_pose.pose.position.z = 1.5  # Force drone to hover at 1.5 meters   
+        self.hover_pose.pose.position.z = 1.5 - 0.2  # Force drone to hover at 1.5 meters   
         return response # Trigger.Response(success=True, message="Test acknowledged.")
 
 
