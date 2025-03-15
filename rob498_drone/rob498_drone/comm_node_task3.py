@@ -208,7 +208,7 @@ class DroneCommNodeTask3(Node):
         target_height = 1.5
         self.hover_pose.pose.position.z = target_height
         if self.source == 'realsense':
-            self.hover_pose.pose.position.z = target_height + 0.07
+            self.hover_pose.pose.position.z = target_height - 0.2
         # Arm the drone
         arm_req = CommandBool.Request()
         arm_req.value = True
@@ -226,7 +226,7 @@ class DroneCommNodeTask3(Node):
         mode_req.custom_mode = "AUTO.LAND"
         future = self.set_mode_client.call_async(mode_req)
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.pose.position.z = 0.2 
+        self.hover_pose.pose.position.z = 0.1 
         # self.get_logger().info("Landing mode request sent.")
         response.success = True
         return response
