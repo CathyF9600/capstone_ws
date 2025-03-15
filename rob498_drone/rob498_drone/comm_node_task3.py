@@ -97,6 +97,8 @@ class DroneCommNodeTask3(Node):
             10
         )
 
+
+
     def waypoints_callback(self, msg):
         """Receives the list of waypoints."""
         self.waypoints = msg.poses
@@ -262,6 +264,9 @@ class DroneCommNodeTask3(Node):
 
             # Get current target waypoint
             target_wp = self.waypoints[self.current_waypoint_idx]
+            self.get_logger().info(f"Waypoint {self.current_waypoint_idx + 1}: x={target_wp.position.x}, "
+                               f"y={target_wp.position.y}, z={target_wp.position.z}")
+
             self.publish_target_waypoint(target_wp)
 
             # Wait until the drone reaches the waypoint or times out
@@ -301,12 +306,79 @@ class DroneCommNodeTask3(Node):
 
         return distance <= WAYPOINT_RADIUS
 
+
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PoseArray, Pose
+
+class WaypointPublisher(Node):
+    def __init__(self):
+        super().__init__('waypoint_publisher')
+        
+        # Create publisher
+        self.publisher_ = self.create_publisher(PoseArray, 'rob498_drone_3/comm/waypoints', 10)
+        
+        # Timer to publish waypoints
+        self.timer = self.create_timer(1.0, self.publish_waypoints)  # Publishes every 1 second
+        
+        self.get_logger().info("Waypoint Publisher Node Started")
+
+    def publish_waypoints(self):
+        # Define waypoints (x, y, z)
+        waypoints = [
+            (0.0, 0.0, 2.0),
+            (2.0, 2.0, 2.0),
+            (4.0, 0.0, 2.0),
+            (2.0, -2.0, 2.0),
+            (0.0, 0.0, 2.0)
+        ]
+        
+        # Create PoseArray message
+        pose_array = PoseArray()
+        pose_array.header.stamp = self.get_clock().now().to_msg()
+        pose_array.header.frame_id = "map"  # Change if needed
+        
+        for x, y, z in waypoints:
+            pose = Pose()
+            pose.position.x = x
+            pose.position.y = y
+            pose.position.z = z
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = 0.0
+            pose.orientation.w = 1.0  # Neutral orientation
+            pose_array.poses.append(pose)
+
+        # Publish waypoints
+        self.publisher_.publish(pose_array)
+        self.get_logger().info(f"Published {len(waypoints)} waypoints.")
+
+from rclpy.executors import MultiThreadedExecutor
+
 def main(args=None):
     rclpy.init(args=args)
-    node = DroneCommNodeTask3()
-    rclpy.spin(node)
-    offboard_control.destroy_node()
-    rclpy.shutdown()
+
+    publisher_node = WaypointPublisher()
+    subscriber_node = DroneCommNodeTask3()
+
+    executor = MultiThreadedExecutor()
+    executor.add_node(publisher_node)
+    executor.add_node(subscriber_node)
+
+    try:
+        executor.spin()
+    finally:
+        publisher_node.destroy_node()
+        subscriber_node.destroy_node()
+        rclpy.shutdown()
+
+
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = DroneCommNodeTask3()
+#     rclpy.spin(node)
+#     offboard_control.destroy_node()
+#     rclpy.shutdown()
 
 
 if __name__ == "__main__":
