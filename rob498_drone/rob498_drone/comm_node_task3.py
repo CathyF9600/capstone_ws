@@ -55,7 +55,6 @@ class DroneCommNodeTask3(Node):
         # VICON Subscriber
         self.vicon_sub = self.create_subscription(
             PoseStamped,
-            # '/mavros/vision_pose/pose',
             "/vicon/ROB498_Drone/ROB498_Drone",
             self.vicon_callback,
             qos_profile_system_default
@@ -69,7 +68,6 @@ class DroneCommNodeTask3(Node):
             qos_profile_system_default
         )
 
-        self.vicon_dummy_pub = self.create_publisher(PoseStamped,"/vicon/ROB498_Drone/ROB498_Drone", qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
         # ego publisher
         self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
         # Timer to publish waypoints at 20 Hz
@@ -98,8 +96,6 @@ class DroneCommNodeTask3(Node):
             10
         )
 
-
-        self.create_timer(1/20, self.vicon_dummy)
 
     def waypoints_callback(self, msg): # special for task3
         """Receives the list of waypoints."""
@@ -313,22 +309,6 @@ class DroneCommNodeTask3(Node):
                     #    f"x={self.latest_pose.pose.position.x:.3f}, y={self.latest_pose.pose.position.y:.3f}, z={self.latest_pose.pose.position.z:.3f}
                        f"{distance:.1f}")
         return distance <= WAYPOINT_RADIUS
-    
-    def vicon_dummy(self):
-        waypoints = [
-            (0.0, 0.0, 0.0)
-        ]
-        for x, y, z in waypoints:
-            pose = PoseStamped()
-            pose.header.stamp = self.get_clock().now().to_msg()
-            pose.header.frame_id = "map"
-            pose.pose.position.x = x
-            pose.pose.position.y = y
-            pose.pose.position.z = z
-            # pose_array.poses.append(pose)
-
-        # Publish waypoints
-            self.vicon_dummy_pub.publish(pose)
 
 
 import rclpy
@@ -379,30 +359,30 @@ class WaypointPublisher(Node):
 
 from rclpy.executors import MultiThreadedExecutor
 
-def main(args=None):
-    rclpy.init(args=args)
-
-    publisher_node = WaypointPublisher()
-    subscriber_node = DroneCommNodeTask3()
-
-    executor = MultiThreadedExecutor()
-    executor.add_node(publisher_node)
-    executor.add_node(subscriber_node)
-
-    try:
-        executor.spin()
-    finally:
-        publisher_node.destroy_node()
-        subscriber_node.destroy_node()
-        rclpy.shutdown()
-
-
 # def main(args=None):
 #     rclpy.init(args=args)
-#     node = DroneCommNodeTask3()
-#     rclpy.spin(node)
-#     offboard_control.destroy_node()
-#     rclpy.shutdown()
+
+#     publisher_node = WaypointPublisher()
+#     subscriber_node = DroneCommNodeTask3()
+
+#     executor = MultiThreadedExecutor()
+#     executor.add_node(publisher_node)
+#     executor.add_node(subscriber_node)
+
+#     try:
+#         executor.spin()
+#     finally:
+#         publisher_node.destroy_node()
+#         subscriber_node.destroy_node()
+#         rclpy.shutdown()
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = DroneCommNodeTask3()
+    rclpy.spin(node)
+    offboard_control.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == "__main__":
