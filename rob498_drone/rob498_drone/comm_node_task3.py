@@ -69,13 +69,14 @@ class DroneCommNodeTask3(Node):
             qos_profile_system_default
         )
 
-        # dummy publisher
+        self.vicon_dummy_pub = self.create_publisher(PoseStamped,"/vicon/ROB498_Drone/ROB498_Drone", qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
+        # ego publisher
         self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
         # Timer to publish waypoints at 20 Hz
         self.create_timer(1/20, self.publish_vision_pose)
 
         # Publisher for MAVROS setpoints
-        self.pose_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile_system_default)
+        self.setpoint_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile_system_default)
         # MAVROS clients
         self.arming_client = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.set_mode_client = self.create_client(SetMode, "/mavros/set_mode")
@@ -98,8 +99,9 @@ class DroneCommNodeTask3(Node):
         )
 
 
+        self.create_timer(1/20, self.vicon_dummy)
 
-    def waypoints_callback(self, msg):
+    def waypoints_callback(self, msg): # special for task3
         """Receives the list of waypoints."""
         self.waypoints = msg.poses
         self.current_waypoint_idx = 0
@@ -155,7 +157,7 @@ class DroneCommNodeTask3(Node):
             msg.pose.pose.orientation.y,
             msg.pose.pose.orientation.z
         ])
-        self.get_logger().info(f"Cam Original: x={msg.pose.pose.orientation.x}, y={msg.pose.pose.orientation.y}, z={msg.pose.pose.orientation.z}")
+        self.get_logger().info(f"Cam Original: x={msg.pose.pose.orientation.x:.3f}, y={msg.pose.pose.orientation.y:.3f}, z={msg.pose.pose.orientation.z:.3f}")
         # 90-degree yaw quaternion (0, 0, sin(π/4), cos(π/4))
         # q_yaw = np.array([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
 
@@ -185,13 +187,13 @@ class DroneCommNodeTask3(Node):
     def publish_vision_pose(self):
         if self.latest_pose:
             # hover_pose_d = PoseStamped()
-            hover_pose_d = self.latest_pose
-            hover_pose_d.header.stamp = self.get_clock().now().to_msg()
-            hover_pose_d.header.frame_id = "map"
+            cur_ego_pose = self.latest_pose
+            cur_ego_pose.header.stamp = self.get_clock().now().to_msg()
+            cur_ego_pose.header.frame_id = "map"
         
-            self.get_logger().info(f"Latest pose: x={hover_pose_d.pose.position.x}, y={hover_pose_d.pose.position.y}, z={hover_pose_d.pose.position.z}")
+            self.get_logger().info(f"Latest pose: x={cur_ego_pose.pose.position.x:.3f}, y={cur_ego_pose.pose.position.y:.3f}, z={cur_ego_pose.pose.position.z:.3f}")
 
-            self.ego_pub.publish(hover_pose_d)
+            self.ego_pub.publish(cur_ego_pose)
             self.get_logger().info(f"Published itself's pose from {self.source}.")
         else:
             self.get_logger().info(f"Published itself's pose from nowhere!")
@@ -245,7 +247,7 @@ class DroneCommNodeTask3(Node):
         return response
 
     
-    def handle_test(self, request, response):
+    def handle_test(self, request, response): # special for task3
         """Handles the TEST command by navigating through waypoints."""
         if not self.waypoints:
             self.get_logger().error("No waypoints received.")
@@ -264,8 +266,7 @@ class DroneCommNodeTask3(Node):
 
             # Get current target waypoint
             target_wp = self.waypoints[self.current_waypoint_idx]
-            self.get_logger().info(f"Waypoint {self.current_waypoint_idx + 1}: x={target_wp.position.x}, "
-                               f"y={target_wp.position.y}, z={target_wp.position.z}")
+
 
             self.publish_target_waypoint(target_wp)
 
@@ -277,8 +278,8 @@ class DroneCommNodeTask3(Node):
                     break  # Move to next waypoint even if not reached
 
                 time.sleep(0.2)  # Avoid busy-waiting
-
-            self.get_logger().info(f"Reached waypoint {self.current_waypoint_idx + 1}")
+            if self.is_within_waypoint(target_wp):
+                self.get_logger().info(f"Reached waypoint {self.current_waypoint_idx + 1}")
             self.current_waypoint_idx += 1  # Move to the next waypoint
 
         self.get_logger().info("Waypoint navigation complete. Landing...")
@@ -286,15 +287,19 @@ class DroneCommNodeTask3(Node):
         return response
 
 
-    def publish_target_waypoint(self, waypoint):
+    def publish_target_waypoint(self, waypoint): # special for task3
         """Publishes the given waypoint to MAVROS."""
         target_pose = PoseStamped()
         target_pose.header.stamp = self.get_clock().now().to_msg()
         target_pose.header.frame_id = "map"
         target_pose.pose = waypoint
-        self.pose_publisher.publish(target_pose)
+        self.setpoint_publisher.publish(target_pose)
+        
+        self.get_logger().info(f"Published setpoint {self.current_waypoint_idx + 1}: "
+                       f"({waypoint.position.x:.1f}, {waypoint.position.y:.1f}, {waypoint.position.z:.1f})")
 
-    def is_within_waypoint(self, waypoint):
+
+    def is_within_waypoint(self, waypoint): # special for task3
         """Checks if the drone is within the target waypoint radius."""
         if not self.latest_pose:
             return False
@@ -303,8 +308,27 @@ class DroneCommNodeTask3(Node):
         dy = self.latest_pose.pose.position.y - waypoint.position.y
         dz = self.latest_pose.pose.position.z - waypoint.position.z
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
-
+        self.get_logger().info(f"Distance to "
+                       f"({waypoint.position.x:.1f}, {waypoint.position.y:.1f}, {waypoint.position.z:.1f}) is "
+                    #    f"x={self.latest_pose.pose.position.x:.3f}, y={self.latest_pose.pose.position.y:.3f}, z={self.latest_pose.pose.position.z:.3f}
+                       f"{distance:.1f}")
         return distance <= WAYPOINT_RADIUS
+    
+    def vicon_dummy(self):
+        waypoints = [
+            (0.0, 0.0, 0.0)
+        ]
+        for x, y, z in waypoints:
+            pose = PoseStamped()
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.header.frame_id = "map"
+            pose.pose.position.x = x
+            pose.pose.position.y = y
+            pose.pose.position.z = z
+            # pose_array.poses.append(pose)
+
+        # Publish waypoints
+            self.vicon_dummy_pub.publish(pose)
 
 
 import rclpy
