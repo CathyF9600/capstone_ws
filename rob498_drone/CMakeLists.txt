@@ -15,7 +15,7 @@ install(
 install(
   PROGRAMS
   rob498_drone/comm_node.py
-  rob498_drone/comm_node_task3.py
+  rob498_drone/task3.py
   DESTINATION lib/rob498_drone
 )
 

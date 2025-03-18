@@ -253,9 +253,7 @@ class DroneCommNodeTask3(Node):
             response.success = False
             response.message = "No waypoints available."
             return response
-
         self.test_start = True
-
         return response
 
 
@@ -280,6 +278,7 @@ class DroneCommNodeTask3(Node):
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.hover_pose.pose = last_waypoint
             self.setpoint_publisher.publish(self.hover_pose)
+
 
     def is_within_waypoint(self, waypoint): # special for task3
         """Checks if the drone is within the target waypoint radius."""
