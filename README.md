@@ -30,6 +30,9 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
    - `ros2 service call rob498_drone_3/comm/land std_srvs/srv/Trigger` (<-)
    - `ros2 service call rob498_drone_3/comm/abort std_srvs/srv/Trigger`
 
+`ros2 topic echo /mavros/vision_pose/pose`
+`ros2 topic echo /mavros/local_position/pose`
+
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy
 - (For Micro XRCE-DDS only) Upgrade your cmake to above 3.22 (https://answers.ros.org/question/293119/)
     - tar -xzvf cmake-3.30.8.tar.gz # source tar.gz (no distro)

@@ -122,14 +122,14 @@ class DroneCommNode(Node):
         self.latest_pose = msg
         self.source = "vicon"
 
-        if self.launch:
+        if self.launch and not self.calibrate_vicon_z:
             self.calibrate_vicon_z = msg.pose.position.z
         # self.vicon_pub.publish(msg)
         # self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
 
     def realsense_callback(self, msg):
         """Update pose from RealSense with 90-degree yaw rotation."""
-        if self.launch:
+        if self.launch and not self.calibrate_rs_z:
             self.calibrate_rs_z = msg.pose.pose.orientation.z
         
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -231,7 +231,7 @@ class DroneCommNode(Node):
         mode_req.custom_mode = "AUTO.LAND"
         future = self.set_mode_client.call_async(mode_req)
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.pose.position.z = 0.2 
+        self.hover_pose.pose.position.z = 0.1
         self.get_logger().info("Landing mode request sent.")
         response.success = True
         return response # Trigger.Response(success=True, message="Landing initiated.")
@@ -251,7 +251,14 @@ class DroneCommNode(Node):
     def handle_test(self, request, response):
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # test is not used for task 2
-        self.hover_pose.pose.position.z = 1.5 + (self.calibrate_vicon_z - self.calibrate_rs_z)  # Force drone to hover at 1.5 meters   
+        offset = self.calibrate_vicon_z - self.calibrate_rs_z
+        if offset > 1:
+            offset = 1 # CAPPing
+        elif offset < -1:
+            offset = -1
+        self.get_logger().info(f"Adding an offset of {offset}.")
+
+        self.hover_pose.pose.position.z = 1.5 + (offset)  # Force drone to hover at 1.5 meters   
         return response # Trigger.Response(success=True, message="Test acknowledged.")
 
 

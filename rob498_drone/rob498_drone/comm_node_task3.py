@@ -95,6 +95,8 @@ class DroneCommNodeTask3(Node):
             self.waypoints_callback,
             10
         )
+        self.test_start = False
+        self.create_timer(1/20, self.publish_target_waypoint)
 
 
     def waypoints_callback(self, msg): # special for task3
@@ -178,6 +180,7 @@ class DroneCommNodeTask3(Node):
         self.hover_pose.pose.position.x = x
         self.hover_pose.pose.position.y = y
         self.hover_pose.pose.position.z = z
+        # self.setpoint_publisher.publish(self.hover_pose)
 
         
     def publish_vision_pose(self):
@@ -208,7 +211,7 @@ class DroneCommNodeTask3(Node):
         target_height = 1.5
         self.hover_pose.pose.position.z = target_height
         if self.source == 'realsense':
-            self.hover_pose.pose.position.z = target_height - 0.2
+            self.hover_pose.pose.position.z = target_height - 0.1
         # Arm the drone
         arm_req = CommandBool.Request()
         arm_req.value = True
@@ -251,53 +254,37 @@ class DroneCommNodeTask3(Node):
             response.message = "No waypoints available."
             return response
 
-        self.get_logger().info("Starting waypoint navigation...")
-        self.start_time = time.time()  # Start the timer
+        self.test_start = True
 
-        while self.current_waypoint_idx < len(self.waypoints):
-            elapsed_time = time.time() - self.start_time
-            if elapsed_time > MAX_TEST_TIME:
-                self.get_logger().warn("Time limit exceeded. Landing...")
-                break
-
-            # Get current target waypoint
-            target_wp = self.waypoints[self.current_waypoint_idx]
-
-
-            self.publish_target_waypoint(target_wp)
-
-            # Wait until the drone reaches the waypoint or times out
-            waypoint_start_time = time.time()
-            while not self.is_within_waypoint(target_wp):
-                if time.time() - waypoint_start_time > WAYPOINT_TIMEOUT:
-                    self.get_logger().warn(f"Waypoint {self.current_waypoint_idx + 1} timeout. Moving to next.")
-                    break  # Move to next waypoint even if not reached
-
-                time.sleep(0.2)  # Avoid busy-waiting
-            if self.is_within_waypoint(target_wp):
-                self.get_logger().info(f"Reached waypoint {self.current_waypoint_idx + 1}")
-            self.current_waypoint_idx += 1  # Move to the next waypoint
-
-        self.get_logger().info("Waypoint navigation complete. Landing...")
-        self.handle_land(None, response)
         return response
 
 
-    def publish_target_waypoint(self, waypoint): # special for task3
+    def publish_target_waypoint(self): # special for task3
         """Publishes the given waypoint to MAVROS."""
-        target_pose = PoseStamped()
-        target_pose.header.stamp = self.get_clock().now().to_msg()
-        target_pose.header.frame_id = "map"
-        target_pose.pose = waypoint
-        self.setpoint_publisher.publish(target_pose)
-        
-        self.get_logger().info(f"Published setpoint {self.current_waypoint_idx + 1}: "
-                       f"({waypoint.position.x:.1f}, {waypoint.position.y:.1f}, {waypoint.position.z:.1f})")
+        if not self.test_start:
+            self.setpoint_publisher.publish(self.hover_pose)
+            return
 
+        if self.current_waypoint_idx < len(self.waypoints):
+            target_wp = self.waypoints[self.current_waypoint_idx]
+            self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+            self.hover_pose.pose = target_wp
+            self.setpoint_publisher.publish(self.hover_pose)
+
+            if self.is_within_waypoint(target_wp):
+                self.get_logger().info(f"Reached waypoint {self.current_waypoint_idx + 1}")
+                self.current_waypoint_idx += 1
+        else:
+            self.get_logger().info("All waypoints reached. Hovering at the last waypoint & Ready to land")
+            last_waypoint = self.waypoints[-1]
+            self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+            self.hover_pose.pose = last_waypoint
+            self.setpoint_publisher.publish(self.hover_pose)
 
     def is_within_waypoint(self, waypoint): # special for task3
         """Checks if the drone is within the target waypoint radius."""
         if not self.latest_pose:
+            self.get_logger().info(f"self.latest_pose is null")
             return False
 
         dx = self.latest_pose.pose.position.x - waypoint.position.x
@@ -305,9 +292,9 @@ class DroneCommNodeTask3(Node):
         dz = self.latest_pose.pose.position.z - waypoint.position.z
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
         self.get_logger().info(f"Distance to "
-                       f"({waypoint.position.x:.1f}, {waypoint.position.y:.1f}, {waypoint.position.z:.1f}) is "
+                    f"({waypoint.position.x:.1f}, {waypoint.position.y:.1f}, {waypoint.position.z:.1f}) is "
                     #    f"x={self.latest_pose.pose.position.x:.3f}, y={self.latest_pose.pose.position.y:.3f}, z={self.latest_pose.pose.position.z:.3f}
-                       f"{distance:.1f}")
+                    f"{distance:.1f}")
         return distance <= WAYPOINT_RADIUS
 
 
