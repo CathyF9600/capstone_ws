@@ -25,10 +25,10 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
    - `ros2 topic echo /vicon/ROB498_Drone/ROB498_Drone`
    - `ros2 topic echo /camera/pose/sample`
 4. Send Commands Using ROS 2 Services (TA will run this during the actual test)
-   - `ros2 service call /comm/launch std_srvs/srv/Trigger` (<-)
-   - `ros2 service call /comm/test std_srvs/srv/Trigger` 
-   - `ros2 service call /comm/land std_srvs/srv/Trigger` (<-)
-   - `ros2 service call /comm/abort std_srvs/srv/Trigger`
+   - `ros2 service call rob498_drone_3/comm/launch std_srvs/srv/Trigger` (<-)
+   - `ros2 service call rob498_drone_3/comm/test std_srvs/srv/Trigger` 
+   - `ros2 service call rob498_drone_3/comm/land std_srvs/srv/Trigger` (<-)
+   - `ros2 service call rob498_drone_3/comm/abort std_srvs/srv/Trigger`
 
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy
 - (For Micro XRCE-DDS only) Upgrade your cmake to above 3.22 (https://answers.ros.org/question/293119/)

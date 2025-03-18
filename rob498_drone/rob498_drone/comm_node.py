@@ -85,6 +85,10 @@ class DroneCommNode(Node):
         # Timer to publish waypoints at 20 Hz
         self.create_timer(1/20, self.publish_waypoint)
 
+        self.launch = False
+        self.calibrate_vicon_z = None
+        self.calibrate_rs_z = None
+
         self.get_logger().info("Drone communication node started. Listening to VICON and RealSense.")
 
     def state_cb(self, msg):
@@ -117,11 +121,17 @@ class DroneCommNode(Node):
             self.initial_pose = msg
         self.latest_pose = msg
         self.source = "vicon"
+
+        if self.launch:
+            self.calibrate_vicon_z = msg.pose.position.z
         # self.vicon_pub.publish(msg)
         # self.get_logger().info(f"VICON Pose Received: x={msg.pose.position.x}, y={msg.pose.position.y}, z={msg.pose.position.z}")
 
     def realsense_callback(self, msg):
         """Update pose from RealSense with 90-degree yaw rotation."""
+        if self.launch:
+            self.calibrate_rs_z = msg.pose.pose.orientation.z
+        
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "map"
         # Convert Odometry to PoseStamped
@@ -199,9 +209,10 @@ class DroneCommNode(Node):
         # Change the altitude
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # for testing purpose, set it to 0.5 for now.
-        self.hover_pose.pose.position.z = 0.5   # Force drone to hover at 1.5 meters   
+        # self.hover_pose.pose.position.z = 0.5   # Force drone to hover at 1.5 meters   
         if self.source == 'realsense':
-            self.hover_pose.pose.position.z = 1.5 - 0.2
+            self.hover_pose.pose.position.z = 1.5
+        
         # Arm the drone
         arm_req = CommandBool.Request()
         arm_req.value = True
@@ -210,6 +221,7 @@ class DroneCommNode(Node):
         # Ensure a response is returned
         response.success = True
         response.message = "Takeoff initiated."
+        self.launch = True
         return response
  
     def handle_land(self, request, response):
@@ -235,11 +247,11 @@ class DroneCommNode(Node):
 
         return response # Trigger.Response(success=True, message="Abort initiated.")
 
-    
+
     def handle_test(self, request, response):
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # test is not used for task 2
-        self.hover_pose.pose.position.z = 1.5 - 0.2  # Force drone to hover at 1.5 meters   
+        self.hover_pose.pose.position.z = 1.5 + (self.calibrate_vicon_z - self.calibrate_rs_z)  # Force drone to hover at 1.5 meters   
         return response # Trigger.Response(success=True, message="Test acknowledged.")
 
 
