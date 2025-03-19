@@ -63,6 +63,6 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
 - `sudo apt update` `sudo apt install code` `code`
 
-
-## Realsense Frame Offset
-- transformation of -0.07 m in z direction for now
+## Course links
+https://github.com/utiasSTARS/ROB498-support
+https://github.com/utiasSTARS/ROB498-flight
