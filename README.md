@@ -31,6 +31,7 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
    - `ros2 service call rob498_drone_3/comm/abort std_srvs/srv/Trigger`
 
 ## Exercise 3:
+ros2 launch px4_autonomy_modules mavros.launch.py
 1. realsense to mavros
 ros2 topic echo /mavros/vision_pose/pose
 
@@ -38,7 +39,7 @@ ros2 topic echo /mavros/vision_pose/pose
 ros2 topic echo /mavros/local_position/pose
 
 3. start task3 node 
-ros2 run rob498_drone comm_node
+ros2 run rob498_drone comm_node_task3
 
 
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy

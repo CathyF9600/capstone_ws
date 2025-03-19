@@ -11,7 +11,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 import numpy as np
 import time
 
-WAYPOINT_RADIUS = 0.40  # 40 cm tolerance
+WAYPOINT_RADIUS = 0.20  # 40 cm tolerance on handout, 20 cm for better accuracy
 TEST_ALTITUDE = 1.5  # Hover altitude
 MAX_TEST_TIME = 90  # Maximum test duration
 WAYPOINT_TIMEOUT = 10  # Maximum time to reach a waypoint
@@ -96,14 +96,17 @@ class DroneCommNodeTask3(Node):
             10
         )
         self.test_start = False
+        self.wp_received = False
         self.create_timer(1/20, self.publish_target_waypoint)
 
 
     def waypoints_callback(self, msg): # special for task3
         """Receives the list of waypoints."""
-        self.waypoints = msg.poses
-        self.current_waypoint_idx = 0
-        self.get_logger().info(f"Received {len(self.waypoints)} waypoints.")
+        if not self.wp_received:
+            self.waypoints = msg.poses
+            self.current_waypoint_idx = 0
+            self.get_logger().info(f"Received {len(self.waypoints)} waypoints.")
+            self.wp_received = True
 
 
     def state_cb(self, msg):
@@ -229,7 +232,7 @@ class DroneCommNodeTask3(Node):
         mode_req.custom_mode = "AUTO.LAND"
         future = self.set_mode_client.call_async(mode_req)
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-        self.hover_pose.pose.position.z = 0.1 
+        self.hover_pose.pose.position.z = 0.05
         # self.get_logger().info("Landing mode request sent.")
         response.success = True
         return response
@@ -264,6 +267,7 @@ class DroneCommNodeTask3(Node):
             return
 
         if self.current_waypoint_idx < len(self.waypoints):
+
             target_wp = self.waypoints[self.current_waypoint_idx]
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.hover_pose.pose = target_wp
