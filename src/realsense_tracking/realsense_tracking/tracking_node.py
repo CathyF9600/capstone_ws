@@ -28,11 +28,28 @@ class T265Tracker(Node):
         self.fx = self.fy = self.cx = self.cy = None
         self.pose = None  # Store latest camera pose
 
+        self.K = None
+        self.D = None
+        self.new_K = None
+        self.map1, self.map2 = None, None
+
     def camera_info_callback(self, msg):
         """Extract camera intrinsic parameters."""
         self.fx, self.fy = msg.k[0], msg.k[4]  # Focal lengths
         self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
         
+        self.K = np.array(msg.k).reshape(3, 3)
+        self.D = np.array(msg.d)
+
+        # Get image size
+        w, h = msg.width, msg.height
+
+        # Compute optimal new camera matrix
+        self.new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(self.K, self.D, (w, h), np.eye(3), balance=0.0)
+
+        # Precompute undistortion maps
+        self.map1, self.map2 = cv2.fisheye.initUndistortRectifyMap(self.K, self.D, np.eye(3), self.new_K, (w, h), cv2.CV_16SC2)
+
         # self.get_logger().info(f"msg {self.fx}, {self.fy}, {self.cx}, {self.cy}")
 
     def pose_callback(self, msg):
