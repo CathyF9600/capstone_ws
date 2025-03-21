@@ -3,11 +3,14 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, CameraInfo
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 import cv2
 import numpy as np
 from cv_bridge import CvBridge
 import tf_transformations
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
+
 
 class T265Tracker(Node):
     def __init__(self):
@@ -15,11 +18,11 @@ class T265Tracker(Node):
         self.bridge = CvBridge()
 
         # Subscribe to Fisheye Camera
-        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback, 10)
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, 10)
+        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback, qos_profile_system_default)
+        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
 
         # Subscribe to Camera Pose
-        self.create_subscription(PoseStamped, '/camera/pose/sample', self.pose_callback, 10)
+        self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
 
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
@@ -29,13 +32,14 @@ class T265Tracker(Node):
         """Extract camera intrinsic parameters."""
         self.fx, self.fy = msg.k[0], msg.k[4]  # Focal lengths
         self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
+        # self.get_logger().info(f"msg {self.fx}, {self.fy}, {self.cx}, {self.cy}")
 
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
         self.pose = {
-            'position': (msg.pose.position.x, msg.pose.position.y, msg.pose.position.z),
-            'orientation': (msg.pose.orientation.x, msg.pose.orientation.y,
-                            msg.pose.orientation.z, msg.pose.orientation.w)
+            'position': (msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z),
+            'orientation': (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                            msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         }
 
     def image_callback(self, msg):
