@@ -67,6 +67,8 @@ ros2 run rob498_drone comm_node_task3
     - you don't need the Micro XRCE-DDS Agent unless you are running ROS 2 on a microcontroller (using Micro-ROS)
 ![image](https://github.com/user-attachments/assets/fbd46d9b-0250-4550-bcc9-7ee5bf4b6224)
 
+## Project
+`ros2 launch realsense_tracking realsense_t265.launch.py`
 
 ## Install VS Code on Ubuntu 20.04 arm64
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
