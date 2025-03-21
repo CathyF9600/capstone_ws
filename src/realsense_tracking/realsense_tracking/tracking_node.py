@@ -40,6 +40,7 @@ class T265Tracker(Node):
         
         self.K = np.array(msg.k).reshape(3, 3)
         self.D = np.array(msg.d)
+        self.P = np.array(msg.p).reshape(3, 4)
 
         # Get image size
         w, h = msg.width, msg.height
@@ -48,7 +49,7 @@ class T265Tracker(Node):
         self.new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(self.K, self.D, (w, h), np.eye(3), balance=0.0)
 
         # Precompute undistortion maps
-        self.map1, self.map2 = cv2.fisheye.initUndistortRectifyMap(self.K, self.D, np.eye(3), self.new_K, (w, h), cv2.CV_16SC2)
+        self.map1, self.map2 = cv2.fisheye.initUndistortRectifyMap(self.K, self.D, np.eye(3), self.P, (w, h), cv2.CV_32FC1)
 
         # self.get_logger().info(f"msg {self.fx}, {self.fy}, {self.cx}, {self.cy}")
 
