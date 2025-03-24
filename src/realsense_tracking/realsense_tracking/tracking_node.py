@@ -11,6 +11,7 @@ from cv_bridge import CvBridge
 import tf_transformations
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
 from math import tan, pi
+import time
 
 WINDOW_TITLE = 'Realsense'
 cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
@@ -34,16 +35,6 @@ class T265Tracker(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
-
-        # Subscribe to Fisheye Camera
-        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
-        self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
-        self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
-
-        # Subscribe to Camera Pose
-        self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
-
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
         self.pose = None  # Store latest camera pose
@@ -65,6 +56,16 @@ class T265Tracker(Node):
         self.rm1, self.rm2 = None, None
 
         self.undistort_rectify = None
+        # Subscribe to Fisheye Camera
+        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
+        self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
+
+        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
+        self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
+
+        # Subscribe to Camera Pose
+        self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
+
 
     def get_extrinsics(self, P_left, P_right):
         # Returns R, T transform from src (left) to dst
@@ -75,6 +76,7 @@ class T265Tracker(Node):
         # Compute relative transformation
         self.R_rel = R_right @ np.linalg.inv(R_left)
         self.T_rel = T_right - self.R_rel @ T_left
+        self.get_logger().info(f"R, T {self.R_rel} {self.T_rel}")
 
     def camera_info_callback_l(self, msg):
         """Extract camera intrinsic parameters."""
@@ -89,9 +91,9 @@ class T265Tracker(Node):
         w, h = msg.width, msg.height
 
         # Precompute undistortion maps L 
-        self.lm1, self.lm2 = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, np.eye(3), self.P_left, (w, h), cv2.CV_32FC1)
+        # self.lm1, self.lm2 = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, np.eye(3), self.P_left, (w, h), cv2.CV_32FC1)
 
-        # self.get_logger().info(f"msg {self.fx}, {self.fy}, {self.cx}, {self.cy}")
+        self.get_logger().info(f"msg L {self.fx}, {self.fy}, {self.cx}, {self.cy}")
 
     def camera_info_callback_r(self, msg):
         """Extract camera intrinsic parameters."""
@@ -101,12 +103,16 @@ class T265Tracker(Node):
         self.K_right = np.array(msg.k).reshape(3, 3)
         self.D_right = np.array(msg.d)
         self.P_right = np.array(msg.p).reshape(3, 4)
-        if self.P_left and self.P_right:
-            self.get_extrinsics(self.P_left, self.P_right) # get relative R, T
-        # Get image size
-        w, h = msg.width, msg.height
+        if (isinstance(self.P_left, np.ndarray) and isinstance(self.P_right, np.ndarray)):
+            # self.get_logger().info(f"P_left {self.P_left}, {self.P_right}")
+            if not (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray)):
+                self.get_extrinsics(self.P_left, self.P_right) # get relative R, T
+            # Get image size
+            w, h = msg.width, msg.height
 
-        # self.get_logger().info(f"msg {self.fx}, {self.fy}, {self.cx}, {self.cy}")
+            # self.get_logger().info(f"msg R {self.fx}, {self.fy}, {self.cx}, {self.cy}")
+        else:
+            self.get_logger().warn(f"Waiting for P matrices")
 
 
     def pose_callback(self, msg):
@@ -182,61 +188,72 @@ class T265Tracker(Node):
 
         # We set the left rotation to identity and the right rotation
         # the rotation between the cameras
-        R_left = np.eye(3)
-        R_right = self.R_rel
+        if (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray) and isinstance(self.img_left, np.ndarray) and isinstance(self.img_right, np.ndarray)):
+            R_left = np.eye(3)
+            R_right = self.R_rel
 
-        # The stereo algorithm needs max_disp extra pixels in order to produce valid
-        # disparity on the desired output region. This changes the width, but the
-        # center of projection should be on the center of the cropped image
-        stereo_width_px = stereo_height_px + max_disp
-        stereo_size = (stereo_width_px, stereo_height_px)
-        stereo_cx = (stereo_height_px - 1)/2 + max_disp
-        stereo_cy = (stereo_height_px - 1)/2
+            # The stereo algorithm needs max_disp extra pixels in order to produce valid
+            # disparity on the desired output region. This changes the width, but the
+            # center of projection should be on the center of the cropped image
+            stereo_width_px = stereo_height_px + max_disp
+            stereo_size = (stereo_width_px, stereo_height_px)
+            stereo_cx = (stereo_height_px - 1)/2 + max_disp
+            stereo_cy = (stereo_height_px - 1)/2
 
-        # Construct the left and right projection matrices, the only difference is
-        # that the right projection matrix should have a shift along the x axis of
-        # baseline*focal_length
-        P_left = np.array([[stereo_focal_px, 0, stereo_cx, 0],
-                        [0, stereo_focal_px, stereo_cy, 0],
-                        [0,               0,         1, 0]])
-        P_right = P_left.copy()
-        P_right[0][3] = self.T_rel[0]*stereo_focal_px
+            # Construct the left and right projection matrices, the only difference is
+            # that the right projection matrix should have a shift along the x axis of
+            # baseline*focal_length
+            # P_left = np.array([[stereo_focal_px, 0, stereo_cx, 0],
+            #                 [0, stereo_focal_px, stereo_cy, 0],
+            #                 [0,               0,         1, 0]])
+            # P_right = P_left.copy()
+            # P_right[0][3] = self.T_rel[0]*stereo_focal_px
 
-        # Create an undistortion map for the left and right camera which applies the
-        # rectification and undoes the camera distortion. This only has to be done
-        # once
-        m1type = cv2.CV_32FC1
-        (lm1, lm2) = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, R_left, P_left, stereo_size, m1type)
-        (rm1, rm2) = cv2.fisheye.initUndistortRectifyMap(self.K_right, self.D_right, R_right, P_right, stereo_size, m1type)
-        undistort_rectify = {"left"  : (lm1, lm2),
-                            "right" : (rm1, rm2)}
+            P_left = self.P_left
+            P_right = P_left.copy()
+            P_right[0][3] = self.T_rel[0]*stereo_focal_px
 
-        mode = "stack"
-        frame_copy = {"left"  : self.img_left.copy(),
-                      "right" : self.img_right.copy()}
-        # Undistort and crop the center of the frames
-        center_undistorted = {"left" : cv2.remap(src = frame_copy["left"],
-                                        map1 = undistort_rectify["left"][0],
-                                        map2 = undistort_rectify["left"][1],
-                                        interpolation = cv2.INTER_LINEAR),
-                                "right" : cv2.remap(src = frame_copy["right"],
-                                        map1 = undistort_rectify["right"][0],
-                                        map2 = undistort_rectify["right"][1],
-                                        interpolation = cv2.INTER_LINEAR)}
+            # Create an undistortion map for the left and right camera which applies the
+            # rectification and undoes the camera distortion. This only has to be done
+            # once
+            m1type = cv2.CV_32FC1
+            (lm1, lm2) = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, R_left, P_left, stereo_size, m1type)
+            (rm1, rm2) = cv2.fisheye.initUndistortRectifyMap(self.K_right, self.D_right, R_right, P_right, stereo_size, m1type)
+            undistort_rectify = {"left"  : (lm1, lm2),
+                                "right" : (rm1, rm2)}
+            # the rotation between the cameras
+            mode = "stack"
+            frame_copy = {"left"  : self.img_left.copy(),
+                        "right" : self.img_right.copy()}
+            # Undistort and crop the center of the frames
+            center_undistorted = {"left" : cv2.remap(src = frame_copy["left"],
+                                            map1 = undistort_rectify["left"][0],
+                                            map2 = undistort_rectify["left"][1],
+                                            interpolation = cv2.INTER_LINEAR),
+                                    "right" : cv2.remap(src = frame_copy["right"],
+                                            map1 = undistort_rectify["right"][0],
+                                            map2 = undistort_rectify["right"][1],
+                                            interpolation = cv2.INTER_LINEAR)}
 
-        # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
-        disparity = stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
+            # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
+            disparity = stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
 
-        # re-crop just the valid part of the disparity
-        disparity = disparity[:,max_disp:]
-
-        # convert disparity to 0-255 and color it
-        disp_vis = 255*(disparity - min_disp)/ num_disp
-        disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
-        color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
-
-        if mode == "stack":
-            cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
+            # re-crop just the valid part of the disparity
+            disparity = disparity[:,max_disp:]
+            
+            # convert disparity to 0-255 and color it
+            disp_vis = 255*(disparity - min_disp)/ num_disp
+            disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
+            color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
+            self.get_logger().info(f"d {disp_color}")
+            if mode == "stack":
+                cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
+                # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
+                # cv2.imshow("Tracked Image", color_image)
+                cv2.waitKey(1)
+        
+        else:
+            self.get_logger().warn(f"Waiting for R_rel, T_rel matrices")
 
         
     def pixel_to_world(self, pixel):

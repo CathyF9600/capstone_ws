@@ -70,6 +70,10 @@ ros2 run rob498_drone comm_node_task3
 ## Project
 `ros2 launch realsense_tracking realsense_t265.launch.py`
 
+`ros2 launch realsense2_camera rs_launch.py`
+
+`ros2 run realsense_tracking tracking_node`
+
 ## Install VS Code on Ubuntu 20.04 arm64
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
 - `sudo apt update` `sudo apt install code` `code`
