@@ -74,14 +74,19 @@ ros2 run rob498_drone comm_node_task3
 
 `ros2 run realsense_tracking tracking_node`
 
-`ros2 launch stereo_image_proc stereo_image_proc.launch.py namespace:=stereo`
+### Using image_pipeline
+- `https://github.com/ros-perception/image_pipeline.git`
+- `ros2 launch stereo_image_proc stereo_image_proc.launch.py namespace:=stereo`
+- `ros2 run image_view stereo_view stereo:=/stereo image:=image_rect_color`
+bug: terminate called after throwing an instance of 'rclcpp::exceptions::InvalidTopicNameError'
+  what():  Invalid topic name: topic name must not contain repeated '/':
+  '/stereo/left//image'
 
-`https://github.com/ros-perception/image_pipeline.git`
+- `ros2 run image_view image_view image:=/stereo/left/image_rect_color`
 
-ros2 run image_view stereo_view stereo:=/stereo image:=image_rect_color
-
-ros2 run image_view image_view image:=/stereo/left/image_rect_color
-
+### Self-made launch file for depth
+`ros2 launch realsense_tracking stereo.launch.py`
+pops up a black window and do nothing
 
 ## Install VS Code on Ubuntu 20.04 arm64
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
