@@ -74,6 +74,8 @@ ros2 run rob498_drone comm_node_task3
 
 `ros2 run realsense_tracking tracking_node`
 
+`ros2 launch stereo_image_proc stereo_image_proc.launch.py namespace:=stereo`
+
 ## Install VS Code on Ubuntu 20.04 arm64
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
 - `sudo apt update` `sudo apt install code` `code`
