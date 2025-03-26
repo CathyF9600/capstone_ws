@@ -108,7 +108,7 @@ pipe = rs.pipeline()
 
 # Build config object and stream everything
 cfg = rs.config()
-
+print('cfg',cfg)
 # Start streaming with our callback
 pipe.start(cfg, callback)
 
@@ -247,7 +247,7 @@ try:
             disp_vis = 255*(disparity - min_disp)/ num_disp
             disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
             color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
-
+            print('Success!', disp_color)
             if mode == "stack":
                 cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
             if mode == "overlay":
