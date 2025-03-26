@@ -78,6 +78,11 @@ ros2 run rob498_drone comm_node_task3
 
 `https://github.com/ros-perception/image_pipeline.git`
 
+ros2 run image_view stereo_view stereo:=/stereo image:=image_rect_color
+
+ros2 run image_view image_view image:=/stereo/left/image_rect_color
+
+
 ## Install VS Code on Ubuntu 20.04 arm64
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
 - `sudo apt update` `sudo apt install code` `code`
