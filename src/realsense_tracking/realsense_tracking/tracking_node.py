@@ -35,10 +35,10 @@ class T265Tracker(Node):
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
         
         # Publishers for rectified images
-        self.left_image_pub = self.create_publisher(Image, '/camera/left/image_raw', qos_profile_system_default)
-        self.left_info_pub = self.create_publisher(CameraInfo, '/camera/left/camera_info', qos_profile_system_default)
-        self.right_image_pub = self.create_publisher(Image, '/camera/right/image_raw', qos_profile_system_default)
-        self.right_info_pub = self.create_publisher(CameraInfo, '/camera/right/camera_info', qos_profile_system_default)
+        self.left_image_pub = self.create_publisher(Image, '/left/image_raw', qos_profile_system_default)
+        self.left_info_pub = self.create_publisher(CameraInfo, '/left/camera_info', qos_profile_system_default)
+        self.right_image_pub = self.create_publisher(Image, '/right/image_raw', qos_profile_system_default)
+        self.right_info_pub = self.create_publisher(CameraInfo, '/right/camera_info', qos_profile_system_default)
 
     def camera_info_callback_l(self, msg):
         """Extract left camera intrinsic parameters and publish."""
@@ -82,13 +82,13 @@ class T265Tracker(Node):
             self.img_left = self.bridge.imgmsg_to_cv2(left_msg, desired_encoding='mono8')
             self.img_right = self.bridge.imgmsg_to_cv2(right_msg, desired_encoding='mono8')
             
-            self.get_logger().info(f"Synchronized images at {left_msg.header.stamp.sec}.{left_msg.header.stamp.nanosec}")
+            self.get_logger().info(f"Synchronized images at {left_msg.header.stamp.sec}.{right_msg.header.stamp.sec}")
             
             # Publish rectified images
             self.left_image_pub.publish(left_msg)
             self.right_image_pub.publish(right_msg)
         
-        elif left_msg.header.stamp < right_msg.header.stamp:
+        elif left_msg.header.stamp.sec < right_msg.header.stamp.sec:
             self.left_queue.popleft()  # Drop old left image
         else:
             self.right_queue.popleft()  # Drop old right image
@@ -100,7 +100,7 @@ class T265Tracker(Node):
             'orientation': (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
                             msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         }
-        self.get_logger().info(f"Updated pose: {self.pose}")
+        # self.get_logger().info(f"Updated pose: {self.pose}")
 
 
 def main(args=None):
