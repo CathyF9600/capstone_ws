@@ -42,19 +42,20 @@ class T265Tracker(Node):
 
     def sync_callback(self, left_info, right_info, left_img, right_img):
         """Processes synchronized image and camera info messages."""
-        self.K_left = np.array(left_info.k).reshape(3, 3)
-        self.D_left = np.array(left_info.d)
-        self.P_left = np.array(left_info.p).reshape(3, 4)
+        self.K_left = list(left_info.k) #np.array(left_info.k).reshape(3, 3)
+        self.D_left = list(left_info.d) #np.array(left_info.d)
+        self.P_left = list(left_info.p) #np.array(left_info.p).reshape(3, 4)
         
-        self.K_right = np.array(right_info.k).reshape(3, 3)
-        self.D_right = np.array(right_info.d)
-        self.P_right = np.array(right_info.p).reshape(3, 4)
+        self.K_right = list(right_info.k)  # np.array(right_info.k).reshape(3, 3)
+        self.D_right = list(right_info.d) #np.array(right_info.d)
+        self.P_right = list(right_info.p) #np.array(right_info.p).reshape(3, 4)
         
         self.img_left = self.bridge.imgmsg_to_cv2(left_img, desired_encoding='mono8')
         self.img_right = self.bridge.imgmsg_to_cv2(right_img, desired_encoding='mono8')
         
         self.get_logger().info(f"Synchronized images at {left_img.header.stamp.sec}.{right_img.header.stamp.sec}.{left_info.header.stamp.sec}.{right_info.header.stamp.sec}")
-        
+        left_info.distortion_model = 'plumb_bob'
+        right_info.distortion_model = 'plumb_bob'
         self.left_image_pub.publish(left_img)
         self.right_image_pub.publish(right_img)
         self.left_info_pub.publish(left_info)
