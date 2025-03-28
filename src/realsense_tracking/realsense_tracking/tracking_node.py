@@ -97,7 +97,7 @@ class T265Tracker(Node):
         self.right_image_pub.publish(msg)
 
 
-'''
+    '''
     def get_extrinsics(self, P_left, P_right):
         # Returns R, T transform from src (left) to dst
         # Extract R and T from 3x4 projection matrix (P = K [R | T])
@@ -145,6 +145,7 @@ class T265Tracker(Node):
         else:
             self.get_logger().warn(f"Waiting for P matrices")
 
+    '''
 
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
@@ -154,7 +155,7 @@ class T265Tracker(Node):
                             msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         }
         
-
+    '''
     def image_callback_l(self, msg):
         """Process incoming images, detect an object, and estimate its global position."""
         if self.fx is None or self.pose is None:
@@ -307,6 +308,7 @@ class T265Tracker(Node):
         # Transform to world frame
         P_w = R @ P_c + np.array([X_w, Y_w, Z_w])
         return P_w
+'''
 
 def main(args=None):
     rclpy.init(args=args)
@@ -318,4 +320,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-'''
