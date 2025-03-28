@@ -65,9 +65,39 @@ class T265Tracker(Node):
 
         # Subscribe to Camera Pose
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
-        self.image_raw_rect_pub = self.create_publisher(PoseStamped,'/camera/left/image_raw', qos_profile_system_default) # rectified
+
+        # Publishers for rectified images and camera info
+        self.left_image_pub = self.create_publisher(Image, '/camera/left/image_raw', qos_profile_system_default)
+        self.left_info_pub = self.create_publisher(CameraInfo, '/camera/left/camera_info', qos_profile_system_default)
+        self.right_image_pub = self.create_publisher(Image, '/camera/right/image_raw', qos_profile_system_default)
+        self.right_info_pub = self.create_publisher(CameraInfo, '/camera/right/camera_info', qos_profile_system_default)
+
+    def camera_info_callback_l(self, msg):
+        """Extract and store left camera intrinsic parameters, then publish."""
+        self.K_left = np.array(msg.k).reshape(3, 3)
+        self.D_left = np.array(msg.d)
+        self.P_left = np.array(msg.p).reshape(3, 4)
+        self.left_info_pub.publish(msg)
+
+    def camera_info_callback_r(self, msg):
+        """Extract and store right camera intrinsic parameters, then publish."""
+        self.K_right = np.array(msg.k).reshape(3, 3)
+        self.D_right = np.array(msg.d)
+        self.P_right = np.array(msg.p).reshape(3, 4)
+        self.right_info_pub.publish(msg)
+
+    def image_callback_l(self, msg):
+        """Convert left image, store it, and publish."""
+        self.img_left = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+        self.left_image_pub.publish(msg)
+
+    def image_callback_r(self, msg):
+        """Convert right image, store it, and publish."""
+        self.img_right = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+        self.right_image_pub.publish(msg)
 
 
+'''
     def get_extrinsics(self, P_left, P_right):
         # Returns R, T transform from src (left) to dst
         # Extract R and T from 3x4 projection matrix (P = K [R | T])
@@ -288,3 +318,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+'''
