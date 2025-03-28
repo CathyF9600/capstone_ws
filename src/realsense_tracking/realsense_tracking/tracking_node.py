@@ -1,151 +1,97 @@
-#!/usr/bin/env python3
-
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, CameraInfo
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped
+from collections import deque
 import cv2
 import numpy as np
 from cv_bridge import CvBridge
-import tf_transformations
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
-from math import tan, pi
-import time
-
-WINDOW_TITLE = 'Realsense'
-cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
-window_size = 5
-min_disp = 0
-# must be divisible by 16
-num_disp = 112 - min_disp
-max_disp = min_disp + num_disp
-
-stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
-                        numDisparities = num_disp,
-                        blockSize = 16,
-                        P1 = 8*3*window_size**2,
-                        P2 = 32*3*window_size**2,
-                        disp12MaxDiff = 1,
-                        uniquenessRatio = 10,
-                        speckleWindowSize = 100,
-                        speckleRange = 32)
+from rclpy.qos import qos_profile_system_default
 
 class T265Tracker(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
+        
+        # Queues for image synchronization
+        self.left_queue = deque()
+        self.right_queue = deque()
+        
         # Camera intrinsics
-        self.fx = self.fy = self.cx = self.cy = None
-        self.pose = None  # Store latest camera pose
-
-        self.K_left = None
-        self.D_left = None
-        self.P_left = None
-        self.img_left = None
-
-        self.K_right = None
-        self.D_right = None
-        self.P_right = None
-        self.img_right = None
-
-        self.R_rel = None
-        self.T_rel = None
-
-        self.lm1, self.lm2 = None, None
-        self.rm1, self.rm2 = None, None
-
-        self.undistort_rectify = None
-        # Subscribe to Fisheye Camera
+        self.K_left = self.D_left = self.P_left = None
+        self.K_right = self.D_right = self.P_right = None
+        self.img_left = self.img_right = None
+        self.pose = None
+        
+        # Subscribe to Camera Info
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
         self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
-
+        
+        # Subscribe to Image Streams
         self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
         self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
-
+        
         # Subscribe to Camera Pose
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
-
-        # Publishers for rectified images and camera info
+        
+        # Publishers for rectified images
         self.left_image_pub = self.create_publisher(Image, '/camera/left/image_raw', qos_profile_system_default)
         self.left_info_pub = self.create_publisher(CameraInfo, '/camera/left/camera_info', qos_profile_system_default)
         self.right_image_pub = self.create_publisher(Image, '/camera/right/image_raw', qos_profile_system_default)
         self.right_info_pub = self.create_publisher(CameraInfo, '/camera/right/camera_info', qos_profile_system_default)
 
     def camera_info_callback_l(self, msg):
-        """Extract and store left camera intrinsic parameters, then publish."""
+        """Extract left camera intrinsic parameters and publish."""
         self.K_left = np.array(msg.k).reshape(3, 3)
         self.D_left = np.array(msg.d)
         self.P_left = np.array(msg.p).reshape(3, 4)
         self.left_info_pub.publish(msg)
 
     def camera_info_callback_r(self, msg):
-        """Extract and store right camera intrinsic parameters, then publish."""
+        """Extract right camera intrinsic parameters and publish."""
         self.K_right = np.array(msg.k).reshape(3, 3)
         self.D_right = np.array(msg.d)
         self.P_right = np.array(msg.p).reshape(3, 4)
         self.right_info_pub.publish(msg)
 
     def image_callback_l(self, msg):
-        """Convert left image, store it, and publish."""
-        self.img_left = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-        self.left_image_pub.publish(msg)
+        """Store left image and check for synchronization."""
+        self.left_queue.append(msg)
+        self.process_synchronized_images()
 
     def image_callback_r(self, msg):
-        """Convert right image, store it, and publish."""
-        self.img_right = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-        self.right_image_pub.publish(msg)
+        """Store right image and check for synchronization."""
+        self.right_queue.append(msg)
+        self.process_synchronized_images()
 
+    def process_synchronized_images(self):
+        """Match left and right images based on timestamp."""
+        if not self.left_queue or not self.right_queue:
+            return  # Wait for both queues to have messages
 
-    '''
-    def get_extrinsics(self, P_left, P_right):
-        # Returns R, T transform from src (left) to dst
-        # Extract R and T from 3x4 projection matrix (P = K [R | T])
-        R_left, T_left = P_left[:, :3], P_left[:, 3]
-        R_right, T_right = P_right[:, :3], P_right[:, 3]
+        left_msg = self.left_queue[0]
+        right_msg = self.right_queue[0]
+
+        time_diff = abs(left_msg.header.stamp.sec + left_msg.header.stamp.nanosec * 1e-9 -
+                        right_msg.header.stamp.sec - right_msg.header.stamp.nanosec * 1e-9)
+
+        if time_diff < 0.01:  # Acceptable sync threshold (10ms)
+            self.left_queue.popleft()
+            self.right_queue.popleft()
+            
+            self.img_left = self.bridge.imgmsg_to_cv2(left_msg, desired_encoding='mono8')
+            self.img_right = self.bridge.imgmsg_to_cv2(right_msg, desired_encoding='mono8')
+            
+            self.get_logger().info(f"Synchronized images at {left_msg.header.stamp.sec}.{left_msg.header.stamp.nanosec}")
+            
+            # Publish rectified images
+            self.left_image_pub.publish(left_msg)
+            self.right_image_pub.publish(right_msg)
         
-        # Compute relative transformation
-        self.R_rel = R_right @ np.linalg.inv(R_left)
-        self.T_rel = T_right - self.R_rel @ T_left
-        self.get_logger().info(f"R, T {self.R_rel} {self.T_rel}")
-
-    def camera_info_callback_l(self, msg):
-        """Extract camera intrinsic parameters."""
-        self.fx, self.fy = msg.k[0], msg.k[4]  # Focal lengths
-        self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
-        
-        self.K_left = np.array(msg.k).reshape(3, 3)
-        self.D_left = np.array(msg.d)
-        self.P_left = np.array(msg.p).reshape(3, 4)
-
-        # Get image size
-        w, h = msg.width, msg.height
-
-        # Precompute undistortion maps L 
-        # self.lm1, self.lm2 = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, np.eye(3), self.P_left, (w, h), cv2.CV_32FC1)
-
-        self.get_logger().info(f"msg L {self.fx}, {self.fy}, {self.cx}, {self.cy}")
-
-    def camera_info_callback_r(self, msg):
-        """Extract camera intrinsic parameters."""
-        self.fx, self.fy = msg.k[0], msg.k[4]  # Focal lengths
-        self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
-        
-        self.K_right = np.array(msg.k).reshape(3, 3)
-        self.D_right = np.array(msg.d)
-        self.P_right = np.array(msg.p).reshape(3, 4)
-        if (isinstance(self.P_left, np.ndarray) and isinstance(self.P_right, np.ndarray)):
-            # self.get_logger().info(f"P_left {self.P_left}, {self.P_right}")
-            if not (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray)):
-                self.get_extrinsics(self.P_left, self.P_right) # get relative R, T
-            # Get image size
-            w, h = msg.width, msg.height
-
-            # self.get_logger().info(f"msg R {self.fx}, {self.fy}, {self.cx}, {self.cy}")
+        elif left_msg.header.stamp < right_msg.header.stamp:
+            self.left_queue.popleft()  # Drop old left image
         else:
-            self.get_logger().warn(f"Waiting for P matrices")
-
-    '''
+            self.right_queue.popleft()  # Drop old right image
 
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
@@ -154,169 +100,15 @@ class T265Tracker(Node):
             'orientation': (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
                             msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
         }
-        
-    '''
-    def image_callback_l(self, msg):
-        """Process incoming images, detect an object, and estimate its global position."""
-        if self.fx is None or self.pose is None:
-            self.get_logger().warn("Waiting for camera intrinsics and pose data...")
-            return
+        self.get_logger().info(f"Updated pose: {self.pose}")
 
-        # Convert ROS image message to OpenCV format
-        self.img_left = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-        # img = self.undistort_image(img)
-        # # Dummy object detection (center of the image)
-        # u, v = int(self.img_left.shape[1] / 2), int(self.img_left.shape[0] / 2)
-
-        # # Convert pixel to world coordinates
-        # world_pos = self.pixel_to_world((u, v))
-
-        # # Display result
-        # text = f"X: {world_pos[0]:.2f}, Y: {world_pos[1]:.2f}, Z: {world_pos[2]:.2f}m"
-        # cv2.putText(self.img_left, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        # cv2.circle(self.img_left, (u, v), 5, (255, 255, 255), -1)
-        # cv2.imshow("Tracked Image", self.img_left)
-        # cv2.waitKey(1)
-
-    def image_callback_r(self, msg):
-        """Process incoming images, detect an object, and estimate its global position."""
-        if self.fx is None or self.pose is None:
-            self.get_logger().warn("Waiting for camera intrinsics and pose data...")
-            return
-
-        # Convert ROS image message to OpenCV format
-        self.img_right = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-        # img = self.undistort_image(img)
-        # Dummy object detection (center of the image)
-        # u, v = int(self.img_right.shape[1] / 2), int(self.img_right.shape[0] / 2)
-
-        # # Convert pixel to world coordinates
-        # world_pos = self.pixel_to_world((u, v))
-
-        # # Display result
-        # text = f"X: {world_pos[0]:.2f}, Y: {world_pos[1]:.2f}, Z: {world_pos[2]:.2f}m"
-        # cv2.putText(self.img_right, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
-        # cv2.imshow("Tracked Image", self.img_right)
-        # cv2.waitKey(1)
-
-        # We need to determine what focal length our undistorted images should have
-        # in order to set up the camera matrices for initUndistortRectifyMap.  We
-        # could use stereoRectify, but here we show how to derive these projection
-        # matrices from the calibration and a desired height and field of view
-
-        # We calculate the undistorted focal length:
-        #
-        #         h
-        # -----------------
-        #  \      |      /
-        #    \    | f  /
-        #     \   |   /
-        #      \ fov /
-        #        \|/
-        stereo_fov_rad = 90 * (pi/180)  # 90 degree desired fov
-        stereo_height_px = 300          # 300x300 pixel stereo output
-        stereo_focal_px = stereo_height_px/2 / tan(stereo_fov_rad/2)
-
-        # We set the left rotation to identity and the right rotation
-        # the rotation between the cameras
-        if (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray) and isinstance(self.img_left, np.ndarray) and isinstance(self.img_right, np.ndarray)):
-            R_left = np.eye(3)
-            R_right = self.R_rel
-
-            # The stereo algorithm needs max_disp extra pixels in order to produce valid
-            # disparity on the desired output region. This changes the width, but the
-            # center of projection should be on the center of the cropped image
-            stereo_width_px = stereo_height_px + max_disp
-            stereo_size = (stereo_width_px, stereo_height_px)
-            stereo_cx = (stereo_height_px - 1)/2 + max_disp
-            stereo_cy = (stereo_height_px - 1)/2
-
-            # Construct the left and right projection matrices, the only difference is
-            # that the right projection matrix should have a shift along the x axis of
-            # baseline*focal_length
-            # P_left = np.array([[stereo_focal_px, 0, stereo_cx, 0],
-            #                 [0, stereo_focal_px, stereo_cy, 0],
-            #                 [0,               0,         1, 0]])
-            # P_right = P_left.copy()
-            # P_right[0][3] = self.T_rel[0]*stereo_focal_px
-
-            P_left = self.P_left
-            P_right = P_left.copy()
-            P_right[0][3] = self.T_rel[0]*stereo_focal_px
-
-            # Create an undistortion map for the left and right camera which applies the
-            # rectification and undoes the camera distortion. This only has to be done
-            # once
-            m1type = cv2.CV_32FC1
-            (lm1, lm2) = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, R_left, P_left, stereo_size, m1type)
-            (rm1, rm2) = cv2.fisheye.initUndistortRectifyMap(self.K_right, self.D_right, R_right, P_right, stereo_size, m1type)
-            undistort_rectify = {"left"  : (lm1, lm2),
-                                "right" : (rm1, rm2)}
-            # the rotation between the cameras
-            mode = "stack"
-            frame_copy = {"left"  : self.img_left.copy(),
-                        "right" : self.img_right.copy()}
-            # Undistort and crop the center of the frames
-            center_undistorted = {"left" : cv2.remap(src = frame_copy["left"],
-                                            map1 = undistort_rectify["left"][0],
-                                            map2 = undistort_rectify["left"][1],
-                                            interpolation = cv2.INTER_LINEAR),
-                                    "right" : cv2.remap(src = frame_copy["right"],
-                                            map1 = undistort_rectify["right"][0],
-                                            map2 = undistort_rectify["right"][1],
-                                            interpolation = cv2.INTER_LINEAR)}
-
-            # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
-            disparity = stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
-
-            # re-crop just the valid part of the disparity
-            disparity = disparity[:,max_disp:]
-            
-            # convert disparity to 0-255 and color it
-            disp_vis = 255*(disparity - min_disp)/ num_disp
-            disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
-            color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
-            self.get_logger().info(f"d {disp_color}")
-            if mode == "stack":
-                cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
-                # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
-                # cv2.imshow("Tracked Image", color_image)
-                cv2.waitKey(1)
-        
-        else:
-            self.get_logger().warn(f"Waiting for R_rel, T_rel matrices")
-
-        
-    def pixel_to_world(self, pixel):
-        """Convert image pixel to global world coordinates."""
-        u, v = pixel
-        X_c = (u - self.cx) / self.fx
-        Y_c = (v - self.cy) / self.fy
-        Z_c = 1  # Assume unit depth (scaling factor is unknown)
-
-        # Camera frame coordinates
-        P_c = np.array([X_c, Y_c, Z_c])
-
-        # Get camera pose
-        X_w, Y_w, Z_w = self.pose['position']
-        qx, qy, qz, qw = self.pose['orientation']
-
-        # Convert quaternion to rotation matrix
-        R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
-
-        # Transform to world frame
-        P_w = R @ P_c + np.array([X_w, Y_w, Z_w])
-        return P_w
-'''
 
 def main(args=None):
     rclpy.init(args=args)
-    node = T265Tracker()
-    rclpy.spin(node)
-    node.destroy_node()
+    tracker = T265Tracker()
+    rclpy.spin(tracker)
+    tracker.destroy_node()
     rclpy.shutdown()
-    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
