@@ -65,6 +65,7 @@ class T265Tracker(Node):
 
         # Subscribe to Camera Pose
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
+        self.image_raw_rect_pub = self.create_publisher(PoseStamped,'/camera/left/image_raw', qos_profile_system_default) # rectified
 
 
     def get_extrinsics(self, P_left, P_right):
