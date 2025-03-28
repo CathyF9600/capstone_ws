@@ -53,7 +53,7 @@ class T265Tracker(Node):
         self.img_left = self.bridge.imgmsg_to_cv2(left_img, desired_encoding='mono8')
         self.img_right = self.bridge.imgmsg_to_cv2(right_img, desired_encoding='mono8')
         
-        self.get_logger().info(f"Synchronized images at {left_img.header.stamp.sec}.{right_img.header.stamp.sec}")
+        self.get_logger().info(f"Synchronized images at {left_img.header.stamp.sec}.{right_img.header.stamp.sec}.{left_info.header.stamp.sec}.{right_info.header.stamp.sec}")
         
         self.left_image_pub.publish(left_img)
         self.right_image_pub.publish(right_img)
