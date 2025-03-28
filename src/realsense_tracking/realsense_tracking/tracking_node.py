@@ -83,13 +83,14 @@ class T265Tracker(Node):
 
         time_diff_info = abs(left_info_msg.header.stamp.sec + left_info_msg.header.stamp.nanosec * 1e-9 -
                               right_info_msg.header.stamp.sec - right_info_msg.header.stamp.nanosec * 1e-9)
-
-        if time_diff_img < 0.01 and time_diff_info < 0.01:  # Acceptable sync threshold (10ms)
-            self.left_queue.popleft()
-            self.right_queue.popleft()
+        time_diff_ci = abs(left_info_msg.header.stamp.sec + left_info_msg.header.stamp.nanosec * 1e-9 -
+                              left_msg.header.stamp.sec - left_msg.header.stamp.nanosec * 1e-9)
+        if time_diff_img < 0.01 and time_diff_info < 0.01 and time_diff_ci < 0.01 : 
             self.left_info_queue.popleft()
             self.right_info_queue.popleft()
-            
+            self.left_queue.popleft()
+            self.right_queue.popleft()
+
             self.img_left = self.bridge.imgmsg_to_cv2(left_msg, desired_encoding='mono8')
             self.img_right = self.bridge.imgmsg_to_cv2(right_msg, desired_encoding='mono8')
             
@@ -100,11 +101,27 @@ class T265Tracker(Node):
             self.right_image_pub.publish(right_msg)
             self.left_info_pub.publish(left_info_msg)
             self.right_info_pub.publish(right_info_msg)
-        
+
+        elif left_info_msg.header.stamp.sec < right_info_msg.header.stamp.sec:
+            self.left_info_queue.popleft()
+        elif left_info_msg.header.stamp.sec > right_info_msg.header.stamp.sec:
+            self.right_info_queue.popleft()
+
         elif left_msg.header.stamp.sec < right_msg.header.stamp.sec:
             self.left_queue.popleft()  # Drop old left image
-        else:
+        elif left_msg.header.stamp.sec > right_msg.header.stamp.sec:
             self.right_queue.popleft()  # Drop old right image
+        
+        # now lc-rc and li-ri are synchd
+        #next we synch rc-ri
+        
+        elif left_info_msg.header.stamp.sec < left_msg.header.stamp.sec:
+            self.left_info_queue.popleft()
+            self.right_info_queue.popleft()
+
+        elif left_info_msg.header.stamp.sec > left_msg.header.stamp.sec:
+            self.left_queue.popleft() 
+            self.right_queue.popleft() 
 
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
