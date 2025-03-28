@@ -13,9 +13,11 @@ class T265Tracker(Node):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
         
-        # Queues for image synchronization
+        # Queues for synchronization
         self.left_queue = deque()
         self.right_queue = deque()
+        self.left_info_queue = deque()
+        self.right_info_queue = deque()
         
         # Camera intrinsics
         self.K_left = self.D_left = self.P_left = None
@@ -34,26 +36,53 @@ class T265Tracker(Node):
         # Subscribe to Camera Pose
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
         
-        # Publishers for rectified images
+        # Publishers for rectified images and camera info
         self.left_image_pub = self.create_publisher(Image, '/left/image_raw', qos_profile_system_default)
         self.left_info_pub = self.create_publisher(CameraInfo, '/left/camera_info', qos_profile_system_default)
         self.right_image_pub = self.create_publisher(Image, '/right/image_raw', qos_profile_system_default)
         self.right_info_pub = self.create_publisher(CameraInfo, '/right/camera_info', qos_profile_system_default)
 
     def camera_info_callback_l(self, msg):
-        """Extract left camera intrinsic parameters and publish."""
-        self.K_left = np.array(msg.k).reshape(3, 3)
-        self.D_left = np.array(msg.d)
-        self.P_left = np.array(msg.p).reshape(3, 4)
-        self.left_info_pub.publish(msg)
+        """Store left camera info and attempt synchronization."""
+        self.left_info_queue.append(msg)
+        self.process_synchronized_camera_info()
 
     def camera_info_callback_r(self, msg):
-        """Extract right camera intrinsic parameters and publish."""
-        self.K_right = np.array(msg.k).reshape(3, 3)
-        self.D_right = np.array(msg.d)
-        self.P_right = np.array(msg.p).reshape(3, 4)
-        self.right_info_pub.publish(msg)
+        """Store right camera info and attempt synchronization."""
+        self.right_info_queue.append(msg)
+        self.process_synchronized_camera_info()
+    
+    def process_synchronized_camera_info(self):
+        """Synchronize left and right camera info messages."""
+        if not self.left_info_queue or not self.right_info_queue:
+            return
 
+        left_msg = self.left_info_queue[0]
+        right_msg = self.right_info_queue[0]
+
+        time_diff = abs(left_msg.header.stamp.sec + left_msg.header.stamp.nanosec * 1e-9 -
+                        right_msg.header.stamp.sec - right_msg.header.stamp.nanosec * 1e-9)
+        
+        if time_diff < 0.01:  # Acceptable sync threshold (10ms)
+            self.left_info_queue.popleft()
+            self.right_info_queue.popleft()
+            
+            self.K_left = np.array(left_msg.k).reshape(3, 3)
+            self.D_left = np.array(left_msg.d)
+            self.P_left = np.array(left_msg.p).reshape(3, 4)
+            
+            self.K_right = np.array(right_msg.k).reshape(3, 3)
+            self.D_right = np.array(right_msg.d)
+            self.P_right = np.array(right_msg.p).reshape(3, 4)
+            
+            self.left_info_pub.publish(left_msg)
+            self.right_info_pub.publish(right_msg)
+        
+        elif left_msg.header.stamp.sec < right_msg.header.stamp.sec:
+            self.left_info_queue.popleft()
+        else:
+            self.right_info_queue.popleft()
+    
     def image_callback_l(self, msg):
         """Store left image and check for synchronization."""
         self.left_queue.append(msg)
@@ -67,7 +96,7 @@ class T265Tracker(Node):
     def process_synchronized_images(self):
         """Match left and right images based on timestamp."""
         if not self.left_queue or not self.right_queue:
-            return  # Wait for both queues to have messages
+            return
 
         left_msg = self.left_queue[0]
         right_msg = self.right_queue[0]
@@ -82,17 +111,16 @@ class T265Tracker(Node):
             self.img_left = self.bridge.imgmsg_to_cv2(left_msg, desired_encoding='mono8')
             self.img_right = self.bridge.imgmsg_to_cv2(right_msg, desired_encoding='mono8')
             
-            self.get_logger().info(f"Synchronized images at {left_msg.header.stamp.sec}.{right_msg.header.stamp.sec}")
+            self.get_logger().info(f"Synchronized images at {left_msg.header.stamp.sec}.{left_msg.header.stamp.nanosec}")
             
-            # Publish rectified images
             self.left_image_pub.publish(left_msg)
             self.right_image_pub.publish(right_msg)
         
         elif left_msg.header.stamp.sec < right_msg.header.stamp.sec:
-            self.left_queue.popleft()  # Drop old left image
+            self.left_queue.popleft()
         else:
-            self.right_queue.popleft()  # Drop old right image
-
+            self.right_queue.popleft()
+    
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
         self.pose = {
