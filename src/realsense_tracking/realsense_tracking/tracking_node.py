@@ -28,6 +28,8 @@ CAM_INFO1_MODIFIED = None
 CAM_INFO2_MODIFIED = None
 BRIDGE = CvBridge()
 
+DROP_IND = 0
+
 class T265Tracker(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
@@ -48,7 +50,8 @@ class T265Tracker(Node):
         # Synchronizer
         self.sync = ApproximateTimeSynchronizer(
             [self.left_image_sub, self.right_image_sub, self.left_info_sub, self.right_info_sub], 
-            10
+            queue_size=10,
+            slop=0.05
         )
 
         self.sync.registerCallback(self.sync_callback)
@@ -141,29 +144,32 @@ class T265Tracker(Node):
 
         # publish
         self.left_image_pub.publish(output_msg1)
-        self.right_image_pub.publish(output_msg2)
-        self.left_info_pub.publish(camera_info_msg1)
-        self.right_info_pub.publish(camera_info_msg2)
+        # self.right_image_pub.publish(output_msg2)
+        # self.left_info_pub.publish(camera_info_msg1)
+        # self.right_info_pub.publish(camera_info_msg2)
+
+        self.get_logger().info(f"Synchronized images at {output_msg1.header.stamp.sec}.{output_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
 
     def modify_camera_info(self, msg):
+        # print('msg', msg)
         msg.distortion_model = "plumb_bob"
-        msg.D = [0.0, 0.0, 0.0, 0.0, 0.0]
+        msg.d = [0.0, 0.0, 0.0, 0.0, 0.0]
         # downscale K and P
-        msg.K = list(msg.K)
-        msg.K[5] = msg.K[5]/DOWNSCALE_H # optical center
-        msg.P = list(msg.P)
-        msg.P[6] = msg.P[6]/DOWNSCALE_H # optical center
+        msg.k = list(msg.k)
+        msg.k[5] = msg.k[5]/DOWNSCALE_H # optical center
+        msg.p = list(msg.p)
+        msg.p[6] = msg.p[6]/DOWNSCALE_H # optical center
         msg.height = msg.height//DOWNSCALE_H
         return msg
 
 
     def init_maps(self, cam_info1, cam_info2):
         global MAPX1, MAPY1, MAPX2, MAPY2
-        K1 = np.array(cam_info1.K).reshape(3,3)
-        D1 = np.array(cam_info1.D)
-        K2 = np.array(cam_info2.K).reshape(3,3)
-        D2 = np.array(cam_info2.D)
+        K1 = np.array(cam_info1.k).reshape(3,3)
+        D1 = np.array(cam_info1.d)
+        K2 = np.array(cam_info2.k).reshape(3,3)
+        D2 = np.array(cam_info2.d)
         T = np.array([BASELINE, 0, 0]) # 64 mm baseline
 
         R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(
