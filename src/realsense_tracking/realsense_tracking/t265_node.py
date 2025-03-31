@@ -60,11 +60,11 @@ class T265Tracker(Node):
         self.lock = threading.Lock()
 
         # Subscribe to Fisheye Camera
-        self.create_subscription(CameraInfo, '/left/camera_info', self.camera_info_callback_l, qos_profile_system_default)
-        self.create_subscription(CameraInfo, '/right/camera_info', self.camera_info_callback_r, qos_profile_system_default)
+        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
+        self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
 
-        self.create_subscription(Image, '/left/image_raw', self.image_callback_l, qos_profile_system_default)
-        self.create_subscription(Image, '/right/image_raw', self.image_callback_r, qos_profile_system_default)
+        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
+        self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
 
         # Subscribe to Camera Pose
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
@@ -223,6 +223,9 @@ class T265Tracker(Node):
                 # rectification and undoes the camera distortion. This only has to be done
                 # once
                 m1type = cv2.CV_32FC1
+                if self.K_left is None:
+                    self.get_logger().warn("K_left can't be None.")
+                    return
                 (lm1, lm2) = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, R_left, P_left, stereo_size, m1type)
                 (rm1, rm2) = cv2.fisheye.initUndistortRectifyMap(self.K_right, self.D_right, R_right, P_right, stereo_size, m1type)
                 undistort_rectify = {"left"  : (lm1, lm2),
