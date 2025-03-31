@@ -149,7 +149,10 @@ class T265Tracker(Node):
         self.right_image_pub.publish(output_msg2)
         self.left_info_pub.publish(camera_info_msg1)
         self.right_info_pub.publish(camera_info_msg2)
+<<<<<<< HEAD
         
+=======
+>>>>>>> 04b9053d46e3c9adae785e1c0ac82c3555ad2860
 
         self.get_logger().info(f"Synchronized images at {output_msg1.header.stamp.sec}.{output_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
