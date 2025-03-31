@@ -98,3 +98,8 @@ https://github.com/utiasSTARS/ROB498-flight
 
 if free space >= 32GB
 https://github.com/AastaNV/JEP/blob/master/script/install_opencv4.6.0_Jetpack5.sh
+
+
+
+`sudo cp /opt/nvidia/jetson-gpio/etc/99-gpio.rules /etc/udev/rules.d/`
+`sudo udevadm control --reload-rules && sudo udevadm trigger`
