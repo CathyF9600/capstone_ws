@@ -95,3 +95,6 @@ pops up a black window and do nothing
 ## Course links
 https://github.com/utiasSTARS/ROB498-support
 https://github.com/utiasSTARS/ROB498-flight
+
+if free space >= 32GB
+https://github.com/AastaNV/JEP/blob/master/script/install_opencv4.6.0_Jetpack5.sh
