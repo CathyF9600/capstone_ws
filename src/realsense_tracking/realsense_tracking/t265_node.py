@@ -12,6 +12,8 @@ import tf_transformations
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
 from math import tan, pi
 import time
+from message_filters import ApproximateTimeSynchronizer, Subscriber
+
 
 WINDOW_TITLE = 'Realsense'
 cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
@@ -20,6 +22,29 @@ min_disp = 0
 # must be divisible by 16
 num_disp = 112 - min_disp
 max_disp = min_disp + num_disp
+
+
+# stereo camera constants
+H, W = 800, 848
+IMG_SIZE_WH = (W, H)
+DOWNSCALE_H = 1 # 8
+STEREO_SIZE_WH = (W, H//DOWNSCALE_H)
+BASELINE = -18.2928466796875/286.1825866699219 # 64 mm baseline
+DROP_FRAMES = 3
+
+MAPX1 = None
+MAPY1 = None
+MAPX2 = None
+MAPY2 = None
+
+CAM_INFO1_ORIGINAL = None
+CAM_INFO2_ORIGINAL = None
+CAM_INFO1_MODIFIED = None
+CAM_INFO2_MODIFIED = None
+BRIDGE = CvBridge()
+
+DROP_IND = 0
+
 
 stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
                         numDisparities = num_disp,
@@ -59,16 +84,115 @@ class T265Tracker(Node):
 
         self.lock = threading.Lock()
 
-        # Subscribe to Fisheye Camera
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
-        self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
+        # # Subscribe to Fisheye Camera
+        # self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
+        # self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
 
-        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
-        self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
+        # self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
+        # self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
 
-        # Subscribe to Camera Pose
-        self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
+        # # Subscribe to Camera Pose
+        # self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
+        
+        # Create subscribers with message filters
+        self.left_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye1/camera_info')
+        self.right_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye2/camera_info')
+        self.left_image_sub = Subscriber(self, Image, '/camera/fisheye1/image_raw')
+        self.right_image_sub = Subscriber(self, Image, '/camera/fisheye2/image_raw')
+        self.pose_sub = Subscriber(self, Odometry, '/camera/pose/sample')
 
+                # Synchronizer
+        self.sync = ApproximateTimeSynchronizer(
+            [self.left_image_sub, self.right_image_sub, self.left_info_sub, self.right_info_sub], 
+            queue_size=10,
+            slop=0.05
+        )
+
+        self.sync.registerCallback(self.sync_callback)
+    
+    def sync_callback(self, img_msg1, img_msg2, camera_info_msg1, camera_info_msg2):
+        global DROP_IND
+
+        if any([x is None for x in (MAPX1, MAPY1, MAPX2, MAPY2)]):
+            self.init_maps(camera_info_msg1, camera_info_msg2)
+
+        img_distorted1 = BRIDGE.imgmsg_to_cv2(img_msg1, desired_encoding="mono8")
+        img_undistorted1 = cv2.remap(
+            img_distorted1,
+            MAPX1,
+            MAPY1,
+            interpolation=cv2.INTER_LINEAR,
+        )
+        img_distorted2 = BRIDGE.imgmsg_to_cv2(img_msg2, desired_encoding="mono8")
+        img_undistorted2 = cv2.remap(
+            img_distorted2,
+            MAPX2,
+            MAPY2,
+            interpolation=cv2.INTER_LINEAR,
+        )
+        self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
+
+        # # crop top and bottom based on DOWNSCALE_H
+        # orig_height = img_undistorted1.shape[0]
+        # new_height = orig_height//DOWNSCALE_H
+
+        # # take center of image of new height
+        # img_undistorted1 = img_undistorted1[
+        #     (orig_height - new_height)//2 : (orig_height + new_height)//2, :
+        # ]
+        # img_undistorted2 = img_undistorted2[
+        #     (orig_height - new_height)//2 : (orig_height + new_height)//2, :
+        # ]
+        
+        # # convert from mono8 to bgr8
+        # img_undistorted1 = cv2.cvtColor(img_undistorted1, cv2.COLOR_GRAY2BGR)
+        # output_msg1 = BRIDGE.cv2_to_imgmsg(img_undistorted1, encoding="bgr8")
+        # output_msg1.header = img_msg1.header
+        # img_undistorted2 = cv2.cvtColor(img_undistorted2, cv2.COLOR_GRAY2BGR)
+        # output_msg2 = BRIDGE.cv2_to_imgmsg(img_undistorted2, encoding="bgr8")
+        # output_msg2.header = img_msg2.header
+
+        # # publish
+        # self.left_image_pub.publish(output_msg1)
+        # self.right_image_pub.publish(output_msg2)
+        # self.left_info_pub.publish(camera_info_msg1)
+        # self.right_info_pub.publish(camera_info_msg2)
+        mode = "stack"
+        # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
+        disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+
+        # re-crop just the valid part of the disparity
+        disparity = disparity[:,max_disp:]
+        
+        # convert disparity to 0-255 and color it
+        disp_vis = 255*(disparity - min_disp)/ num_disp
+        disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
+        color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
+        self.get_logger().info(f"d {disp_color}")
+        if mode == "stack":
+            cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
+            # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
+            # cv2.imshow("Tracked Image", color_image)
+            cv2.waitKey(1)
+
+
+    def init_maps(self, cam_info1, cam_info2):
+        global MAPX1, MAPY1, MAPX2, MAPY2
+        K1 = np.array(cam_info1.k).reshape(3,3)
+        D1 = np.array(cam_info1.d)
+        K2 = np.array(cam_info2.k).reshape(3,3)
+        D2 = np.array(cam_info2.d)
+        T = np.array([BASELINE, 0, 0]) # 64 mm baseline
+
+        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(
+            K1, D1, K2, D2, IMG_SIZE_WH, R=np.eye(3), T=T
+        )
+        MAPX1, MAPY1 = cv2.fisheye.initUndistortRectifyMap(
+            K1, D1, R1, P1, size=IMG_SIZE_WH, m1type=cv2.CV_32FC1
+        )
+        MAPX2, MAPY2 = cv2.fisheye.initUndistortRectifyMap(
+            K2, D2, R2, P2, size=IMG_SIZE_WH, m1type=cv2.CV_32FC1
+        )
 
     def get_extrinsics(self, P_left, P_right):
         # Returns R, T transform from src (left) to dst
