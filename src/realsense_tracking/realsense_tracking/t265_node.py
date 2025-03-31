@@ -56,12 +56,15 @@ class T265Tracker(Node):
         self.rm1, self.rm2 = None, None
 
         self.undistort_rectify = None
-        # Subscribe to Fisheye Camera
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
-        self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
 
-        self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
-        self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
+        self.lock = threading.Lock()
+
+        # Subscribe to Fisheye Camera
+        self.create_subscription(CameraInfo, '/left/camera_info', self.camera_info_callback_l, qos_profile_system_default)
+        self.create_subscription(CameraInfo, '/right/camera_info', self.camera_info_callback_r, qos_profile_system_default)
+
+        self.create_subscription(Image, '/left/image_raw', self.image_callback_l, qos_profile_system_default)
+        self.create_subscription(Image, '/right/image_raw', self.image_callback_r, qos_profile_system_default)
 
         # Subscribe to Camera Pose
         self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
@@ -129,9 +132,11 @@ class T265Tracker(Node):
         if self.fx is None or self.pose is None:
             self.get_logger().warn("Waiting for camera intrinsics and pose data...")
             return
-
-        # Convert ROS image message to OpenCV format
-        self.img_left = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+        
+        # Acquire lock to access shared resources safely
+        with self.lock:
+            # Convert ROS image message to OpenCV format
+            self.img_left = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
         # img = self.undistort_image(img)
         # # Dummy object detection (center of the image)
         # u, v = int(self.img_left.shape[1] / 2), int(self.img_left.shape[0] / 2)
@@ -151,109 +156,110 @@ class T265Tracker(Node):
         if self.fx is None or self.pose is None:
             self.get_logger().warn("Waiting for camera intrinsics and pose data...")
             return
-
-        # Convert ROS image message to OpenCV format
-        self.img_right = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-        # img = self.undistort_image(img)
-        # Dummy object detection (center of the image)
-        # u, v = int(self.img_right.shape[1] / 2), int(self.img_right.shape[0] / 2)
-
-        # # Convert pixel to world coordinates
-        # world_pos = self.pixel_to_world((u, v))
-
-        # # Display result
-        # text = f"X: {world_pos[0]:.2f}, Y: {world_pos[1]:.2f}, Z: {world_pos[2]:.2f}m"
-        # cv2.putText(self.img_right, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-        # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
-        # cv2.imshow("Tracked Image", self.img_right)
-        # cv2.waitKey(1)
-
-        # We need to determine what focal length our undistorted images should have
-        # in order to set up the camera matrices for initUndistortRectifyMap.  We
-        # could use stereoRectify, but here we show how to derive these projection
-        # matrices from the calibration and a desired height and field of view
-
-        # We calculate the undistorted focal length:
-        #
-        #         h
-        # -----------------
-        #  \      |      /
-        #    \    | f  /
-        #     \   |   /
-        #      \ fov /
-        #        \|/
-        stereo_fov_rad = 90 * (pi/180)  # 90 degree desired fov
-        stereo_height_px = 300          # 300x300 pixel stereo output
-        stereo_focal_px = stereo_height_px/2 / tan(stereo_fov_rad/2)
-
-        # We set the left rotation to identity and the right rotation
-        # the rotation between the cameras
-        if (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray) and isinstance(self.img_left, np.ndarray) and isinstance(self.img_right, np.ndarray)):
-            R_left = np.eye(3)
-            R_right = self.R_rel
-
-            # The stereo algorithm needs max_disp extra pixels in order to produce valid
-            # disparity on the desired output region. This changes the width, but the
-            # center of projection should be on the center of the cropped image
-            stereo_width_px = stereo_height_px + max_disp
-            stereo_size = (stereo_width_px, stereo_height_px)
-            stereo_cx = (stereo_height_px - 1)/2 + max_disp
-            stereo_cy = (stereo_height_px - 1)/2
-
-            # Construct the left and right projection matrices, the only difference is
-            # that the right projection matrix should have a shift along the x axis of
-            # baseline*focal_length
-            P_left = np.array([[stereo_focal_px, 0, stereo_cx, 0],
-                            [0, stereo_focal_px, stereo_cy, 0],
-                            [0,               0,         1, 0]])
-            P_right = P_left.copy()
-            P_right[0][3] = self.T_rel[0]*stereo_focal_px
-
-            # P_left = self.P_left
-            # P_right = P_left.copy()
-            # P_right[0][3] = self.T_rel[0]*stereo_focal_px
-
-            # Create an undistortion map for the left and right camera which applies the
-            # rectification and undoes the camera distortion. This only has to be done
-            # once
-            m1type = cv2.CV_32FC1
-            (lm1, lm2) = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, R_left, P_left, stereo_size, m1type)
-            (rm1, rm2) = cv2.fisheye.initUndistortRectifyMap(self.K_right, self.D_right, R_right, P_right, stereo_size, m1type)
-            undistort_rectify = {"left"  : (lm1, lm2),
-                                "right" : (rm1, rm2)}
-            # the rotation between the cameras
-            mode = "stack"
-            frame_copy = {"left"  : self.img_left.copy(),
-                        "right" : self.img_right.copy()}
-            # Undistort and crop the center of the frames
-            center_undistorted = {"left" : cv2.remap(src = frame_copy["left"],
-                                            map1 = undistort_rectify["left"][0],
-                                            map2 = undistort_rectify["left"][1],
-                                            interpolation = cv2.INTER_LINEAR),
-                                    "right" : cv2.remap(src = frame_copy["right"],
-                                            map1 = undistort_rectify["right"][0],
-                                            map2 = undistort_rectify["right"][1],
-                                            interpolation = cv2.INTER_LINEAR)}
-
-            # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
-            disparity = stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
-
-            # re-crop just the valid part of the disparity
-            disparity = disparity[:,max_disp:]
-            
-            # convert disparity to 0-255 and color it
-            disp_vis = 255*(disparity - min_disp)/ num_disp
-            disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
-            color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
-            self.get_logger().info(f"d {disp_color}")
-            if mode == "stack":
-                cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
-                # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
-                # cv2.imshow("Tracked Image", color_image)
-                cv2.waitKey(1)
         
-        else:
-            self.get_logger().warn(f"Waiting for R_rel, T_rel matrices")
+        with self.lock:
+            # Convert ROS image message to OpenCV format
+            self.img_right = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
+            # img = self.undistort_image(img)
+            # Dummy object detection (center of the image)
+            # u, v = int(self.img_right.shape[1] / 2), int(self.img_right.shape[0] / 2)
+
+            # # Convert pixel to world coordinates
+            # world_pos = self.pixel_to_world((u, v))
+
+            # # Display result
+            # text = f"X: {world_pos[0]:.2f}, Y: {world_pos[1]:.2f}, Z: {world_pos[2]:.2f}m"
+            # cv2.putText(self.img_right, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
+            # cv2.imshow("Tracked Image", self.img_right)
+            # cv2.waitKey(1)
+
+            # We need to determine what focal length our undistorted images should have
+            # in order to set up the camera matrices for initUndistortRectifyMap.  We
+            # could use stereoRectify, but here we show how to derive these projection
+            # matrices from the calibration and a desired height and field of view
+
+            # We calculate the undistorted focal length:
+            #
+            #         h
+            # -----------------
+            #  \      |      /
+            #    \    | f  /
+            #     \   |   /
+            #      \ fov /
+            #        \|/
+            stereo_fov_rad = 90 * (pi/180)  # 90 degree desired fov
+            stereo_height_px = 300          # 300x300 pixel stereo output
+            stereo_focal_px = stereo_height_px/2 / tan(stereo_fov_rad/2)
+
+            # We set the left rotation to identity and the right rotation
+            # the rotation between the cameras
+            if (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray) and isinstance(self.img_left, np.ndarray) and isinstance(self.img_right, np.ndarray)):
+                R_left = np.eye(3)
+                R_right = self.R_rel
+
+                # The stereo algorithm needs max_disp extra pixels in order to produce valid
+                # disparity on the desired output region. This changes the width, but the
+                # center of projection should be on the center of the cropped image
+                stereo_width_px = stereo_height_px + max_disp
+                stereo_size = (stereo_width_px, stereo_height_px)
+                stereo_cx = (stereo_height_px - 1)/2 + max_disp
+                stereo_cy = (stereo_height_px - 1)/2
+
+                # Construct the left and right projection matrices, the only difference is
+                # that the right projection matrix should have a shift along the x axis of
+                # baseline*focal_length
+                P_left = np.array([[stereo_focal_px, 0, stereo_cx, 0],
+                                [0, stereo_focal_px, stereo_cy, 0],
+                                [0,               0,         1, 0]])
+                P_right = P_left.copy()
+                P_right[0][3] = self.T_rel[0]*stereo_focal_px
+
+                # P_left = self.P_left
+                # P_right = P_left.copy()
+                # P_right[0][3] = self.T_rel[0]*stereo_focal_px
+
+                # Create an undistortion map for the left and right camera which applies the
+                # rectification and undoes the camera distortion. This only has to be done
+                # once
+                m1type = cv2.CV_32FC1
+                (lm1, lm2) = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, R_left, P_left, stereo_size, m1type)
+                (rm1, rm2) = cv2.fisheye.initUndistortRectifyMap(self.K_right, self.D_right, R_right, P_right, stereo_size, m1type)
+                undistort_rectify = {"left"  : (lm1, lm2),
+                                    "right" : (rm1, rm2)}
+                # the rotation between the cameras
+                mode = "stack"
+                frame_copy = {"left"  : self.img_left.copy(),
+                            "right" : self.img_right.copy()}
+                # Undistort and crop the center of the frames
+                center_undistorted = {"left" : cv2.remap(src = frame_copy["left"],
+                                                map1 = undistort_rectify["left"][0],
+                                                map2 = undistort_rectify["left"][1],
+                                                interpolation = cv2.INTER_LINEAR),
+                                        "right" : cv2.remap(src = frame_copy["right"],
+                                                map1 = undistort_rectify["right"][0],
+                                                map2 = undistort_rectify["right"][1],
+                                                interpolation = cv2.INTER_LINEAR)}
+
+                # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
+                disparity = stereo.compute(center_undistorted["left"], center_undistorted["right"]).astype(np.float32) / 16.0
+
+                # re-crop just the valid part of the disparity
+                disparity = disparity[:,max_disp:]
+                
+                # convert disparity to 0-255 and color it
+                disp_vis = 255*(disparity - min_disp)/ num_disp
+                disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
+                color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
+                self.get_logger().info(f"d {disp_color}")
+                if mode == "stack":
+                    cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
+                    # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
+                    # cv2.imshow("Tracked Image", color_image)
+                    cv2.waitKey(1)
+            
+            else:
+                self.get_logger().warn(f"Waiting for R_rel, T_rel matrices")
 
         
     def pixel_to_world(self, pixel):
