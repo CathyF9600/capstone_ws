@@ -27,7 +27,7 @@ max_disp = min_disp + num_disp
 # stereo camera constants
 H, W = 800, 848
 IMG_SIZE_WH = (W, H)
-DOWNSCALE_H = 1 # 8
+DOWNSCALE_H = 4
 STEREO_SIZE_WH = (W, H//DOWNSCALE_H)
 BASELINE = -18.2928466796875/286.1825866699219 # 64 mm baseline
 DROP_FRAMES = 3
@@ -87,11 +87,8 @@ class T265Tracker(Node):
         # # Subscribe to Fisheye Camera
         # self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
         # self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
-
         # self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
         # self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
-
-        # # Subscribe to Camera Pose
         # self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
         
         # Create subscribers with message filters
@@ -100,14 +97,12 @@ class T265Tracker(Node):
         self.left_image_sub = Subscriber(self, Image, '/camera/fisheye1/image_raw')
         self.right_image_sub = Subscriber(self, Image, '/camera/fisheye2/image_raw')
         self.pose_sub = Subscriber(self, Odometry, '/camera/pose/sample')
-
-                # Synchronizer
+        # Synchronizer
         self.sync = ApproximateTimeSynchronizer(
             [self.left_image_sub, self.right_image_sub, self.left_info_sub, self.right_info_sub], 
             queue_size=10,
-            slop=0.05
+            slop=0.1
         )
-
         self.sync.registerCallback(self.sync_callback)
     
     def sync_callback(self, img_msg1, img_msg2, camera_info_msg1, camera_info_msg2):
@@ -132,17 +127,17 @@ class T265Tracker(Node):
         )
         self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
-        # # crop top and bottom based on DOWNSCALE_H
-        # orig_height = img_undistorted1.shape[0]
-        # new_height = orig_height//DOWNSCALE_H
+        # crop top and bottom based on DOWNSCALE_H
+        orig_height = img_undistorted1.shape[0]
+        new_height = orig_height//DOWNSCALE_H
 
-        # # take center of image of new height
-        # img_undistorted1 = img_undistorted1[
-        #     (orig_height - new_height)//2 : (orig_height + new_height)//2, :
-        # ]
-        # img_undistorted2 = img_undistorted2[
-        #     (orig_height - new_height)//2 : (orig_height + new_height)//2, :
-        # ]
+        # take center of image of new height
+        img_undistorted1 = img_undistorted1[
+            (orig_height - new_height)//2 : (orig_height + new_height)//2, :
+        ]
+        img_undistorted2 = img_undistorted2[
+            (orig_height - new_height)//2 : (orig_height + new_height)//2, :
+        ]
         
         # # convert from mono8 to bgr8
         # img_undistorted1 = cv2.cvtColor(img_undistorted1, cv2.COLOR_GRAY2BGR)
@@ -168,7 +163,7 @@ class T265Tracker(Node):
         disp_vis = 255*(disparity - min_disp)/ num_disp
         disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
         color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
-        self.get_logger().info(f"d {disp_color}")
+        # self.get_logger().info(f"d {disp_color}")
         if mode == "stack":
             cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
             # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
@@ -378,7 +373,7 @@ class T265Tracker(Node):
                 disp_vis = 255*(disparity - min_disp)/ num_disp
                 disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
                 color_image = cv2.cvtColor(center_undistorted["left"][:,max_disp:], cv2.COLOR_GRAY2RGB)
-                self.get_logger().info(f"d {disp_color}")
+                # self.get_logger().info(f"d {disp_color}")
                 if mode == "stack":
                     cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
                     # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
