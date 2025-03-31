@@ -21,7 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'tracking_node = realsense_tracking.tracking_node:main',
-            't265_node = t265_node.t265_node:main',
+            't265_node = realsense_tracking.t265_node:main',
         ],
     },
 )

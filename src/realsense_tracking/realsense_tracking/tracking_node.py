@@ -12,7 +12,7 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 # stereo camera constants
 H, W = 800, 848
 IMG_SIZE_WH = (W, H)
-DOWNSCALE_H = 8
+DOWNSCALE_H = 1 # 8
 STEREO_SIZE_WH = (W, H//DOWNSCALE_H)
 BASELINE = -18.2928466796875/286.1825866699219 # 64 mm baseline
 DROP_FRAMES = 3
@@ -141,12 +141,15 @@ class T265Tracker(Node):
         # update camera info
         camera_info_msg1 = self.modify_camera_info(camera_info_msg1)
         camera_info_msg2 = self.modify_camera_info(camera_info_msg2)
+        # print('img_undistorted1', img_undistorted1.shape, camera_info_msg1)
+        # print('img_undistorted2', img_undistorted2.shape, camera_info_msg2)
 
         # publish
         self.left_image_pub.publish(output_msg1)
-        # self.right_image_pub.publish(output_msg2)
-        # self.left_info_pub.publish(camera_info_msg1)
-        # self.right_info_pub.publish(camera_info_msg2)
+        self.right_image_pub.publish(output_msg2)
+        self.left_info_pub.publish(camera_info_msg1)
+        self.right_info_pub.publish(camera_info_msg2)
+        
 
         self.get_logger().info(f"Synchronized images at {output_msg1.header.stamp.sec}.{output_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
