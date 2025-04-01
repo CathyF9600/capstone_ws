@@ -1,86 +1,86 @@
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 import numpy as np
 import cv2
+from sensor_msgs.msg import Image, PointCloud2, CameraInfo
+from sensor_msgs_py import point_cloud2
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
-import sensor_msgs_py.point_cloud2 as pc2
-from geometry_msgs.msg import TransformStamped
-import tf2_ros
-from rclpy.qos import qos_profile_system_default
-import open3d as o3d
-from sklearn.cluster import DBSCAN
+import pcl  # PCL in Python
+import image_geometry
 
 class PillarDetection(Node):
     def __init__(self):
-        super().__init__('pillar_detection')
+        super().__init__('realsense_tracking')
         self.bridge = CvBridge()
-
-        self.fx, self.fy, self.cx, self.cy, self.baseline = None, None, None, None, None
-
+        self.camera_model = None
+        
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, 10)
         self.create_subscription(Image, '/depth_image', self.depth_callback, 10)
-
-        self.pc_pub = self.create_publisher(PointCloud2, '/filtered_point_cloud', 10)
+        self.cluster_pub = self.create_publisher(PointCloud2, '/pillar_clusters', 10)
 
     def camera_info_callback(self, msg):
-        """Retrieve camera intrinsics from CameraInfo."""
-        self.fx = msg.k[0]
-        self.fy = msg.k[4]
-        self.cx = msg.k[2]
-        self.cy = msg.k[5]
-        self.baseline = 0.064  # Stereo baseline (adjust as needed)
+        self.camera_model = image_geometry.PinholeCameraModel()
+        self.camera_model.fromCameraInfo(msg)
 
     def depth_callback(self, msg):
-        """Convert depth image to clustered point cloud."""
-        if None in (self.fx, self.fy, self.cx, self.cy, self.baseline):
+        if self.camera_model is None:
+            self.get_logger().warn("Waiting for camera info...")
             return
-
-        depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        
+        # Convert depth image to numpy
+        depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         height, width = depth_image.shape
-
+        
+        # Generate 3D points
         points = []
-        for v in range(0, height, 4):  # Downsample by taking every 4th pixel
-            for u in range(0, width, 4):
-                disparity = depth_image[v, u]
-                if disparity > 1.0:  # Ignore invalid depths
-                    Z = (self.fx * self.baseline) / disparity
-                    X = (u - self.cx) * Z / self.fx
-                    Y = (v - self.cy) * Z / self.fy
-                    points.append((X, Y, Z))
-
-        if len(points) == 0:
+        for v in range(height):
+            for u in range(width):
+                z = depth_image[v, u] / 1000.0  # Convert mm to meters if needed
+                if z == 0:
+                    continue
+                x, y, _ = self.camera_model.projectPixelTo3dRay((u, v))
+                x, y = x * z, y * z
+                points.append((x, y, z))
+        
+        if not points:
+            self.get_logger().warn("No valid depth points")
             return
+        
+        # Convert to PCL point cloud
+        pcl_cloud = pcl.PointCloud()
+        pcl_cloud.from_list(points)
+        
+        # Voxel Grid Downsampling
+        voxel = pcl_cloud.make_voxel_grid_filter()
+        voxel.set_leaf_size(0.05, 0.05, 0.05)
+        pcl_cloud = voxel.filter()
+        
+        # Pass-through filter (remove ground)
+        passthrough = pcl_cloud.make_passthrough_filter()
+        passthrough.set_filter_field_name("z")
+        passthrough.set_filter_limits(0.2, 2.0)
+        pcl_cloud = passthrough.filter()
+        
+        # Euclidean Clustering
+        tree = pcl_cloud.make_kdtree()
+        ec = pcl_cloud.make_EuclideanClusterExtraction()
+        ec.set_ClusterTolerance(0.3)
+        ec.set_MinClusterSize(50)
+        ec.set_MaxClusterSize(10000)
+        ec.set_SearchMethod(tree)
+        cluster_indices = ec.Extract()
+        
+        # Convert clusters to PointCloud2
+        cluster_cloud = pcl.PointCloud()
+        for idx in cluster_indices:
+            for i in idx.indices:
+                cluster_cloud.push_back(pcl_cloud[i])
+        
+        ros_cluster_cloud = point_cloud2.create_cloud_xyz32(msg.header, cluster_cloud.to_array())
+        self.cluster_pub.publish(ros_cluster_cloud)
+        self.get_logger().info("Published clustered pillars")
 
-        # Convert to Open3D point cloud
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(np.array(points))
-
-        # DBSCAN Clustering
-        labels = np.array(pcd.cluster_dbscan(eps=0.2, min_points=10, print_progress=False))
-
-        # Extract only larger clusters (potential pillars)
-        unique_labels = set(labels)
-        clustered_points = []
-        for label in unique_labels:
-            if label == -1:  # Ignore noise
-                continue
-            cluster = np.array(points)[labels == label]
-            if len(cluster) > 20:  # Keep only significant clusters
-                clustered_points.extend(cluster)
-
-        if len(clustered_points) == 0:
-            return
-
-        # Convert back to PointCloud2 message
-        header = msg.header
-        fields = [
-            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
-        ]
-        pc_msg = pc2.create_cloud(header, fields, clustered_points)
-        self.pc_pub.publish(pc_msg)
 
 def main():
     rclpy.init()
