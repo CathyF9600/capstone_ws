@@ -8,6 +8,7 @@ from sensor_msgs_py import point_cloud2
 from cv_bridge import CvBridge
 import pcl  # PCL in Python
 import image_geometry
+from rclpy.qos import qos_profile_system_default
 
 class PillarDetection(Node):
     def __init__(self):
@@ -15,9 +16,9 @@ class PillarDetection(Node):
         self.bridge = CvBridge()
         self.camera_model = None
         
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, 10)
-        self.create_subscription(Image, '/depth_image', self.depth_callback, 10)
-        self.cluster_pub = self.create_publisher(PointCloud2, '/pillar_clusters', 10)
+        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
+        self.create_subscription(Image, '/depth_image', self.depth_callback, qos_profile_system_default)
+        self.cluster_pub = self.create_publisher(PointCloud2, '/pillar_clusters', qos_profile_system_default)
 
     def camera_info_callback(self, msg):
         self.camera_model = image_geometry.PinholeCameraModel()
@@ -31,6 +32,7 @@ class PillarDetection(Node):
         # Convert depth image to numpy
         depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
         height, width = depth_image.shape
+        self.get_logger().info(f'depth shape: {height}x{width}')
         
         # Generate 3D points
         points = []
@@ -48,7 +50,7 @@ class PillarDetection(Node):
             return
         
         # Convert to PCL point cloud
-        pcl_cloud = pcl.PointCloud()
+        pcl_cloud = pcl.PointCloud() # pc = pcl.PointCloud(np.array(points, dtype=np.float32))
         pcl_cloud.from_list(points)
         
         # Voxel Grid Downsampling
