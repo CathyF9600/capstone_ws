@@ -75,7 +75,9 @@ class ArduinoInterface:
             print("Serial connection closed.")
             self.ser = None
 
-a = ArduinoInterface()
+a = ArduinoInterface(baudrate=9600)
 while True:
-    c = input('Enter your command (ON/OFF): ')
+    c = input('Enter your command (1/0): ')
+    if c == '1': c = 'ON'
+    elif c == '0': c = 'OFF'
     a.send_command(c)
