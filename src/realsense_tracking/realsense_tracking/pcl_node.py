@@ -8,27 +8,20 @@ import sensor_msgs_py.point_cloud2 as pc2
 from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
+import open3d as o3d
+from sklearn.cluster import DBSCAN
 
-
-class DepthToPointCloud(Node):
+class PillarDetection(Node):
     def __init__(self):
-        super().__init__('realsense_tracking')
+        super().__init__('pillar_detection')
         self.bridge = CvBridge()
 
-        # Camera parameters (to be updated from CameraInfo)
         self.fx, self.fy, self.cx, self.cy, self.baseline = None, None, None, None, None
 
-        # Subscribers
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
-        self.create_subscription(Image, '/disparity', self.depth_callback, qos_profile_system_default)
+        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, 10)
+        self.create_subscription(Image, '/depth_image', self.depth_callback, 10)
 
-        # Publisher
-        self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
-
-        # TF2 Buffer
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-
+        self.pc_pub = self.create_publisher(PointCloud2, '/filtered_point_cloud', 10)
 
     def camera_info_callback(self, msg):
         """Retrieve camera intrinsics from CameraInfo."""
@@ -36,71 +29,62 @@ class DepthToPointCloud(Node):
         self.fy = msg.k[4]
         self.cx = msg.k[2]
         self.cy = msg.k[5]
-        self.baseline = 0.064  # 64mm stereo baseline (update as needed)
-
+        self.baseline = 0.064  # Stereo baseline (adjust as needed)
 
     def depth_callback(self, msg):
-        """Convert depth image to point cloud."""
+        """Convert depth image to clustered point cloud."""
         if None in (self.fx, self.fy, self.cx, self.cy, self.baseline):
-            return  # Wait for camera info
+            return
 
         depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         height, width = depth_image.shape
 
         points = []
-        for v in range(height):
-            for u in range(width):
+        for v in range(0, height, 4):  # Downsample by taking every 4th pixel
+            for u in range(0, width, 4):
                 disparity = depth_image[v, u]
-                if disparity > 0:
+                if disparity > 1.0:  # Ignore invalid depths
                     Z = (self.fx * self.baseline) / disparity
                     X = (u - self.cx) * Z / self.fx
                     Y = (v - self.cy) * Z / self.fy
                     points.append((X, Y, Z))
 
-        # Convert to PointCloud2
+        if len(points) == 0:
+            return
+
+        # Convert to Open3D point cloud
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(np.array(points))
+
+        # DBSCAN Clustering
+        labels = np.array(pcd.cluster_dbscan(eps=0.2, min_points=10, print_progress=False))
+
+        # Extract only larger clusters (potential pillars)
+        unique_labels = set(labels)
+        clustered_points = []
+        for label in unique_labels:
+            if label == -1:  # Ignore noise
+                continue
+            cluster = np.array(points)[labels == label]
+            if len(cluster) > 20:  # Keep only significant clusters
+                clustered_points.extend(cluster)
+
+        if len(clustered_points) == 0:
+            return
+
+        # Convert back to PointCloud2 message
         header = msg.header
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
             PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
         ]
-        pc_msg = pc2.create_cloud(header, fields, points)
-
-        # try:
-        #     transform = self.tf_buffer.lookup_transform("map", msg.header.frame_id, rclpy.time.Time()) # to world frame
-        #     pc_msg = self.transform_pointcloud(pc_msg, transform)
-        # except Exception as e:
-        #     self.get_logger().warn(f"Transform error: {e}")
-
-        pc_msg.header.frame_id = 'odom_frame'
-        pc_msg.header.stamp = self.get_clock().now().to_msg()
+        pc_msg = pc2.create_cloud(header, fields, clustered_points)
         self.pc_pub.publish(pc_msg)
 
-
-    def transform_pointcloud(self, cloud, transform):
-        """Apply TF2 transform to PointCloud2."""
-        points = list(pc2.read_points(cloud, field_names=("x", "y", "z"), skip_nans=True))
-        transformed_points = []
-
-        # Extract transform matrix
-        translation = np.array([transform.transform.translation.x,
-                                transform.transform.translation.y,
-                                transform.transform.translation.z])
-        rotation = np.array([transform.transform.rotation.x,
-                             transform.transform.rotation.y,
-                             transform.transform.rotation.z,
-                             transform.transform.rotation.w])
-        rotation_matrix = tf_transformations.quaternion_matrix(rotation)[:3, :3]
-
-        for p in points:
-            transformed_p = np.dot(rotation_matrix, np.array(p)) + translation
-            transformed_points.append(tuple(transformed_p))
-
-        return pc2.create_cloud(cloud.header, cloud.fields, transformed_points)
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = DepthToPointCloud()
+def main():
+    rclpy.init()
+    node = PillarDetection()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
