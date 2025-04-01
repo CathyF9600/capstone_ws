@@ -60,6 +60,10 @@ class T265Tracker(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
+        
+        # Create Disparity Publisher
+        self.disparity_pub = self.create_publisher(Image, '/disparity', 10)
+
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
         self.pose = None  # Store latest camera pose
@@ -155,6 +159,11 @@ class T265Tracker(Node):
         mode = "stack"
         # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
         disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+        
+        # Publish disparity msgs
+        disp_msg = BRIDGE.cv2_to_imgmsg(disparity, encoding="32FC1")
+        disp_msg.header.stamp = self.get_clock().now().to_msg()
+        self.disparity_pub.publish(disp_msg)
 
         # re-crop just the valid part of the disparity
         disparity = disparity[:,max_disp:]
