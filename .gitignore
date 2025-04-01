@@ -1,5 +1,5 @@
 src/task2.py
-
+.vscode/*
 install/
 log/
 devel/

@@ -36,7 +36,7 @@ class CameraPublisher(Node):
         super().__init__('realsense_tracking')
         
         # Create a publisher for the /2dod/img topic
-        self.publisher_ = self.create_publisher(Image, '/2dod/img', 10)
+        self.publisher_ = self.create_publisher(Image, '/vision_2d/img', 10)
         
         # Initialize OpenCV video capture
         self.bridge = CvBridge()

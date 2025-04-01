@@ -20,6 +20,13 @@ def generate_launch_description():
         DeclareLaunchArgument('format', default_value='NV12', description='Camera image format'),
 
         Node(
+            package='realsense2_camera',
+            executable='realsense2_camera_node',
+            name='realsense_camera',
+            output='screen'
+        ),
+
+        Node(
             package='gscam',
             executable='gscam',
             name='left_camera',

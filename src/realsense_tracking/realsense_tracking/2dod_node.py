@@ -17,7 +17,7 @@ class YOLOv8ROS2(Node):
         # Create a subscriber to the /2dod/img topic
         self.subscription = self.create_subscription(
             Image,
-            '/2dod/img',
+            '/vision_2d/img',
             self.image_callback,
             qos_profile_system_default  # QoS profile depth
         )
@@ -25,7 +25,7 @@ class YOLOv8ROS2(Node):
         # ROS 2 Publisher for bounding boxes
         self.bbox_publisher = self.create_publisher(
             Detection2DArray,
-            '/2dod/bbx',
+            '/vision_2d/bbx',
             qos_profile_system_default
         )
         # Bridge for converting ROS2 Image messages to OpenCV format
