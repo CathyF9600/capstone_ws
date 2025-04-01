@@ -6,9 +6,9 @@ import cv2
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from sensor_msgs_py import point_cloud2
 from cv_bridge import CvBridge
-import pcl # PCL in Python
 import image_geometry
 from rclpy.qos import qos_profile_system_default
+import sensor_msgs.point_cloud2 as pc2
 
 class PillarDetection(Node):
     def __init__(self):
@@ -18,7 +18,7 @@ class PillarDetection(Node):
         
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
         self.create_subscription(Image, '/depth_image', self.depth_callback, qos_profile_system_default)
-        self.cluster_pub = self.create_publisher(PointCloud2, '/pillar_clusters', qos_profile_system_default)
+        self.pc_pub = self.create_publisher(PointCloud2, '/raw_point_cloud', qos_profile_system_default)
 
     def camera_info_callback(self, msg):
         self.camera_model = image_geometry.PinholeCameraModel()
@@ -49,39 +49,11 @@ class PillarDetection(Node):
             self.get_logger().warn("No valid depth points")
             return
         
-        # Convert to PCL point cloud
-        pcl_cloud = pcl.PointCloud() # pc = pcl.PointCloud(np.array(points, dtype=np.float32))
-        pcl_cloud.from_list(points)
-        
-        # Voxel Grid Downsampling
-        voxel = pcl_cloud.make_voxel_grid_filter()
-        voxel.set_leaf_size(0.05, 0.05, 0.05)
-        pcl_cloud = voxel.filter()
-        
-        # Pass-through filter (remove ground)
-        passthrough = pcl_cloud.make_passthrough_filter()
-        passthrough.set_filter_field_name("z")
-        passthrough.set_filter_limits(0.2, 2.0)
-        pcl_cloud = passthrough.filter()
-        
-        # Euclidean Clustering
-        tree = pcl_cloud.make_kdtree()
-        ec = pcl_cloud.make_EuclideanClusterExtraction()
-        ec.set_ClusterTolerance(0.3)
-        ec.set_MinClusterSize(50)
-        ec.set_MaxClusterSize(10000)
-        ec.set_SearchMethod(tree)
-        cluster_indices = ec.Extract()
-        
-        # Convert clusters to PointCloud2
-        cluster_cloud = pcl.PointCloud()
-        for idx in cluster_indices:
-            for i in idx.indices:
-                cluster_cloud.push_back(pcl_cloud[i])
-        
-        ros_cluster_cloud = point_cloud2.create_cloud_xyz32(msg.header, cluster_cloud.to_array())
-        self.cluster_pub.publish(ros_cluster_cloud)
-        self.get_logger().info("Published clustered pillars")
+        # Convert to PointCloud2 and publish
+        header = msg.header
+        cloud_msg = point_cloud2.create_cloud_xyz32(header, points)
+        self.pc_pub.publish(cloud_msg)
+        self.get_logger().info("Published raw point cloud")
 
 
 def main():

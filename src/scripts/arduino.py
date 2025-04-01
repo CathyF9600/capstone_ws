@@ -4,12 +4,9 @@ import time
 
 class ArduinoInterface:
     def __init__(self, port='/dev/ttyACM0', baudrate=115200):
-        print('hello')
         self.ser = None  # Initialize as None
         try:
-            print('a')
             self.ser = serial.Serial(port, baudrate, timeout=0.1)
-            print('b')
             if not self.ser.is_open:
                 raise serial.SerialException("Port exists but is not open.")
             print("Arduino connected successfully on port {}".format(port))
