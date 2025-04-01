@@ -28,25 +28,24 @@ def gstreamer_pipeline(
     capture_height=720,
     display_width=640,
     display_height=360,
-    framerate=60,
+    framerate=30,
     flip_method=0,
 ):
     return (
-        "nvarguscamerasrc ! "
+        "gst-launch-1.0 nvarguscamerasrc sensor-id=0 ! "
         "video/x-raw(memory:NVMM), "
         "width=(int)%d, height=(int)%d, "
         "format=(string)NV12, framerate=(fraction)%d/1 ! "
-        "nvvidconv flip-method=%d ! "
-        "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
-        "videoconvert ! "
-        "video/x-raw, format=(string)BGR ! appsink"
+        "nvvidconv ! "
+        "queue !"
+        "xvimagesink"
         % (
             capture_width,
             capture_height,
             framerate,
-            flip_method,
-            display_width,
-            display_height,
+            #flip_method,
+            #display_width,
+            #display_height,
         )
     )
 

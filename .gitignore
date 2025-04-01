@@ -1,5 +1,6 @@
 src/task2.py
 .vscode/*
+*.mp4
 install/
 log/
 devel/
