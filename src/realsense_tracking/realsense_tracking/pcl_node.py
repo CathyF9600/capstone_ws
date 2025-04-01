@@ -13,7 +13,7 @@ from sklearn.cluster import DBSCAN
 
 class PillarDetection(Node):
     def __init__(self):
-        super().__init__('pillar_detection')
+        super().__init__('realsense_tracking')
         self.bridge = CvBridge()
 
         self.fx, self.fy, self.cx, self.cy, self.baseline = None, None, None, None, None

@@ -62,7 +62,7 @@ class T265Tracker(Node):
         self.bridge = CvBridge()
         
         # Create Disparity Publisher
-        self.disparity_pub = self.create_publisher(Image, '/disparity', 10)
+        self.disparity_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
 
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
