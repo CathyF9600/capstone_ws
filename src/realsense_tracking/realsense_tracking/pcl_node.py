@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -9,6 +7,8 @@ from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
 import sensor_msgs_py.point_cloud2 as pc2
 from geometry_msgs.msg import TransformStamped
 import tf2_ros
+from rclpy.qos import qos_profile_system_default
+
 
 class DepthToPointCloud(Node):
     def __init__(self):
@@ -19,15 +19,16 @@ class DepthToPointCloud(Node):
         self.fx, self.fy, self.cx, self.cy, self.baseline = None, None, None, None, None
 
         # Subscribers
-        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, 10)
-        self.create_subscription(Image, '/depth_image', self.depth_callback, 10)
+        self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
+        self.create_subscription(Image, '/disparity', self.depth_callback, qos_profile_system_default)
 
         # Publisher
-        self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', 10)
+        self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
 
         # TF2 Buffer
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
 
     def camera_info_callback(self, msg):
         """Retrieve camera intrinsics from CameraInfo."""
@@ -36,6 +37,7 @@ class DepthToPointCloud(Node):
         self.cx = msg.k[2]
         self.cy = msg.k[5]
         self.baseline = 0.064  # 64mm stereo baseline (update as needed)
+
 
     def depth_callback(self, msg):
         """Convert depth image to point cloud."""
@@ -64,14 +66,16 @@ class DepthToPointCloud(Node):
         ]
         pc_msg = pc2.create_cloud(header, fields, points)
 
-        # Transform to world frame
-        try:
-            transform = self.tf_buffer.lookup_transform("map", msg.header.frame_id, rclpy.time.Time())
-            pc_msg = self.transform_pointcloud(pc_msg, transform)
-        except Exception as e:
-            self.get_logger().warn(f"Transform error: {e}")
+        # try:
+        #     transform = self.tf_buffer.lookup_transform("map", msg.header.frame_id, rclpy.time.Time()) # to world frame
+        #     pc_msg = self.transform_pointcloud(pc_msg, transform)
+        # except Exception as e:
+        #     self.get_logger().warn(f"Transform error: {e}")
 
+        pc_msg.header.frame_id = 'odom_frame'
+        pc_msg.header.stamp = self.get_clock().now().to_msg()
         self.pc_pub.publish(pc_msg)
+
 
     def transform_pointcloud(self, cloud, transform):
         """Apply TF2 transform to PointCloud2."""
@@ -94,8 +98,8 @@ class DepthToPointCloud(Node):
 
         return pc2.create_cloud(cloud.header, cloud.fields, transformed_points)
 
-def main():
-    rclpy.init()
+def main(args=None):
+    rclpy.init(args=args)
     node = DepthToPointCloud()
     rclpy.spin(node)
     node.destroy_node()

@@ -6,7 +6,7 @@ from cv_bridge import CvBridge
 import cv2
 import torch
 from ultralytics import YOLO
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
+from rclpy.qos import qos_profile_system_default
 
 class YOLOv8ROS2(Node):
     def __init__(self):
@@ -30,6 +30,7 @@ class YOLOv8ROS2(Node):
         )
         # Bridge for converting ROS2 Image messages to OpenCV format
         self.bridge = CvBridge()
+
 
     def image_callback(self, msg):
         self.get_logger().info('Received image')
@@ -86,6 +87,7 @@ class YOLOv8ROS2(Node):
 
         self.bbox_publisher.publish(detection_array_msg)
         self.get_logger().info(f'Published {len(results)} bounding boxes to /2dod/bbx')
+
 
 def main(args=None):
     rclpy.init(args=args)

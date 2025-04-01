@@ -116,13 +116,15 @@ class T265Tracker(Node):
             self.init_maps(camera_info_msg1, camera_info_msg2)
 
         img_distorted1 = BRIDGE.imgmsg_to_cv2(img_msg1, desired_encoding="mono8")
+        img_distorted2 = BRIDGE.imgmsg_to_cv2(img_msg2, desired_encoding="mono8")
+
         img_undistorted1 = cv2.remap(
             img_distorted1,
             MAPX1,
             MAPY1,
             interpolation=cv2.INTER_LINEAR,
         )
-        img_distorted2 = BRIDGE.imgmsg_to_cv2(img_msg2, desired_encoding="mono8")
+
         img_undistorted2 = cv2.remap(
             img_distorted2,
             MAPX2,
@@ -130,6 +132,12 @@ class T265Tracker(Node):
             interpolation=cv2.INTER_LINEAR,
         )
         self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
+
+        disparity_full = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+        # Publish disparity msgs
+        disp_msg = BRIDGE.cv2_to_imgmsg(disparity_full, encoding="32FC1")
+        disp_msg.header.stamp = self.get_clock().now().to_msg()
+        self.disparity_pub.publish(disp_msg)
 
         # crop top and bottom based on DOWNSCALE_H
         orig_height = img_undistorted1.shape[0]
@@ -159,11 +167,6 @@ class T265Tracker(Node):
         mode = "stack"
         # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
         disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
-        
-        # Publish disparity msgs
-        disp_msg = BRIDGE.cv2_to_imgmsg(disparity, encoding="32FC1")
-        disp_msg.header.stamp = self.get_clock().now().to_msg()
-        self.disparity_pub.publish(disp_msg)
 
         # re-crop just the valid part of the disparity
         disparity = disparity[:,max_disp:]
