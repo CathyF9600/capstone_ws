@@ -6,7 +6,7 @@ import cv2
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from sensor_msgs_py import point_cloud2
 from cv_bridge import CvBridge
-import pcl  # PCL in Python
+from pcl import PointCloud # PCL in Python
 import image_geometry
 
 class PillarDetection(Node):
