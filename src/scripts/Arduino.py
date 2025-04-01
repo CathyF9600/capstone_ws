@@ -1,10 +1,9 @@
-```py
 import serial
 import threading
 import time
 
 class ArduinoInterface:
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200):
+    def __init__(self, port='/dev/ttyACM0', baudrate=115200):
         print('hello')
         self.ser = None  # Initialize as None
         try:
@@ -75,4 +74,15 @@ class ArduinoInterface:
             self.ser.close()
             print("Serial connection closed.")
             self.ser = None
-```
+
+a = ArduinoInterface()
+my_ino = '/home/jetson/capstone_ws/src/scripts/servo.ino'
+ino_content = None
+try:
+    with open(my_ino, 'r', encoding='utf-8') as file:
+        ino_content = file.readlines()
+except FileNotFoundError:
+    print('Error: File not found!')
+print(type(ino_content))
+for line in ino_content:
+    a.send_command(line)

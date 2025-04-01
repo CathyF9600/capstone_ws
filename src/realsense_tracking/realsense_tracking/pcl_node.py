@@ -6,7 +6,7 @@ import cv2
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from sensor_msgs_py import point_cloud2
 from cv_bridge import CvBridge
-from pcl import PointCloud # PCL in Python
+import pcl # PCL in Python
 import image_geometry
 from rclpy.qos import qos_profile_system_default
 
