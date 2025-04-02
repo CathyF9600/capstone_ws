@@ -126,13 +126,12 @@ class T265Tracker(Node):
         )
         self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
-        disparity_full = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
-        disparity_blur = cv2.medianBlur(disparity_full, 5)  # Added median filter
-
-        # Publish disparity msgs
-        disp_msg = BRIDGE.cv2_to_imgmsg(disparity_blur, encoding="32FC1")
-        disp_msg.header.stamp = self.get_clock().now().to_msg()
-        self.disparity_pub.publish(disp_msg)
+        # disparity_full = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+        # disparity_blur = cv2.medianBlur(disparity_full, 5)  # Added median filter
+        # # Publish disparity msgs
+        # disp_msg = BRIDGE.cv2_to_imgmsg(disparity_blur, encoding="32FC1")
+        # disp_msg.header.stamp = self.get_clock().now().to_msg()
+        # self.disparity_pub.publish(disp_msg)
 
         # crop top and bottom based on DOWNSCALE_H
         orig_height = img_undistorted1.shape[0]
@@ -162,10 +161,16 @@ class T265Tracker(Node):
         mode = "stack"
         # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
         disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+        disparity_blur = cv2.medianBlur(disparity, 5)  # Added median filter
 
         # re-crop just the valid part of the disparity
-        disparity = disparity[:,max_disp:]
-        
+        disparity = disparity_blur[:,max_disp:]
+
+        # Publish disparity msgs
+        disp_msg = BRIDGE.cv2_to_imgmsg(disparity, encoding="32FC1")
+        disp_msg.header.stamp = self.get_clock().now().to_msg()
+        self.disparity_pub.publish(disp_msg)
+
         # convert disparity to 0-255 and color it
         disp_vis = 255*(disparity - min_disp)/ num_disp
         disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
