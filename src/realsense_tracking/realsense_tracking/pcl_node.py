@@ -5,36 +5,54 @@ import cv2
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
 import sensor_msgs_py.point_cloud2 as pc2
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
+import tf_transformations
 
-def pixel_to_world(u, v, depth, K, R, t):
+def pixel_to_world(u, v, depth, K, R, t, pose):
     # Convert pixel to camera frame
     fx, fy = K[0, 0], K[1, 1]
     cx, cy = K[0, 2], K[1, 2]
     
-    x_c = (u - cx) * depth / fx
-    y_c = (v - cy) * depth / fy
-    z_c = depth
-    p_c = np.array([x_c, y_c, z_c]).reshape(3, 1)
+    X_c = (u - cx) * depth / fx
+    Y_c = (v - cy) * depth / fy
+    Z_c = depth
 
-    # Convert to world frame
-    p_w = np.linalg.inv(R) @ (p_c - t)
-    return p_w.flatten()
+    # Camera frame coordinates
+    p_c = np.array([X_c, Y_c, Z_c])
+
+    # Get camera pose
+    X_w, Y_w, Z_w = pose['position']
+    qx, qy, qz, qw = pose['orientation']
+
+    # Convert quaternion to rotation matrix
+    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
+
+    # Transform to world frame
+    P_w = R @ p_c + np.array([X_w, Y_w, Z_w])
+    return P_w
+
 
 class DepthToPointCloud(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
-
+        self.pose = {'position':None, 'orientation':None}
         # Camera parameters (to be updated from CameraInfo)
         self.fx, self.fy, self.cx, self.cy, self.baseline = None, None, None, None, None
         self.K, self.P = None, None
         # Subscribers
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
         self.create_subscription(Image, '/depth_image', self.depth_callback, qos_profile_system_default)
-
+        # RealSense Subscriber
+        self.realsense_sub = self.create_subscription(
+            Odometry,
+            "/camera/pose/sample",
+            self.realsense_callback,
+            qos_profile_system_default
+        )
         # Publisher
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
 
@@ -42,6 +60,20 @@ class DepthToPointCloud(Node):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
+    def realsense_callback(self, msg):
+        self.pose['position'] = np.array([
+            msg.pose.pose.position.x,
+            msg.pose.pose.position.y,
+            msg.pose.pose.position.z
+        ])
+
+        # Original orientation
+        self.pose['orientation'] = np.array([
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w
+        ])
 
     def camera_info_callback(self, msg):
         """Retrieve camera intrinsics from CameraInfo."""
@@ -50,8 +82,8 @@ class DepthToPointCloud(Node):
         self.cx = msg.k[2]
         self.cy = msg.k[5]
         self.baseline = 0.064  # 64mm stereo baseline (update as needed)
-        self.K = msg.k
-        self.P = msg.p
+        self.K = np.array(msg.k).reshape(3,3)
+        self.P = np.array(msg.p).reshape(3,4)
 
     def depth_callback(self, msg):
         """Convert depth image to point cloud."""
@@ -65,12 +97,12 @@ class DepthToPointCloud(Node):
         for v in range(height):
             for u in range(width):
                 disparity = depth_image[v, u]
-                world_coords = pixel_to_world(u, v, disparity, self.K, self.P[:, :3], self.P[:, 3])
+                world_coords = pixel_to_world(u, v, disparity, self.K, self.P[:, :3], self.P[:, 3], self.pose)
                 # if disparity > 0:
                 #     Z = (self.fx * self.baseline) / disparity
                 #     X = (u - self.cx) * Z / self.fx
                 #     Y = (v - self.cy) * Z / self.fy
-                self.get_logger().info(f'world coord {world_coords}')
+                # self.get_logger().info(f'world coord {world_coords.shape}')
                 points.append(world_coords)
 
         # Convert to PointCloud2
