@@ -11,7 +11,7 @@ import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
 
-def pixel_to_world(u, v, depth, K, R, t, pose):
+def pixel_to_world(u, v, depth, K, pose):
     # Convert pixel to camera frame
     fx, fy = K[0, 0], K[1, 1]
     cx, cy = K[0, 2], K[1, 2]
@@ -99,7 +99,7 @@ class DepthToPointCloud(Node):
             for u in range(width):
                 disparity = depth_image[v, u]
                 if disparity > 0:
-                    x,y,z = pixel_to_world(u, v, disparity, self.K, self.P[:, :3], self.P[:, 3], self.pose)
+                    x,y,z = pixel_to_world(u, v, disparity, self.K, self.pose)
                     # self.get_logger().info(f'world coord {type(x)} {y} {z}')
                     points.append((x, y, z))
 
