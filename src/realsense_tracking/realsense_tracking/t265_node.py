@@ -64,7 +64,7 @@ class T265Tracker(Node):
         self.pose = {'position':None, 'orientation':None}
 
         # Create Disparity Publisher
-        self.disparity_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
+        self.depth_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
 
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
@@ -167,11 +167,6 @@ class T265Tracker(Node):
         # re-crop just the valid part of the disparity
         disparity = disparity_blur[:,max_disp:]
 
-        # Publish disparity msgs
-        disp_msg = BRIDGE.cv2_to_imgmsg(disparity, encoding="32FC1")
-        disp_msg.header.stamp = self.get_clock().now().to_msg()
-        self.disparity_pub.publish(disp_msg)
-
         # convert disparity to 0-255 and color it
         disp_vis = 255*(disparity - min_disp)/ num_disp
         disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
@@ -183,6 +178,11 @@ class T265Tracker(Node):
 
         fx_l = self.camera_info_msg1.k[0]
         depth = (fx_l * -BASELINE) / (disparity + 1e-6)
+
+        # Publish disparity msgs
+        depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
+        depth_msg.header.stamp = self.get_clock().now().to_msg()
+        self.depth_pub.publish(depth_msg)
 
         if mode == "stack":
             # cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
@@ -197,9 +197,9 @@ class T265Tracker(Node):
             # cv2.imshow("Tracked Image", img_undistorted2)
             cv2.waitKey(1)
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
-        bm_latency = now - (img_msg1.header.stamp.sec + img_msg1.header.stamp.nanosec * 1e-9)
-        syn_latency = now - start
-        self.get_logger().info(f"BM latency: {bm_latency:.6f} s, synch latency: {syn_latency:.6f} s" )
+        img_wait = now - (img_msg1.header.stamp.sec + img_msg1.header.stamp.nanosec * 1e-9)
+        bm_latency = now - start
+        self.get_logger().info(f"Image Wait Time: {img_wait:.6f} s, BM latency: {bm_latency:.6f} s" )
         # self.prevT = now
 
         self.stack = [] # empty the stack

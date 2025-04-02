@@ -97,9 +97,9 @@ class DepthToPointCloud(Node):
         points = []
         for v in range(height):
             for u in range(width):
-                disparity = depth_image[v, u]
-                if disparity > 0:
-                    x,y,z = pixel_to_world(u, v, disparity, self.K, self.pose)
+                depth = depth_image[v, u]
+                if depth > 0 and depth < 2:
+                    x,y,z = pixel_to_world(u, v, depth, self.K, self.pose)
                     # self.get_logger().info(f'world coord {type(x)} {y} {z}')
                     points.append((x, y, z))
 
