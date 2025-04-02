@@ -178,14 +178,20 @@ class T265Tracker(Node):
         disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
         color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
         # self.get_logger().info(f"d {disp_color}")
-        u, v = int(img_undistorted1.shape[1] / 2), int(img_undistorted1.shape[0] / 2)
+        u, v = int(img_undistorted2.shape[1] / 2), int(img_undistorted2.shape[0] / 2)
         self.get_logger().info(f"u, v: {u}, {v}")
         if mode == "stack":
-            cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
-            cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
-            # cv2.imshow("Tracked Image", color_image)
+            # cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
+            # cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
+            # # cv2.imshow("Tracked Image", color_image)
+            # cv2.waitKey(1)
+            # # Display result
+            # text = f"X: {world_pos[0]:.2f}, Y: {world_pos[1]:.2f}, Z: {world_pos[2]:.2f}m"
+            text = ''
+            cv2.putText(img_undistorted2, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.circle(img_undistorted2, (u, v), 10, (255, 255, 255), -1)
+            cv2.imshow("Tracked Image", img_undistorted2)
             cv2.waitKey(1)
-
 
     def init_maps(self, cam_info1, cam_info2):
         global MAPX1, MAPY1, MAPX2, MAPY2
