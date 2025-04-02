@@ -92,6 +92,7 @@ class T265Tracker(Node):
         self.undistort_rectify = None
 
         self.lock = threading.Lock()
+        self.stack = []
 
         # Create subscribers with message filters
         # self.left_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye1/camera_info')
@@ -108,10 +109,20 @@ class T265Tracker(Node):
             slop=0.001
         )
         self.sync.registerCallback(self.sync_callback)
+        self.timer = self.create_timer(0.02, self.bm)
     
     def sync_callback(self, img_msg1, img_msg2):
         start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
 
+        self.stack.append((img_msg1, img_msg2))
+
+    
+    def bm(self):
+        start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
+        if not self.stack:
+            return 
+        img_msg1, img_msg2 = self.stack.pop() # pop the latest pair
+        
         if not self.camera_info_msg1 or not self.camera_info_msg2:
             return 
         global DROP_IND
@@ -191,6 +202,7 @@ class T265Tracker(Node):
         self.get_logger().info(f"BM latency: {bm_latency:.6f} s, synch latency: {syn_latency:.6f} s" )
         # self.prevT = now
 
+        self.stack = [] # empty the stack
 
     def init_maps(self, cam_info1, cam_info2):
         global MAPX1, MAPY1, MAPX2, MAPY2
