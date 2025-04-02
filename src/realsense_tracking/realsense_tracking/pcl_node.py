@@ -97,13 +97,10 @@ class DepthToPointCloud(Node):
         for v in range(height):
             for u in range(width):
                 disparity = depth_image[v, u]
-                x,y,z = pixel_to_world(u, v, disparity, self.K, self.P[:, :3], self.P[:, 3], self.pose)
-                # if disparity > 0:
-                #     Z = (self.fx * self.baseline) / disparity
-                #     X = (u - self.cx) * Z / self.fx
-                #     Y = (v - self.cy) * Z / self.fy
-                self.get_logger().info(f'world coord {type(x.item())} {y} {z}')
-                points.append((x.item(), y.item(), z.item()))
+                if disparity > 0:
+                    x,y,z = pixel_to_world(u, v, disparity, self.K, self.P[:, :3], self.P[:, 3], self.pose)
+                    # self.get_logger().info(f'world coord {type(x)} {y} {z}')
+                    points.append((x, y, z))
 
         # Convert to PointCloud2
         header = msg.header
@@ -121,7 +118,7 @@ class DepthToPointCloud(Node):
         #     self.get_logger().warn(f"Transform error: {e}")
 
         pc_msg.header.frame_id = 'odom_frame'
-        # pc_msg.header.stamp = self.get_clock().now().to_msg()
+        pc_msg.header.stamp = self.get_clock().now().to_msg()
         self.pc_pub.publish(pc_msg)
 
 

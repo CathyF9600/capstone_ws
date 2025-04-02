@@ -10,7 +10,7 @@ import tf2_ros
 from rclpy.qos import qos_profile_system_default
 
 
-class DepthToPointCloud2(Node):
+class DepthToPointCloud(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
@@ -20,7 +20,7 @@ class DepthToPointCloud2(Node):
 
         # Subscribers
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
-        self.create_subscription(Image, '/disparity', self.depth_callback, qos_profile_system_default)
+        self.create_subscription(Image, '/depth_image', self.depth_callback, qos_profile_system_default)
 
         # Publisher
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
@@ -56,7 +56,7 @@ class DepthToPointCloud2(Node):
                     X = (u - self.cx) * Z / self.fx
                     Y = (v - self.cy) * Z / self.fy
                     points.append((X, Y, Z))
-
+                    # self.get_logger().info(f'{type(X)}')
         # Convert to PointCloud2
         header = msg.header
         fields = [

@@ -48,7 +48,7 @@ DROP_IND = 0
 
 stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
                         numDisparities = num_disp,
-                        blockSize = 21,  # Increased block size
+                        blockSize = 21,  # Increased block size # 16
                         P1 = 8*3*window_size**2,
                         P2 = 32*3*window_size**2,
                         disp12MaxDiff = 1,
