@@ -9,6 +9,19 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
 
+def pixel_to_world(u, v, depth, K, R, t):
+    # Convert pixel to camera frame
+    fx, fy = K[0, 0], K[1, 1]
+    cx, cy = K[0, 2], K[1, 2]
+    
+    x_c = (u - cx) * depth / fx
+    y_c = (v - cy) * depth / fy
+    z_c = depth
+    p_c = np.array([x_c, y_c, z_c]).reshape(3, 1)
+
+    # Convert to world frame
+    p_w = np.linalg.inv(R) @ (p_c - t)
+    return p_w.flatten()
 
 class DepthToPointCloud(Node):
     def __init__(self):
@@ -17,7 +30,7 @@ class DepthToPointCloud(Node):
 
         # Camera parameters (to be updated from CameraInfo)
         self.fx, self.fy, self.cx, self.cy, self.baseline = None, None, None, None, None
-
+        self.K, self.P = None, None
         # Subscribers
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
         self.create_subscription(Image, '/depth_image', self.depth_callback, qos_profile_system_default)
@@ -37,7 +50,8 @@ class DepthToPointCloud(Node):
         self.cx = msg.k[2]
         self.cy = msg.k[5]
         self.baseline = 0.064  # 64mm stereo baseline (update as needed)
-
+        self.K = msg.k
+        self.P = msg.p
 
     def depth_callback(self, msg):
         """Convert depth image to point cloud."""
@@ -51,12 +65,14 @@ class DepthToPointCloud(Node):
         for v in range(height):
             for u in range(width):
                 disparity = depth_image[v, u]
-                if disparity > 0:
-                    Z = (self.fx * self.baseline) / disparity
-                    X = (u - self.cx) * Z / self.fx
-                    Y = (v - self.cy) * Z / self.fy
-                    points.append((X, Y, Z))
-        self.get_logger().info(f'Received pcl size {len(points)}.')
+                world_coords = pixel_to_world(u, v, disparity, self.K, self.P[:, :3], self.P[:, 3])
+                # if disparity > 0:
+                #     Z = (self.fx * self.baseline) / disparity
+                #     X = (u - self.cx) * Z / self.fx
+                #     Y = (v - self.cy) * Z / self.fy
+                self.get_logger().info(f'world coord {world_coords}')
+                points.append(world_coords)
+
         # Convert to PointCloud2
         header = msg.header
         fields = [
