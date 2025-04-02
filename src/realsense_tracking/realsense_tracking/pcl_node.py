@@ -11,7 +11,7 @@ import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
 
-def pixel_to_world(u, v, depth, K, pose):
+def pixel_to_world0(u, v, depth, K, pose):
     # Convert pixel to camera frame
     fx, fy = K[0, 0], K[1, 1]
     cx, cy = K[0, 2], K[1, 2]
@@ -35,6 +35,23 @@ def pixel_to_world(u, v, depth, K, pose):
     
     return P_w
 
+def pixel_to_world(M, K, pose):
+    Z_c = np.linalg.inv(K) @ M  # Preferred method
+
+    # Get camera pose
+    X_w, Y_w, Z_w = pose['position']
+    qx, qy, qz, qw = pose['orientation']
+
+    # Convert quaternion to rotation matrix
+    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
+    t = np.array([X_w, Y_w, Z_w])
+    T = np.block([
+        [R, t.reshape(3, 1)], 
+        [np.zeros((1, 3)), 1]
+    ])    # Transform to world frame
+    # P_w = T @ Z_c.T
+    
+    return Z_c
 
 class DepthToPointCloud(Node):
     def __init__(self):
@@ -82,6 +99,7 @@ class DepthToPointCloud(Node):
         self.fy = msg.k[4]
         self.cx = msg.k[2]
         self.cy = msg.k[5]
+        self.K = np.array(msg.k).reshape(3,3)
         self.baseline = 0.064  # 64mm stereo baseline (update as needed)
         self.K = np.array(msg.k).reshape(3,3)
         self.P = np.array(msg.p).reshape(3,4)
@@ -94,15 +112,24 @@ class DepthToPointCloud(Node):
         depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         height, width = depth_image.shape
 
-        points = []
-        for v in range(height):
-            for u in range(width):
-                depth = depth_image[v, u]
-                if depth > 0 and depth < 2:
-                    x,y,z = pixel_to_world(u, v, depth, self.K, self.pose)
-                    # self.get_logger().info(f'world coord {type(x)} {y} {z}')
-                    points.append((x, y, z))
+        # points = []
+        # for v in range(height):
+        #     for u in range(width):
+        #         depth = depth_image[v, u]
+        #         if depth > 0 and depth < 2:
+        #             x,y,z = pixel_to_world(u, v, depth, self.K, self.pose)
+        #             # self.get_logger().info(f'world coord {type(x)} {y} {z}')
+        #             points.append((x, y, z))
 
+        # Generate grid of (u, v) pixel coordinates
+        u, v = np.meshgrid(np.arange(width), np.arange(height))
+
+        # Flatten arrays and stack them into M
+        M = np.column_stack((u.ravel(), v.ravel(), depth_image.ravel(), np.ones(height * width)))
+
+        P = pixel_to_world(M, self.K, self.pose)
+
+        self.get_logger().info(f'P shape: {P.shape}')
         # Convert to PointCloud2
         header = msg.header
         fields = [
