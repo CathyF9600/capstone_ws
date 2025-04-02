@@ -60,13 +60,13 @@ class T265Tracker(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
         self.bridge = CvBridge()
-        
+        self.pose = {'position':None, 'orientation':None}
+
         # Create Disparity Publisher
         self.disparity_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
 
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
-        self.pose = None  # Store latest camera pose
 
         self.K_left = None
         self.D_left = None
@@ -93,7 +93,8 @@ class T265Tracker(Node):
         self.right_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye2/camera_info')
         self.left_image_sub = Subscriber(self, Image, '/camera/fisheye1/image_raw')
         self.right_image_sub = Subscriber(self, Image, '/camera/fisheye2/image_raw')
-        self.pose_sub = Subscriber(self, Odometry, '/camera/pose/sample')
+        self.pose_sub = self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback,
+            qos_profile_system_default)
         # Synchronizer
         self.sync = ApproximateTimeSynchronizer(
             [self.left_image_sub, self.right_image_sub, self.left_info_sub, self.right_info_sub], 
@@ -132,6 +133,7 @@ class T265Tracker(Node):
         # disp_msg = BRIDGE.cv2_to_imgmsg(disparity_blur, encoding="32FC1")
         # disp_msg.header.stamp = self.get_clock().now().to_msg()
         # self.disparity_pub.publish(disp_msg)
+        # self.get_logger().info(f'R: {camera_info_msg1.p}')
 
         # crop top and bottom based on DOWNSCALE_H
         orig_height = img_undistorted1.shape[0]
@@ -176,9 +178,11 @@ class T265Tracker(Node):
         disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
         color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
         # self.get_logger().info(f"d {disp_color}")
+        u, v = int(img_undistorted1.shape[1] / 2), int(img_undistorted1.shape[0] / 2)
+        self.get_logger().info(f"u, v: {u}, {v}")
         if mode == "stack":
             cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
-            # cv2.circle(self.img_right, (u, v), 5, (255, 255, 255), -1)
+            cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
             # cv2.imshow("Tracked Image", color_image)
             cv2.waitKey(1)
 
@@ -223,10 +227,8 @@ class T265Tracker(Node):
 
         # Get image size
         w, h = msg.width, msg.height
-
         # Precompute undistortion maps L 
         # self.lm1, self.lm2 = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, np.eye(3), self.P_left, (w, h), cv2.CV_32FC1)
-
         self.get_logger().info(f"msg L {self.fx}, {self.fy}, {self.cx}, {self.cy}")
 
     def camera_info_callback_r(self, msg):
@@ -251,12 +253,24 @@ class T265Tracker(Node):
 
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
-        self.pose = {
-            'position': (msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z),
-            'orientation': (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
-                            msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
-        }
-        
+        self.pose['position'] = np.array([
+            msg.pose.pose.position.x,
+            msg.pose.pose.position.y,
+            msg.pose.pose.position.z
+        ])
+
+        # Original orientation
+        self.pose['orientation'] = np.array([
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w
+        ])
+
+        # self.get_logger().info(f"Cam ori: x={msg.pose.pose.orientation.x:.3f}, y={msg.pose.pose.orientation.y:.3f}, z={msg.pose.pose.orientation.z:.3f}, \
+        #                         w={msg.pose.pose.orientation.w:.3f}")
+        # self.get_logger().info(f"Cam pos: x={msg.pose.pose.position.x:.3f}, y={msg.pose.pose.position.y:.3f}, \
+        #                         z={msg.pose.pose.position.z:.3f}")
 
     def image_callback_l(self, msg):
         """Process incoming images, detect an object, and estimate its global position."""

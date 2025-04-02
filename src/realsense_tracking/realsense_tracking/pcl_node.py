@@ -32,6 +32,7 @@ def pixel_to_world(u, v, depth, K, R, t, pose):
 
     # Transform to world frame
     P_w = R @ p_c + np.array([X_w, Y_w, Z_w])
+    
     return P_w
 
 
