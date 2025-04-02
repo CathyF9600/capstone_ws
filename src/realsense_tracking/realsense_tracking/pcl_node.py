@@ -70,8 +70,8 @@ class DepthToPointCloud(Node):
                 #     Z = (self.fx * self.baseline) / disparity
                 #     X = (u - self.cx) * Z / self.fx
                 #     Y = (v - self.cy) * Z / self.fy
-                    self.get_logger().info(f'world coord {world_coords}')
-                    points.append(world_coords)
+                self.get_logger().info(f'world coord {world_coords}')
+                points.append(world_coords)
 
         # Convert to PointCloud2
         header = msg.header
