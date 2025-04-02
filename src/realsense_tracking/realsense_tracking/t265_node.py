@@ -88,13 +88,6 @@ class T265Tracker(Node):
 
         self.lock = threading.Lock()
 
-        # # Subscribe to Fisheye Camera
-        # self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
-        # self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
-        # self.create_subscription(Image, '/camera/fisheye1/image_raw', self.image_callback_l, qos_profile_system_default)
-        # self.create_subscription(Image, '/camera/fisheye2/image_raw', self.image_callback_r, qos_profile_system_default)
-        # self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
-        
         # Create subscribers with message filters
         self.left_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye1/camera_info')
         self.right_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye2/camera_info')
@@ -134,10 +127,10 @@ class T265Tracker(Node):
         self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
         disparity_full = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
-        disparity_full = cv2.medianBlur(disparity_full, 5)  # Added median filter
+        disparity_blur = cv2.medianBlur(disparity_full, 5)  # Added median filter
 
         # Publish disparity msgs
-        disp_msg = BRIDGE.cv2_to_imgmsg(disparity_full, encoding="32FC1")
+        disp_msg = BRIDGE.cv2_to_imgmsg(disparity_blur, encoding="32FC1")
         disp_msg.header.stamp = self.get_clock().now().to_msg()
         self.disparity_pub.publish(disp_msg)
 
