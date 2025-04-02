@@ -142,6 +142,49 @@ class DepthToPointCloud(Node):
             transformed_points.append(tuple(transformed_p))
 
         return pc2.create_cloud(cloud.header, cloud.fields, transformed_points)
+    
+    '''
+    def depth_callback(self, msg):
+        """ Process depth image and publish waypoint for furthest valid point at drone height. """
+        if self.K is None or self.pose['position'] is None:
+            return  # Wait for valid camera intrinsics & pose
+
+        depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        height, width = depth_image.shape
+        drone_height = self.pose['position'][2]
+
+        max_depth = -1
+        best_world_point = None
+
+        # Iterate through pixels to find the furthest point close to drone height
+        for v in range(height):
+            for u in range(width):
+                depth = depth_image[v, u]
+                if depth > 0:  # Ignore invalid depth
+                    world_coords = pixel_to_world(u, v, depth, self.K, self.pose)
+                    if abs(world_coords[2] - drone_height) < 0.2:  # Height threshold
+                        if depth > max_depth:  # Find the furthest valid point
+                            max_depth = depth
+                            best_world_point = world_coords
+
+        if best_world_point is not None:
+            self.publish_waypoint(best_world_point)
+
+    def publish_waypoint(self, position):
+        """ Publish a PoseStamped waypoint to /mavros/setpoint_position/local. """
+        waypoint = PoseStamped()
+        waypoint.header.stamp = self.get_clock().now().to_msg()
+        waypoint.header.frame_id = "map"
+
+        waypoint.pose.position.x = position[0]
+        waypoint.pose.position.y = position[1]
+        waypoint.pose.position.z = position[2]
+
+        waypoint.pose.orientation.w = 1.0  # Neutral orientation
+
+        self.waypoint_pub.publish(waypoint)
+        self.get_logger().info(f"Published waypoint: {position}")
+    '''
 
 def main(args=None):
     rclpy.init(args=args)
