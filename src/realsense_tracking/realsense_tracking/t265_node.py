@@ -48,7 +48,7 @@ DROP_IND = 0
 
 stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
                         numDisparities = num_disp,
-                        blockSize = 16,
+                        blockSize = 21,  # Increased block size
                         P1 = 8*3*window_size**2,
                         P2 = 32*3*window_size**2,
                         disp12MaxDiff = 1,
@@ -134,6 +134,8 @@ class T265Tracker(Node):
         self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
         disparity_full = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+        disparity_full = cv2.medianBlur(disparity_full, 5)  # Added median filter
+
         # Publish disparity msgs
         disp_msg = BRIDGE.cv2_to_imgmsg(disparity_full, encoding="32FC1")
         disp_msg.header.stamp = self.get_clock().now().to_msg()
