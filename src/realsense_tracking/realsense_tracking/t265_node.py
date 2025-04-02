@@ -13,6 +13,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 from math import tan, pi
 import time
 from message_filters import ApproximateTimeSynchronizer, Subscriber
+from rclpy.time import Time
 
 
 WINDOW_TITLE = 'Realsense'
@@ -93,12 +94,12 @@ class T265Tracker(Node):
         self.lock = threading.Lock()
 
         # Create subscribers with message filters
-        self.left_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye1/camera_info')
-        self.right_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye2/camera_info')
-        # self.left_image_sub = Subscriber(self, Image, '/camera/fisheye1/image_raw')
-        # self.right_image_sub = Subscriber(self, Image, '/camera/fisheye2/image_raw')
-        self.left_image_sub = self.create_subscription(Image, '/camera/fisheye1/image_raw', self.pose_callback, qos_profile_system_default)
-        self.right_image_sub = self.create_subscription(Image, '/camera/fisheye2/image_raw', self.pose_callback, qos_profile_system_default)
+        # self.left_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye1/camera_info')
+        # self.right_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye2/camera_info')
+        self.left_image_sub = Subscriber(self, Image, '/camera/fisheye1/image_raw')
+        self.right_image_sub = Subscriber(self, Image, '/camera/fisheye2/image_raw')
+        self.left_info_sub = self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
+        self.right_info_sub = self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
         self.pose_sub = self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
         # Synchronizer
         self.sync = ApproximateTimeSynchronizer(
@@ -109,6 +110,8 @@ class T265Tracker(Node):
         self.sync.registerCallback(self.sync_callback)
     
     def sync_callback(self, img_msg1, img_msg2):
+        start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
+
         if not self.camera_info_msg1 or not self.camera_info_msg2:
             return 
         global DROP_IND
@@ -166,11 +169,7 @@ class T265Tracker(Node):
         u, v = int(img_undistorted2.shape[1] / 2), int(img_undistorted2.shape[0] / 2)
         
         self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{self.camera_info_msg1.header.stamp.sec}.{self.camera_info_msg2.header.stamp.sec}")
-        now = self.get_clock().now().to_msg().sec / 1e3
-        bm_latency = now - img_msg1.header.stamp.sec / 1e3
-        syn_latency = now - self.prevT
-        self.get_logger().info(f"BM latency: {bm_latency:.6f} ms, synch latency: {syn_latency:.6f} ms" )
-        self.prevT = now
+
         fx_l = self.camera_info_msg1.k[0]
         depth = (fx_l * -BASELINE) / (disparity + 1e-6)
 
@@ -186,6 +185,11 @@ class T265Tracker(Node):
             cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
             # cv2.imshow("Tracked Image", img_undistorted2)
             cv2.waitKey(1)
+        now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
+        bm_latency = now - (img_msg1.header.stamp.sec + img_msg1.header.stamp.nanosec * 1e-9)
+        syn_latency = now - start
+        self.get_logger().info(f"BM latency: {bm_latency:.6f} s, synch latency: {syn_latency:.6f} s" )
+        # self.prevT = now
 
 
     def init_maps(self, cam_info1, cam_info2):
