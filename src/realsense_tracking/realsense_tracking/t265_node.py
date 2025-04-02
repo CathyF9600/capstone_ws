@@ -84,6 +84,8 @@ class T265Tracker(Node):
         self.lm1, self.lm2 = None, None
         self.rm1, self.rm2 = None, None
 
+        self.prevT = 0
+
         self.undistort_rectify = None
 
         self.lock = threading.Lock()
@@ -99,7 +101,7 @@ class T265Tracker(Node):
         self.sync = ApproximateTimeSynchronizer(
             [self.left_image_sub, self.right_image_sub, self.left_info_sub, self.right_info_sub], 
             queue_size=10,
-            slop=0.1
+            slop=0.001
         )
         self.sync.registerCallback(self.sync_callback)
     
@@ -125,7 +127,6 @@ class T265Tracker(Node):
             MAPY2,
             interpolation=cv2.INTER_LINEAR,
         )
-        self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
 
         # disparity_full = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
         # disparity_blur = cv2.medianBlur(disparity_full, 5)  # Added median filter
@@ -179,18 +180,26 @@ class T265Tracker(Node):
         color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
         # self.get_logger().info(f"d {disp_color}")
         u, v = int(img_undistorted2.shape[1] / 2), int(img_undistorted2.shape[0] / 2)
-        self.get_logger().info(f"u, v: {u}, {v}")
+        
+        self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{camera_info_msg1.header.stamp.sec}.{camera_info_msg2.header.stamp.sec}")
+        now = self.get_clock().now().to_msg().sec / 1e3
+        bm_latency = now - img_msg1.header.stamp.sec / 1e3
+        # self.prevT = now
+        self.get_logger().info(f"BM latency: {bm_latency:.4f} ms" )
+        fx_l = camera_info_msg1.k[0]
+        depth = (fx_l * -BASELINE) / (disparity + 1e-6)
+
         if mode == "stack":
-            # cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
             # cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
             # # cv2.imshow("Tracked Image", color_image)
             # cv2.waitKey(1)
             # # Display result
-            # text = f"X: {world_pos[0]:.2f}, Y: {world_pos[1]:.2f}, Z: {world_pos[2]:.2f}m"
-            text = ''
-            cv2.putText(img_undistorted2, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-            cv2.circle(img_undistorted2, (u, v), 10, (255, 255, 255), -1)
-            cv2.imshow("Tracked Image", img_undistorted2)
+            text = f"depth: {depth.shape}, {depth[v][u]}, {u}, {v}"
+            # text = ''
+            cv2.putText(color_image, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.circle(color_image, (u, v), 10, (255, 255, 255), -1)
+            cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
+            # cv2.imshow("Tracked Image", img_undistorted2)
             cv2.waitKey(1)
 
     def init_maps(self, cam_info1, cam_info2):
