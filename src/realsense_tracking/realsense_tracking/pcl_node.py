@@ -36,7 +36,7 @@ def pixel_to_world0(u, v, depth, K, pose):
     return P_w
 
 def pixel_to_world(M, K, pose):
-    Z_c = np.linalg.inv(K) @ M  # Preferred method
+    Z_c = np.linalg.inv(K) @ M.T  # Preferred method
 
     # Get camera pose
     X_w, Y_w, Z_w = pose['position']
@@ -99,15 +99,20 @@ class DepthToPointCloud(Node):
         self.fy = msg.k[4]
         self.cx = msg.k[2]
         self.cy = msg.k[5]
-        self.K = np.array(msg.k).reshape(3,3)
+        # self.K = np.array(msg.k).reshape(3,3)
         self.baseline = 0.064  # 64mm stereo baseline (update as needed)
-        self.K = np.array(msg.k).reshape(3,3)
+        K = np.array(msg.k).reshape((3,3))
+        self.K = np.block([
+            [K, np.zeros((3, 1))], 
+            [np.zeros((1, 3)), 1]
+        ])
         self.P = np.array(msg.p).reshape(3,4)
 
     def depth_callback(self, msg):
         """Convert depth image to point cloud."""
         if None in (self.fx, self.fy, self.cx, self.cy, self.baseline):
             return  # Wait for camera info
+        self.get_logger().info(f'K shape: {self.K.shape}')
 
         depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         height, width = depth_image.shape
@@ -127,9 +132,9 @@ class DepthToPointCloud(Node):
         # Flatten arrays and stack them into M
         M = np.column_stack((u.ravel(), v.ravel(), depth_image.ravel(), np.ones(height * width)))
 
-        P = pixel_to_world(M, self.K, self.pose)
+        points = pixel_to_world(M, self.K, self.pose)
 
-        self.get_logger().info(f'P shape: {P.shape}')
+        self.get_logger().info(f'P shape: {points.shape}')
         # Convert to PointCloud2
         header = msg.header
         fields = [
@@ -137,7 +142,9 @@ class DepthToPointCloud(Node):
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
             PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
         ]
-        pc_msg = pc2.create_cloud(header, fields, points)
+        self.get_logger().info(f'P shape: {points[:3, :].T.shape}')
+
+        pc_msg = pc2.create_cloud(header, fields, points[:3, :].T)
 
         # try:
         #     transform = self.tf_buffer.lookup_transform("map", msg.header.frame_id, rclpy.time.Time()) # to world frame
