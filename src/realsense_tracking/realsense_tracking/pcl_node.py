@@ -36,6 +36,8 @@ def pixel_to_world0(u, v, depth, K, pose):
     return P_w
 
 def pixel_to_world(M, K, pose):
+    # K: 4x4
+    # M: Nx4 [u v d|1]
     Z_c = np.linalg.inv(K) @ M.T  # Preferred method
 
     # Get camera pose
@@ -130,17 +132,22 @@ class DepthToPointCloud(Node):
         u, v = np.meshgrid(np.arange(width), np.arange(height))
 
         # Flatten arrays and stack them into M
-        M = np.column_stack((u.ravel(), v.ravel(), depth_image.ravel(), np.ones(height * width)))
-
+        # M = np.column_stack((u.ravel(), v.ravel(), depth_image.ravel(), np.ones(height * width)))
+        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 0.25)
+        M = np.column_stack((
+            u.ravel()[valid_mask], 
+            v.ravel()[valid_mask], 
+            depth_image.ravel()[valid_mask], 
+            np.ones(valid_mask.sum())
+        ))
         points = pixel_to_world(M, self.K, self.pose)
 
-        self.get_logger().info(f'P shape: {points.shape}')
         # Convert to PointCloud2
         header = msg.header
         fields = [
-            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
+            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), # offset=0: The x coordinate starts at byte 0.
+            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
+            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1), # offset=8: The z coordinate starts at byte 8.
         ]
         self.get_logger().info(f'P shape: {points[:3, :].T.shape}')
 

@@ -191,8 +191,11 @@ class T265Tracker(Node):
             # # cv2.imshow("Tracked Image", color_image)
             # cv2.waitKey(1)
             # # Display result
-            text = f"depth: {depth.shape}, {depth[v][u]}, {u}, {v}"
-            # text = ''
+            text = f"depth: {depth[v][u]}"
+            if self.pose:
+                M = np.array([u, v, depth[v][u], 1])
+                p_w = pixel_to_world(M, self.K_left, self.pose)
+                text = f"depth: {depth[v][u]}, global position: {p_w}"
             cv2.putText(color_image, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             cv2.circle(color_image, (u, v), 10, (255, 255, 255), -1)
             cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
@@ -285,26 +288,26 @@ class T265Tracker(Node):
 
 
         
-    def pixel_to_world(self, pixel):
-        """Convert image pixel to global world coordinates."""
-        u, v = pixel
-        X_c = (u - self.cx) / self.fx
-        Y_c = (v - self.cy) / self.fy
-        Z_c = 1  # Assume unit depth (scaling factor is unknown)
+def pixel_to_world(M, K, pose):
+    # K: 4x4 is the intrinsics [R, [000]; [0001]]
+    # M: Nx4 [u v d|1] is the point and disparity in camera frame
+    Z_c = np.linalg.inv(K) @ M.T  # Preferred method
 
-        # Camera frame coordinates
-        P_c = np.array([X_c, Y_c, Z_c])
+    # Get camera pose
+    X_w, Y_w, Z_w = pose['position']
+    qx, qy, qz, qw = pose['orientation']
 
-        # Get camera pose
-        X_w, Y_w, Z_w = self.pose['position']
-        qx, qy, qz, qw = self.pose['orientation']
-
-        # Convert quaternion to rotation matrix
-        R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
-
-        # Transform to world frame
-        P_w = R @ P_c + np.array([X_w, Y_w, Z_w])
-        return P_w
+    # Convert quaternion to rotation matrix
+    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
+    t = np.array([X_w, Y_w, Z_w])
+    T = np.block([
+        [R, t.reshape(3, 1)], 
+        [np.zeros((1, 3)), 1]
+    ])    
+    # Transform to world frame
+    P_w = T @ Z_c.T
+    
+    return P_w
 
 def main(args=None):
     rclpy.init(args=args)
