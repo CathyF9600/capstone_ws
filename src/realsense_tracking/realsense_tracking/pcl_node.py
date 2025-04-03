@@ -11,30 +11,6 @@ import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
 
-def pixel_to_world0(u, v, depth, K, pose):
-    # Convert pixel to camera frame
-    fx, fy = K[0, 0], K[1, 1]
-    cx, cy = K[0, 2], K[1, 2]
-    
-    X_c = (u - cx) * depth / fx
-    Y_c = (v - cy) * depth / fy
-    Z_c = depth
-
-    # Camera frame coordinates
-    p_c = np.array([X_c, Y_c, Z_c])
-
-    # Get camera pose
-    X_w, Y_w, Z_w = pose['position']
-    qx, qy, qz, qw = pose['orientation']
-
-    # Convert quaternion to rotation matrix
-    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
-
-    # Transform to world frame
-    P_w = R @ p_c + np.array([X_w, Y_w, Z_w])
-    
-    return P_w
-
 def pixel_to_world(M, K, pose):
     # K: 4x4
     # M: Nx4 [u v d|1]
@@ -51,9 +27,9 @@ def pixel_to_world(M, K, pose):
         [R, t.reshape(3, 1)], 
         [np.zeros((1, 3)), 1]
     ])    # Transform to world frame
-    # P_w = T @ Z_c.T
+    P_w = T @ Z_c
     
-    return Z_c
+    return P_w
 
 class DepthToPointCloud(Node):
     def __init__(self):
@@ -118,6 +94,8 @@ class DepthToPointCloud(Node):
 
         depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         height, width = depth_image.shape
+        self.K[0][2] = width / 2
+        self.K[1][2] = height / 2
 
         # points = []
         # for v in range(height):
@@ -141,7 +119,7 @@ class DepthToPointCloud(Node):
             np.ones(valid_mask.sum())
         ))
         points = pixel_to_world(M, self.K, self.pose)
-
+        np.save('gpoints.npy', points)
         # Convert to PointCloud2
         header = msg.header
         fields = [
