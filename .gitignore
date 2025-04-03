@@ -1,4 +1,5 @@
 src/task2.py
+src/scripts/depth_viz.py
 .vscode/*
 *.mp4
 install/
