@@ -21,7 +21,7 @@ cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
 window_size = 5
 min_disp = 0
 # must be divisible by 16
-num_disp = 112 - min_disp
+num_disp = 96 - min_disp
 max_disp = min_disp + num_disp
 
 
@@ -49,13 +49,15 @@ DROP_IND = 0
 
 stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
                         numDisparities = num_disp,
-                        blockSize = 21,  # Increased block size # 16
+                        blockSize = 16,  # Increased block size # 16
                         P1 = 8*3*window_size**2,
                         P2 = 32*3*window_size**2,
                         disp12MaxDiff = 1,
                         uniquenessRatio = 10,
                         speckleWindowSize = 100,
                         speckleRange = 32)
+
+stereo.setMode(cv2.STEREO_SGBM_MODE_HH4)
 
 class T265Tracker(Node):
     def __init__(self):
