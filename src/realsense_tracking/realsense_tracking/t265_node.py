@@ -28,7 +28,7 @@ max_disp = min_disp + num_disp
 # stereo camera constants
 H, W = 800, 848
 IMG_SIZE_WH = (W, H)
-DOWNSCALE_H = 4
+DOWNSCALE_H = 1 #4
 STEREO_SIZE_WH = (W, H//DOWNSCALE_H)
 BASELINE = -18.2928466796875/286.1825866699219 # 64 mm baseline
 DROP_FRAMES = 3
@@ -173,7 +173,6 @@ class T265Tracker(Node):
         # crop top and bottom based on DOWNSCALE_H
         orig_height = img_undistorted1.shape[0]
         new_height = orig_height//DOWNSCALE_H
-
         # take center of image of new height
         img_undistorted1 = img_undistorted1[
             (orig_height - new_height)//2 : (orig_height + new_height)//2, :
@@ -181,6 +180,9 @@ class T265Tracker(Node):
         img_undistorted2 = img_undistorted2[
             (orig_height - new_height)//2 : (orig_height + new_height)//2, :
         ]
+        
+        # self.K_left[]
+        # self.K_left[]
         
         mode = "stack"
         # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
@@ -203,8 +205,8 @@ class T265Tracker(Node):
         depth = (fx_l * -BASELINE) / (disparity + 1e-6)
 
         depth_image = np.expand_dims(depth, axis=-1)
-        color = np.expand_dims(img_undistorted1, axis=-1)
-        rgbd = np.concatenate([color[:,max_disp:], depth_image], axis=-1)
+        # color = np.expand_dims(color_image)
+        rgbd = np.concatenate([color_image, depth_image], axis=-1)
         np.save('rgbd.npy', rgbd)
         # Publish disparity msgs
         depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
