@@ -57,7 +57,28 @@ stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
                         speckleWindowSize = 100,
                         speckleRange = 32)
 
-stereo.setMode(cv2.STEREO_SGBM_MODE_HH4)
+stereo.setMode(cv2.STEREO_SGBM_MODE_HH4) # speedup
+
+def pixel_to_world(M, K, pose):
+    # K: 4x4 is the intrinsics [R, [000]; [0001]]
+    # M: Nx4 [u v d|1] is the point and disparity in camera frame
+    Z_c = np.linalg.inv(K) @ M.T  # Preferred method
+
+    # Get camera pose
+    X_w, Y_w, Z_w = pose['position']
+    qx, qy, qz, qw = pose['orientation']
+
+    # Convert quaternion to rotation matrix
+    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
+    t = np.array([X_w, Y_w, Z_w])
+    T = np.block([
+        [R, t.reshape(3, 1)], 
+        [np.zeros((1, 3)), 1]
+    ])    
+    # Transform to world frame
+    P_w = T @ Z_c.T
+    
+    return Z_c
 
 class T265Tracker(Node):
     def __init__(self):
@@ -181,6 +202,10 @@ class T265Tracker(Node):
         fx_l = self.camera_info_msg1.k[0]
         depth = (fx_l * -BASELINE) / (disparity + 1e-6)
 
+        depth_image = np.expand_dims(depth, axis=-1)
+        color = np.expand_dims(img_undistorted1, axis=-1)
+        rgbd = np.concatenate([color[:,max_disp:], depth_image], axis=-1)
+        np.save('rgbd.npy', rgbd)
         # Publish disparity msgs
         depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
         depth_msg.header.stamp = self.get_clock().now().to_msg()
@@ -192,10 +217,10 @@ class T265Tracker(Node):
             # cv2.waitKey(1)
             # # Display result
             text = f"depth: {depth[v][u]}"
-            if self.pose:
+            if self.pose and self.K_left.any():
                 M = np.array([u, v, depth[v][u], 1])
                 p_w = pixel_to_world(M, self.K_left, self.pose)
-                text = f"depth: {depth[v][u]}, global position: {p_w}"
+                text = f"d: {depth[v][u]:.3f}, g: {p_w[0]:.3f} {p_w[1]:.3f} {p_w[2]:.3f}"
             cv2.putText(color_image, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             cv2.circle(color_image, (u, v), 10, (255, 255, 255), -1)
             cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
@@ -235,6 +260,10 @@ class T265Tracker(Node):
         # self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
         
         # self.K_left = np.array(msg.k).reshape(3, 3)
+        self.K_left = np.block([
+            [np.array(msg.k).reshape(3, 3), np.zeros((3, 1))], 
+            [np.zeros((1, 3)), 1]
+        ])
         # self.D_left = np.array(msg.d)
         # self.P_left = np.array(msg.p).reshape(3, 4)
 
@@ -281,34 +310,8 @@ class T265Tracker(Node):
             msg.pose.pose.orientation.w
         ])
 
-        # self.get_logger().info(f"Cam ori: x={msg.pose.pose.orientation.x:.3f}, y={msg.pose.pose.orientation.y:.3f}, z={msg.pose.pose.orientation.z:.3f}, \
-        #                         w={msg.pose.pose.orientation.w:.3f}")
-        # self.get_logger().info(f"Cam pos: x={msg.pose.pose.position.x:.3f}, y={msg.pose.pose.position.y:.3f}, \
-        #                         z={msg.pose.pose.position.z:.3f}")
 
-
-        
-def pixel_to_world(M, K, pose):
-    # K: 4x4 is the intrinsics [R, [000]; [0001]]
-    # M: Nx4 [u v d|1] is the point and disparity in camera frame
-    Z_c = np.linalg.inv(K) @ M.T  # Preferred method
-
-    # Get camera pose
-    X_w, Y_w, Z_w = pose['position']
-    qx, qy, qz, qw = pose['orientation']
-
-    # Convert quaternion to rotation matrix
-    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
-    t = np.array([X_w, Y_w, Z_w])
-    T = np.block([
-        [R, t.reshape(3, 1)], 
-        [np.zeros((1, 3)), 1]
-    ])    
-    # Transform to world frame
-    P_w = T @ Z_c.T
     
-    return P_w
-
 def main(args=None):
     rclpy.init(args=args)
     node = T265Tracker()
