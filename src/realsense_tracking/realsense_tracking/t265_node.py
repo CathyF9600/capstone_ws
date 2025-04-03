@@ -28,7 +28,7 @@ max_disp = min_disp + num_disp
 # stereo camera constants
 H, W = 800, 848
 IMG_SIZE_WH = (W, H)
-DOWNSCALE_H = 1 #4
+DOWNSCALE_H = 4
 STEREO_SIZE_WH = (W, H//DOWNSCALE_H)
 BASELINE = -18.2928466796875/286.1825866699219 # 64 mm baseline
 DROP_FRAMES = 3
@@ -180,10 +180,7 @@ class T265Tracker(Node):
         img_undistorted2 = img_undistorted2[
             (orig_height - new_height)//2 : (orig_height + new_height)//2, :
         ]
-        
-        # self.K_left[]
-        # self.K_left[]
-        
+
         mode = "stack"
         # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
         disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
@@ -191,11 +188,13 @@ class T265Tracker(Node):
 
         # re-crop just the valid part of the disparity
         disparity = disparity_blur[:,max_disp:]
-
         # convert disparity to 0-255 and color it
-        disp_vis = 255*(disparity - min_disp)/ num_disp
+        
+        disp_vis = 255*(disparity - min_disp) / num_disp
         disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
         color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
+        # color_image = cv2.cvtColor(img_undistorted1, cv2.COLOR_GRAY2RGB)
+
         # self.get_logger().info(f"d {disp_color}")
         u, v = int(img_undistorted2.shape[1] / 2), int(img_undistorted2.shape[0] / 2)
         
@@ -205,13 +204,15 @@ class T265Tracker(Node):
         depth = (fx_l * -BASELINE) / (disparity + 1e-6)
 
         depth_image = np.expand_dims(depth, axis=-1)
-        # color = np.expand_dims(color_image)
         rgbd = np.concatenate([color_image, depth_image], axis=-1)
         np.save('rgbd.npy', rgbd)
         # Publish disparity msgs
         depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
         depth_msg.header.stamp = self.get_clock().now().to_msg()
         self.depth_pub.publish(depth_msg)
+
+        self.K_left[0][2] = color_image.shape[1] / 2 # cx
+        self.K_left[1][2] = color_image.shape[0] / 2 # cy
 
         if mode == "stack":
             # cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
