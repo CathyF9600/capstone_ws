@@ -14,6 +14,7 @@ from rclpy.qos import qos_profile_system_default
 import tf_transformations
 from octomap_msgs.msg import Octomap
 from scipy.sparse import coo_matrix
+import matplotlib.pyplot as plt
 
 
 def pixel_to_world(M, K, pose):
@@ -166,6 +167,38 @@ class DepthToPointCloud(Node):
         ])
 
 
+    def visualize_occupancy_grid(self, grid, min_indices):
+        """
+        Visualizes a 2D occupancy grid using Matplotlib.
+        
+        Args:
+            grid (np.ndarray): 2D binary occupancy grid (0 or 1 values).
+            min_indices (tuple): The minimum (x, y) voxel indices used for adjustment.
+        """
+        # Extract obstacle coordinates (where grid value is 1)
+        obstacle_coords = np.argwhere(grid == 1)
+        
+        # Adjust coordinates to account for the original indices (add min_indices back)
+        obstacle_coords_adjusted = obstacle_coords + min_indices[:2]  # Only adjust x, y
+
+        # Create a 2D plot
+        fig, ax = plt.subplots()
+
+        # Plot obstacles as red dots on the grid
+        ax.scatter(obstacle_coords_adjusted[:, 1], obstacle_coords_adjusted[:, 0], c='red', marker='o')
+
+        # Set labels and title
+        ax.set_xlabel('X Axis')
+        ax.set_ylabel('Y Axis')
+        ax.set_title('2D Occupancy Grid Visualization')
+
+        # Show gridlines for clarity
+        ax.grid(True)
+
+        # Show the plot
+        plt.show()
+
+
     def camera_info_callback(self, msg):
         """Retrieve camera intrinsics from CameraInfo."""
         self.fx = msg.k[0]
@@ -251,6 +284,8 @@ class DepthToPointCloud(Node):
         height = 0.5  # Get occupancy grid at 0.5m height
         occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=0.25, height=height, grid_size=grid_size)
         print(f"Occupancy grid at {height}m height:\n", occupancy_grid)
+        min_indices = (0, 0)  # No adjustment, but could be different depending on your data
+        self.visualize_occupancy_grid(occupancy_grid, min_indices)
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
