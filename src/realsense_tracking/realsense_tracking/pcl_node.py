@@ -111,7 +111,7 @@ class DepthToPointCloud(Node):
 
         # Flatten arrays and stack them into M
         # M = np.column_stack((u.ravel(), v.ravel(), depth_image.ravel(), np.ones(height * width)))
-        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 0.25)
+        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 2)
         M = np.column_stack((
             u.ravel()[valid_mask], 
             v.ravel()[valid_mask], 
