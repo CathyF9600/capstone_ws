@@ -109,15 +109,20 @@ def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
     # occupied_voxels = unique_voxels[counts >= threshold]
     # Shift to positive indices
     xy_voxels = unique_voxels[:, :2]
-    xy_voxels -= xy_voxels.min(axis=0)
+    # Get min and max indices for shifting
+    min_xy = xy_voxels.min(axis=0)  # Shift everything so the smallest index is (0,0)
+    max_xy = xy_voxels.max(axis=0)  # Get the largest voxel index
 
-    # Create blank grid
-    height, width = xy_voxels.max(axis=0) + 1
+    # Shift voxel indices to start at (0,0)
+    xy_voxels -= min_xy
+
+    # Correct grid size
+    height, width = (max_xy - min_xy + 1)  # Ensure enough space for all indices
     grid = np.zeros((height, width), dtype=np.uint16)
 
-    # Fill grid with counts
+    # Now, safely populate the grid
     for (x, y), count in zip(xy_voxels, counts):
-        grid[y, x] = count
+        grid[y, x] = count  # Now x, y are always valid indices
     # Convert to grayscale (invert so higher counts = darker)
     grid = 255 - (255 * grid / np.max(grid)).astype(np.uint8)
 
