@@ -1,10 +1,11 @@
-from sklearn.cluster import MiniBatchKMeans
+# from sklearn.cluster import MiniBatchKMeans
 import rclpy
 from rclpy.node import Node
 import numpy as np
 import cv2
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo, PointCloud2, PointField
+from nav_msgs.msg import OccupancyGrid
 import sensor_msgs_py.point_cloud2 as pc2
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
@@ -12,7 +13,7 @@ import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
 from octomap_msgs.msg import Octomap
-import octomap
+from scipy.sparse import coo_matrix
 
 
 def pixel_to_world(M, K, pose):
@@ -36,17 +37,46 @@ def pixel_to_world(M, K, pose):
     return P_w.T # (N, 3)
 
 
-def pillarize_points_kmeans(points, n_clusters=200, bin_size=0.25, pillar_height=2.0):
-    kmeans = MiniBatchKMeans(n_clusters=n_clusters, batch_size=1000, random_state=42)
-    cluster_centers = kmeans.fit(points[:, :2]).cluster_centers_
+def create_occupancy_grid(occupied_voxels, voxel_size, height=0.5, grid_size=(100, 100)):
+    """
+    Creates a 2D occupancy grid for a given height.
 
-    # Generate pillar points
-    pillar_points = []
-    for x, y in cluster_centers:
-        for z in np.linspace(0, pillar_height, num=6):  # Vertical pillars
-            pillar_points.append((x, y, z))
+    Args:
+        occupied_voxels (np.ndarray): M x 3 array of occupied voxel coordinates.
+        voxel_size (float): Size of each voxel (meters).
+        height (float): The world height at which to extract the layer.
+        grid_size (tuple): Fixed (width, height) of the occupancy grid.
 
-    return np.array(pillar_points)
+    Returns:
+        np.ndarray: 2D binary occupancy grid (grid_size_x, grid_size_y).
+    """
+    # Convert height to voxel index
+    z_index = int(np.floor(height / voxel_size))
+
+    # Extract the layer at this height
+    layer_voxels = occupied_voxels[occupied_voxels[:, 2] == z_index]
+
+    if layer_voxels.shape[0] == 0:
+        return np.zeros(grid_size, dtype=np.uint8)  # Empty grid
+
+    # Get min x, y to shift coordinates into grid space
+    min_x, min_y = layer_voxels[:, 0].min(), layer_voxels[:, 1].min()
+
+    # Shift coordinates so that (min_x, min_y) becomes (0,0)
+    shifted_x = layer_voxels[:, 0] - min_x
+    shifted_y = layer_voxels[:, 1] - min_y
+
+    # Create an empty grid
+    occupancy_grid = np.zeros(grid_size, dtype=np.uint8)
+
+    # Clip to ensure indices stay within fixed grid bounds
+    valid_x = np.clip(shifted_x, 0, grid_size[0] - 1)
+    valid_y = np.clip(shifted_y, 0, grid_size[1] - 1)
+
+    # Mark occupied cells
+    occupancy_grid[valid_x, valid_y] = 1
+    return occupancy_grid
+
 
 
 def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
@@ -63,20 +93,18 @@ def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
     """
     # Discretize points into voxel grid
     voxel_indices = np.floor(points / voxel_size).astype(int)
-    
     # Count number of points per voxel
     unique_voxels, counts = np.unique(voxel_indices, axis=0, return_counts=True)
-    
     # Filter voxels that exceed the threshold
     occupied_voxels = unique_voxels[counts >= threshold]
-
     return occupied_voxels
+
 
 class DepthToPointCloud(Node):
     def __init__(self, resolution=0.2):
         super().__init__('realsense_tracking')
-        self.resolution = resolution
-        self.octree = octomap.OcTree(resolution)
+        # self.resolution = resolution
+        # self.octree = octomap.OcTree(resolution)
 
         self.bridge = CvBridge()
         self.pose = {'position':None, 'orientation':None}
@@ -98,12 +126,12 @@ class DepthToPointCloud(Node):
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
         self.denoised_pub = self.create_publisher(PointCloud2, '/denoised_cloud', qos_profile_system_default)
         self.octomap_pub = self.create_publisher(Octomap, "/octomap_binary", qos_profile_system_default)
-        self.voxel_pub = self.create_publisher(PointCloud2, 'voxel_grid', 10)
-
+        self.occu_pub = self.create_publisher(OccupancyGrid, 'occupancy_grid', qos_profile_system_default)
 
         # TF2 Buffer
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
 
     def realsense_callback(self, msg):
         self.pose['position'] = np.array([
@@ -119,6 +147,7 @@ class DepthToPointCloud(Node):
             msg.pose.pose.orientation.z,
             msg.pose.pose.orientation.w
         ])
+
 
     def pose_callback(self, msg):
         """Extract camera position & orientation in world frame."""
@@ -136,6 +165,7 @@ class DepthToPointCloud(Node):
             msg.pose.pose.orientation.w
         ])
 
+
     def camera_info_callback(self, msg):
         """Retrieve camera intrinsics from CameraInfo."""
         self.fx = msg.k[0]
@@ -150,18 +180,7 @@ class DepthToPointCloud(Node):
             [np.zeros((1, 3)), 1]
         ])
         self.P = np.array(msg.p).reshape(3,4)
-    
-    # def convert_to_octomap_msg(self):
-    #     octomap_msg = Octomap()
-    #     octomap_msg.header = Header(stamp=rospy.Time.now(), frame_id="map")
-    #     octomap_msg.binary = True
-    #     octomap_msg.resolution = self.resolution
 
-    #     # Convert octree to binary stream
-    #     data_stream = octomap.streamOcTree(self.octree)
-    #     octomap_msg.data = list(data_stream.read())
-
-    #     return octomap_msg
 
     def depth_callback(self, msg):
         start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
@@ -216,19 +235,22 @@ class DepthToPointCloud(Node):
         # d_pc_msg.header.stamp = self.get_clock().now().to_msg()
         # self.denoised_pub(d_pc_msg)
 
-        # Voxelization
-        voxel_size = 0.1
-        voxels = np.floor(points / voxel_size).astype(np.int32)
-        unique_voxels = np.unique(voxels, axis=0)
-        voxel_centers = (unique_voxels + 0.5) * voxel_size
+        # Compute occupied voxels
+        # Set voxelization parameters
+        voxel_size = 0.5   # Each voxel is 0.5m x 0.5m x 0.5m
+        threshold = 10     # A voxel is occupied if it has at least 10 points
+        occupied_voxels = voxel_occupancy_map(points, voxel_size, threshold) # M x 3 array of occupied voxel coordinates
+        # Find the voxel index corresponding to height 0.5m
+        z_index = int(np.floor(0.5 / voxel_size))
+        # Filter voxels at this height
+        layer_voxels = occupied_voxels[occupied_voxels[:, 2] == z_index]
+        self.get_logger().info(f"Number of occupied voxels at height 0.5m: {layer_voxels.shape[0]}")
 
-        voxel_centers = voxel_centers.astype(np.float32)  # Ensure float32 for ROS
-        header = msg.header  # reuse header from depth image if needed
-        header.frame_id = "odom_frame"  # or your fixed frame
-
-        voxel_msg = pc2.create_cloud(header, fields, voxel_centers)
-        voxel_msg.header.stamp = self.get_clock().now().to_msg()
-        self.voxel_pub.publish(voxel_msg)
+        # Get 2D Binary occupancy grid 
+        grid_size = (50, 50)  # Fixed 2D grid size
+        height = 0.5  # Get occupancy grid at 0.5m height
+        occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=0.25, height=height, grid_size=grid_size)
+        print(f"Occupancy grid at {height}m height:\n", occupancy_grid)
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
