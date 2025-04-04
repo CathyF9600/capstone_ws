@@ -80,6 +80,14 @@ def create_occupancy_grid(occupied_voxels, voxel_size, height=0.5, grid_size=(10
     return occupancy_grid
 
 
+# Convert to displayable grayscale image
+def convert_occupancy_to_image(grid):
+    image = np.zeros_like(grid, dtype=np.uint8)
+    image[grid == -1] = 127     # Unknown -> Gray
+    image[grid == 0] = 255      # Free -> White
+    image[grid == 100] = 0      # Occupied -> Black
+    return image
+
 
 def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
     """
@@ -276,6 +284,7 @@ class DepthToPointCloud(Node):
 
         # # Convert to PointCloud2
         header = msg.header
+        header = msg.header
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), # offset=0: The x coordinate starts at byte 0.
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
@@ -284,6 +293,10 @@ class DepthToPointCloud(Node):
 
         # # Publish Raw Point Cloud
         self.get_logger().info(f'pcl shape: {points.shape}')
+        pc_msg = pc2.create_cloud(header, fields, points[:, :3])
+        pc_msg.header.frame_id = 'odom_frame'
+        pc_msg.header.stamp = self.get_clock().now().to_msg()
+        self.pc_pub.publish(pc_msg)
         pc_msg = pc2.create_cloud(header, fields, points[:, :3])
         pc_msg.header.frame_id = 'odom_frame'
         pc_msg.header.stamp = self.get_clock().now().to_msg()
@@ -313,8 +326,16 @@ class DepthToPointCloud(Node):
         occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=self.resolution, height=height, grid_size=grid_size)
         print(f"Occupancy grid at {height}m height:\n", occupancy_grid.shape)
         min_indices = (0, 0)  # No adjustment, but could be different depending on your data
-        np.save('grid.npy', points)
-        self.publish_grid(occupancy_grid, min_indices)
+        # self.publish_grid(occupancy_grid, min_indices)
+
+        # Display occupancy_grid
+        image = convert_occupancy_to_image(occupancy_grid)
+        resized = cv2.resize(image, (300, 300), interpolation=cv2.INTER_NEAREST)
+
+        # Show image
+        cv2.imshow("Occupancy Grid Map", resized)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
