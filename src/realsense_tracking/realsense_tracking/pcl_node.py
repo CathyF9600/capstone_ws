@@ -12,7 +12,7 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
-from octomap_msgs.msg import Octomap
+# from octomap_msgs.msg import Octomap
 from scipy.sparse import coo_matrix
 
 
@@ -125,8 +125,8 @@ class DepthToPointCloud(Node):
         # Publisher
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
         self.denoised_pub = self.create_publisher(PointCloud2, '/denoised_cloud', qos_profile_system_default)
-        self.octomap_pub = self.create_publisher(Octomap, "/octomap_binary", qos_profile_system_default)
-        self.occu_pub = self.create_publisher(OccupancyGrid, 'occupancy_grid', qos_profile_system_default)
+        # self.octomap_pub = self.create_publisher(Octomap, "/octomap_binary", qos_profile_system_default)
+        self.occu_pub = self.create_publisher(OccupancyGrid, '/occupancy_grid', qos_profile_system_default)
 
         # TF2 Buffer
         self.tf_buffer = tf2_ros.Buffer()
