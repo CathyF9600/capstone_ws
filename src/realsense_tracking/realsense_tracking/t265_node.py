@@ -83,6 +83,7 @@ def pixel_to_world(M, K, pose):
 class T265Tracker(Node):
     def __init__(self):
         super().__init__('realsense_tracking')
+        self.get_logger().info(f"T265 Node started!" )
         self.bridge = CvBridge()
         self.pose = {'position':None, 'orientation':None}
 
@@ -135,8 +136,6 @@ class T265Tracker(Node):
         self.timer = self.create_timer(0.02, self.bm)
     
     def sync_callback(self, img_msg1, img_msg2):
-        start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
-
         self.stack.append((img_msg1, img_msg2))
 
     

@@ -129,9 +129,9 @@ class DepthToPointCloud(Node):
         # Convert camera frame -> world frame
         points = pixel_to_world(M, self.K, self.pose)
         # filtered_points = remove_outliers(points)
-        pillar_points = pillarize_points_kmeans(points)
+        # pillar_points = sspillarize_points_kmeans(points)
         np.save('gpoints.npy', points)
-        np.save('ppoints.npy', pillar_points)
+        # np.save('ppoints.npy', pillar_points)
 
         # Convert to PointCloud2
         header = msg.header
@@ -153,7 +153,7 @@ class DepthToPointCloud(Node):
         # d_pc_msg = pc2.create_cloud(header, fields, pillar_points[:, :3])
         # d_pc_msg.header.frame_id = 'odom_frame'
         # d_pc_msg.header.stamp = self.get_clock().now().to_msg()
-        # self.denoised_pub(d_pc_msg)
+        # self.denoised_pub.publish(d_pc_msg)
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
