@@ -42,8 +42,8 @@ def rgbd():
 def vis_pcl():
     fp = "gpoints.npy"
     points = np.load(fp, allow_pickle=True)
+    # print(points.T[:, -1])
     points = points.T[:,:3]
-
     fp = "rgbd.npy"
     rgbd_data = np.load(fp, allow_pickle=True)
     color_image = rgbd_data[..., :3]
