@@ -79,5 +79,5 @@ def vis_pcl():
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-vis_pcl()
-# rgbd()
+# vis_pcl()
+rgbd()

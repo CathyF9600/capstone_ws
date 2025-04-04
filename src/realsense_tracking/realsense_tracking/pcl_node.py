@@ -10,6 +10,7 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
+from sklearn.neighbors import NearestNeighbors
 
 def pixel_to_world(M, K, pose):
     # K: 4x4
@@ -29,7 +30,28 @@ def pixel_to_world(M, K, pose):
     ])    # Transform to world frame
     P_w = T @ Z_c
     
-    return P_w
+    return P_w.T # (N, 3)
+
+
+def remove_outliers(points, radius=0.2, min_neighbors=5):
+    nbrs = NearestNeighbors(radius=radius).fit(points)
+    radii = nbrs.radius_neighbors(points, return_distance=False)
+    mask = np.array([len(r) > min_neighbors for r in radii])
+    return points[mask]
+
+
+def pillarize_points(points, bin_size=0.25, pillar_height=2.0):
+    bins = np.floor(points[:, :2] / bin_size).astype(int)
+    unique_bins, indices = np.unique(bins, axis=0, return_index=True)
+    pillar_points = []
+
+    for idx in indices:
+        x, y = points[idx][:2]
+        for z in np.linspace(0, pillar_height, num=6):  # vertical pillar
+            pillar_points.append((x, y, z))
+
+    return np.array(pillar_points)
+
 
 class DepthToPointCloud(Node):
     def __init__(self):
@@ -51,6 +73,7 @@ class DepthToPointCloud(Node):
         )
         # Publisher
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
+        self.denoised_pub = self.create_publisher(PointCloud2, '/denoised_cloud', qos_profile_system_default)
 
         # TF2 Buffer
         self.tf_buffer = tf2_ros.Buffer()
@@ -87,39 +110,35 @@ class DepthToPointCloud(Node):
         self.P = np.array(msg.p).reshape(3,4)
 
     def depth_callback(self, msg):
+        start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
         """Convert depth image to point cloud."""
         if None in (self.fx, self.fy, self.cx, self.cy, self.baseline):
             return  # Wait for camera info
-        self.get_logger().info(f'K shape: {self.K.shape}')
+        # self.get_logger().info(f'K shape: {self.K.shape}')
 
+        # Depth Image Processing
         depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         height, width = depth_image.shape
         self.K[0][2] = width / 2
         self.K[1][2] = height / 2
-
-        # points = []
-        # for v in range(height):
-        #     for u in range(width):
-        #         depth = depth_image[v, u]
-        #         if depth > 0 and depth < 2:
-        #             x,y,z = pixel_to_world(u, v, depth, self.K, self.pose)
-        #             # self.get_logger().info(f'world coord {type(x)} {y} {z}')
-        #             points.append((x, y, z))
-
-        # Generate grid of (u, v) pixel coordinates
         u, v = np.meshgrid(np.arange(width), np.arange(height))
-
-        # Flatten arrays and stack them into M
-        # M = np.column_stack((u.ravel(), v.ravel(), depth_image.ravel(), np.ones(height * width)))
-        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 2)
+        
+        # Apply mask on max distance allowed
+        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 3)
         M = np.column_stack((
             u.ravel()[valid_mask], 
             v.ravel()[valid_mask], 
             depth_image.ravel()[valid_mask], 
             np.ones(valid_mask.sum())
         ))
+
+        # Convert camera frame -> world frame
         points = pixel_to_world(M, self.K, self.pose)
+        filtered_points = remove_outliers(points)
+        pillar_points = pillarize_points(filtered_points)
         np.save('gpoints.npy', points)
+        np.save('ppoints.npy', pillar_points)
+
         # Convert to PointCloud2
         header = msg.header
         fields = [
@@ -127,20 +146,26 @@ class DepthToPointCloud(Node):
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
             PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1), # offset=8: The z coordinate starts at byte 8.
         ]
-        self.get_logger().info(f'P shape: {points[:3, :].T.shape}')
 
-        pc_msg = pc2.create_cloud(header, fields, points[:3, :].T)
-
-        # try:
-        #     transform = self.tf_buffer.lookup_transform("map", msg.header.frame_id, rclpy.time.Time()) # to world frame
-        #     pc_msg = self.transform_pointcloud(pc_msg, transform)
-        # except Exception as e:
-        #     self.get_logger().warn(f"Transform error: {e}")
-
+        # Publish Raw Point Cloud
+        self.get_logger().info(f'pcl shape: {points[:, :3].shape}')
+        pc_msg = pc2.create_cloud(header, fields, points[:, :3])
         pc_msg.header.frame_id = 'odom_frame'
         pc_msg.header.stamp = self.get_clock().now().to_msg()
         self.pc_pub.publish(pc_msg)
 
+        # Publish Denoised Pillar Point Cloud
+        self.get_logger().info(f'pcl shape: {pillar_points[:, :3].shape}')
+        d_pc_msg = pc2.create_cloud(header, fields, pillar_points[:, :3])
+        d_pc_msg.header.frame_id = 'odom_frame'
+        d_pc_msg.header.stamp = self.get_clock().now().to_msg()
+        self.denoised_pub(d_pc_msg)
+
+        # Measure Latency
+        now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
+        pcl_latency = now - start
+        self.get_logger().info(f"Pcl Process Time: {pcl_latency:.6f} s" )
+        
 
     def transform_pointcloud(self, cloud, transform):
         """Apply TF2 transform to PointCloud2."""
