@@ -203,9 +203,14 @@ class T265Tracker(Node):
         fx_l = self.camera_info_msg1.k[0]
         depth = (fx_l * -BASELINE) / (disparity + 1e-6)
 
+        # create HxWx4 RGBD for debugging
         depth_image = np.expand_dims(depth, axis=-1)
         rgbd = np.concatenate([color_image, depth_image], axis=-1)
         np.save('rgbd.npy', rgbd)
+
+        # clipping to 0 and 1
+        depth[depth > 1] = 1
+        depth[depth < 0] = 0
         # Publish disparity msgs
         depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
         depth_msg.header.stamp = self.get_clock().now().to_msg()
