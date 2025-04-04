@@ -11,6 +11,9 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
+from octomap_msgs.msg import Octomap
+import octomap
+
 
 def pixel_to_world(M, K, pose):
     # K: 4x4
@@ -70,8 +73,11 @@ def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
     return occupied_voxels
 
 class DepthToPointCloud(Node):
-    def __init__(self):
+    def __init__(self, resolution=0.2):
         super().__init__('realsense_tracking')
+        self.resolution = resolution
+        self.octree = octomap.OcTree(resolution)
+
         self.bridge = CvBridge()
         self.pose = {'position':None, 'orientation':None}
         # Camera parameters (to be updated from CameraInfo)
@@ -80,6 +86,7 @@ class DepthToPointCloud(Node):
         # Subscribers
         self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback, qos_profile_system_default)
         self.create_subscription(Image, '/depth_image', self.depth_callback, qos_profile_system_default)
+        self.pose_sub = self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
         # RealSense Subscriber
         self.realsense_sub = self.create_subscription(
             Odometry,
@@ -90,12 +97,31 @@ class DepthToPointCloud(Node):
         # Publisher
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
         self.denoised_pub = self.create_publisher(PointCloud2, '/denoised_cloud', qos_profile_system_default)
+        self.octomap_pub = self.create_publisher(Octomap, "/octomap_binary", qos_profile_system_default)
+        self.voxel_pub = self.create_publisher(PointCloud2, 'voxel_grid', 10)
+
 
         # TF2 Buffer
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
     def realsense_callback(self, msg):
+        self.pose['position'] = np.array([
+            msg.pose.pose.position.x,
+            msg.pose.pose.position.y,
+            msg.pose.pose.position.z
+        ])
+
+        # Original orientation
+        self.pose['orientation'] = np.array([
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w
+        ])
+
+    def pose_callback(self, msg):
+        """Extract camera position & orientation in world frame."""
         self.pose['position'] = np.array([
             msg.pose.pose.position.x,
             msg.pose.pose.position.y,
@@ -124,6 +150,18 @@ class DepthToPointCloud(Node):
             [np.zeros((1, 3)), 1]
         ])
         self.P = np.array(msg.p).reshape(3,4)
+    
+    # def convert_to_octomap_msg(self):
+    #     octomap_msg = Octomap()
+    #     octomap_msg.header = Header(stamp=rospy.Time.now(), frame_id="map")
+    #     octomap_msg.binary = True
+    #     octomap_msg.resolution = self.resolution
+
+    #     # Convert octree to binary stream
+    #     data_stream = octomap.streamOcTree(self.octree)
+    #     octomap_msg.data = list(data_stream.read())
+
+    #     return octomap_msg
 
     def depth_callback(self, msg):
         start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
@@ -151,24 +189,25 @@ class DepthToPointCloud(Node):
         # Convert camera frame -> world frame
         points = pixel_to_world(M, self.K, self.pose)
         # filtered_points = remove_outliers(points)
-        pillar_points = pillarize_points_kmeans(points)
-        np.save('gpoints.npy', points)
-        np.save('ppoints.npy', pillar_points)
+        # pillar_points = pillarize_points_kmeans(points)
 
-        # Convert to PointCloud2
-        header = msg.header
+        # np.save('gpoints.npy', points)
+        # np.save('ppoints.npy', pillar_points)
+
+        # # Convert to PointCloud2
+        # header = msg.header
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), # offset=0: The x coordinate starts at byte 0.
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
             PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1), # offset=8: The z coordinate starts at byte 8.
         ]
 
-        # Publish Raw Point Cloud
-        self.get_logger().info(f'pcl shape: {points[:, :3].shape}')
-        pc_msg = pc2.create_cloud(header, fields, points[:, :3])
-        pc_msg.header.frame_id = 'odom_frame'
-        pc_msg.header.stamp = self.get_clock().now().to_msg()
-        self.pc_pub.publish(pc_msg)
+        # # Publish Raw Point Cloud
+        # self.get_logger().info(f'pcl shape: {points[:, :3].shape}')
+        # pc_msg = pc2.create_cloud(header, fields, points[:, :3])
+        # pc_msg.header.frame_id = 'odom_frame'
+        # pc_msg.header.stamp = self.get_clock().now().to_msg()
+        # self.pc_pub.publish(pc_msg)
 
         # # Publish Denoised Pillar Point Cloud
         # self.get_logger().info(f'pcl shape: {pillar_points[:, :3].shape}')
@@ -176,6 +215,20 @@ class DepthToPointCloud(Node):
         # d_pc_msg.header.frame_id = 'odom_frame'
         # d_pc_msg.header.stamp = self.get_clock().now().to_msg()
         # self.denoised_pub(d_pc_msg)
+
+        # Voxelization
+        voxel_size = 0.1
+        voxels = np.floor(points / voxel_size).astype(np.int32)
+        unique_voxels = np.unique(voxels, axis=0)
+        voxel_centers = (unique_voxels + 0.5) * voxel_size
+
+        voxel_centers = voxel_centers.astype(np.float32)  # Ensure float32 for ROS
+        header = msg.header  # reuse header from depth image if needed
+        header.frame_id = "odom_frame"  # or your fixed frame
+
+        voxel_msg = pc2.create_cloud(header, fields, voxel_centers)
+        voxel_msg.header.stamp = self.get_clock().now().to_msg()
+        self.voxel_pub.publish(voxel_msg)
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
