@@ -106,9 +106,28 @@ def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
     # Count number of points per voxel
     unique_voxels, counts = np.unique(voxel_indices, axis=0, return_counts=True)
     # Filter voxels that exceed the threshold
-    occupied_voxels = unique_voxels[counts >= threshold]
-    return occupied_voxels
+    # occupied_voxels = unique_voxels[counts >= threshold]
+    # Shift to positive indices
+    xy_voxels = unique_voxels[:, :2]
+    xy_voxels -= xy_voxels.min(axis=0)
 
+    # Create blank grid
+    height, width = xy_voxels.max(axis=0) + 1
+    grid = np.zeros((height, width), dtype=np.uint16)
+
+    # Fill grid with counts
+    for (x, y), count in zip(xy_voxels, counts):
+        grid[y, x] = count
+    # Convert to grayscale (invert so higher counts = darker)
+    grid = 255 - (255 * grid / np.max(grid)).astype(np.uint8)
+
+    cv2.imshow("Grayscale Occupancy Map", cv2.resize(grid, (50, 50), interpolation=cv2.INTER_NEAREST))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return unique_voxels
+
+def voxel_occupancy_map_grey(points, voxel_size=0.25, threshold=5):
+    voxel_indices = np.floor(points / voxel_size).astype(int)
 
 class DepthToPointCloud(Node):
     def __init__(self, resolution=0.2):
@@ -276,6 +295,13 @@ class DepthToPointCloud(Node):
 
         # Convert camera frame -> world frame
         points = pixel_to_world(M, self.K, self.pose)[:, :3]
+        self.get_logger().info(f"Number of raw points: {points.shape[0]}")
+        #  Filter points with Z between 0.45 and 0.55
+        z = points[:, 2]  # Extract Z-axis
+        mask = (z >= 0.45) & (z <= 0.55)
+        points = points[mask]
+        self.get_logger().info(f"Number of points bw h=0.45~0.55: {points.shape[0]}")
+
         # filtered_points = remove_outliers(points)
         # pillar_points = pillarize_points_kmeans(points)
 
@@ -314,11 +340,6 @@ class DepthToPointCloud(Node):
         voxel_size = self.resolution   # Each voxel is 0.5m x 0.5m x 0.5m
         threshold = 30     # A voxel is occupied if it has at least 10 points
         occupied_voxels = voxel_occupancy_map(points, voxel_size, threshold) # M x 3 array of occupied voxel coordinates
-        # Find the voxel index corresponding to height 0.5m
-        z_index = int(np.floor(0.5 / voxel_size))
-        # Filter voxels at this height
-        layer_voxels = occupied_voxels[occupied_voxels[:, 2] == z_index]
-        self.get_logger().info(f"Number of occupied voxels at height 0.5m: {layer_voxels.shape[0]}")
 
         # Get 2D Binary occupancy grid 
         grid_size = (20,20)  # Fixed 2D grid size
