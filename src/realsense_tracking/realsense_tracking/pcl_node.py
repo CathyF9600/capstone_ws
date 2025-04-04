@@ -133,7 +133,7 @@ class DepthToPointCloud(Node):
         # TF2 Buffer
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-
+        self.resolution = 0.2
         
     def realsense_callback(self, msg):
         self.pose['position'] = np.array([
@@ -218,6 +218,7 @@ class DepthToPointCloud(Node):
 
     def publish_grid(self, grid, min_indices):
         """Publishes the occupancy grid to ROS 2."""
+        grid = grid.T
         if grid is None or min_indices is None:
             self.get_logger().warn("No grid data available yet.")
             return
@@ -257,7 +258,7 @@ class DepthToPointCloud(Node):
         u, v = np.meshgrid(np.arange(width), np.arange(height))
         
         # Apply mask on max distance allowed
-        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 3)
+        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 10)
         M = np.column_stack((
             u.ravel()[valid_mask], 
             v.ravel()[valid_mask], 
@@ -274,7 +275,7 @@ class DepthToPointCloud(Node):
         # np.save('ppoints.npy', pillar_points)
 
         # # Convert to PointCloud2
-        # header = msg.header
+        header = msg.header
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), # offset=0: The x coordinate starts at byte 0.
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
@@ -283,10 +284,10 @@ class DepthToPointCloud(Node):
 
         # # Publish Raw Point Cloud
         self.get_logger().info(f'pcl shape: {points.shape}')
-        # pc_msg = pc2.create_cloud(header, fields, points[:, :3])
-        # pc_msg.header.frame_id = 'odom_frame'
-        # pc_msg.header.stamp = self.get_clock().now().to_msg()
-        # self.pc_pub.publish(pc_msg)
+        pc_msg = pc2.create_cloud(header, fields, points[:, :3])
+        pc_msg.header.frame_id = 'odom_frame'
+        pc_msg.header.stamp = self.get_clock().now().to_msg()
+        self.pc_pub.publish(pc_msg)
 
         # # Publish Denoised Pillar Point Cloud
         # self.get_logger().info(f'pcl shape: {pillar_points[:, :3].shape}')
@@ -297,7 +298,7 @@ class DepthToPointCloud(Node):
 
         # Compute occupied voxels
         # Set voxelization parameters
-        voxel_size = 0.5   # Each voxel is 0.5m x 0.5m x 0.5m
+        voxel_size = self.resolution   # Each voxel is 0.5m x 0.5m x 0.5m
         threshold = 10     # A voxel is occupied if it has at least 10 points
         occupied_voxels = voxel_occupancy_map(points, voxel_size, threshold) # M x 3 array of occupied voxel coordinates
         # Find the voxel index corresponding to height 0.5m
@@ -309,9 +310,10 @@ class DepthToPointCloud(Node):
         # Get 2D Binary occupancy grid 
         grid_size = (50, 50)  # Fixed 2D grid size
         height = 0.5  # Get occupancy grid at 0.5m height
-        occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=0.25, height=height, grid_size=grid_size)
-        print(f"Occupancy grid at {height}m height:\n", occupancy_grid)
+        occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=self.resolution, height=height, grid_size=grid_size)
+        print(f"Occupancy grid at {height}m height:\n", occupancy_grid.shape)
         min_indices = (0, 0)  # No adjustment, but could be different depending on your data
+        np.save('grid.npy', points)
         self.publish_grid(occupancy_grid, min_indices)
 
         # Measure Latency

@@ -78,7 +78,7 @@ def pixel_to_world(M, K, pose):
     # Transform to world frame
     P_w = T @ Z_c.T
     
-    return Z_c
+    return P_w.T
 
 class T265Tracker(Node):
     def __init__(self):
