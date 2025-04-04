@@ -1,4 +1,4 @@
-from sklearn.cluster import MiniBatchKMeans
+# from sklearn.cluster import MiniBatchKMeans
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -11,8 +11,8 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
-from octomap_msgs.msg import Octomap
-import octomap
+# from octomap_msgs.msg import Octomap
+# import octomap
 
 
 def pixel_to_world(M, K, pose):
@@ -75,8 +75,6 @@ def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
 class DepthToPointCloud(Node):
     def __init__(self, resolution=0.2):
         super().__init__('realsense_tracking')
-        self.resolution = resolution
-        self.octree = octomap.OcTree(resolution)
 
         self.bridge = CvBridge()
         self.pose = {'position':None, 'orientation':None}
@@ -97,7 +95,7 @@ class DepthToPointCloud(Node):
         # Publisher
         self.pc_pub = self.create_publisher(PointCloud2, '/point_cloud', qos_profile_system_default)
         self.denoised_pub = self.create_publisher(PointCloud2, '/denoised_cloud', qos_profile_system_default)
-        self.octomap_pub = self.create_publisher(Octomap, "/octomap_binary", qos_profile_system_default)
+        # self.octomap_pub = self.create_publisher(Octomap, "/octomap_binary", qos_profile_system_default)
         self.voxel_pub = self.create_publisher(PointCloud2, 'voxel_grid', 10)
 
 
@@ -187,7 +185,7 @@ class DepthToPointCloud(Node):
         ))
 
         # Convert camera frame -> world frame
-        points = pixel_to_world(M, self.K, self.pose)
+        points = pixel_to_world(M, self.K, self.pose)[:, :3]
         # filtered_points = remove_outliers(points)
         # pillar_points = pillarize_points_kmeans(points)
 
@@ -203,7 +201,7 @@ class DepthToPointCloud(Node):
         ]
 
         # # Publish Raw Point Cloud
-        # self.get_logger().info(f'pcl shape: {points[:, :3].shape}')
+        self.get_logger().info(f'pcl shape: {points.shape}')
         # pc_msg = pc2.create_cloud(header, fields, points[:, :3])
         # pc_msg.header.frame_id = 'odom_frame'
         # pc_msg.header.stamp = self.get_clock().now().to_msg()
