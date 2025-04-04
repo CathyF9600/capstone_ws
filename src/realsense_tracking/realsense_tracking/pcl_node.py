@@ -33,7 +33,6 @@ def pixel_to_world(M, K, pose):
     return P_w.T # (N, 3)
 
 
-
 def pillarize_points_kmeans(points, n_clusters=200, bin_size=0.25, pillar_height=2.0):
     kmeans = MiniBatchKMeans(n_clusters=n_clusters, batch_size=1000, random_state=42)
     cluster_centers = kmeans.fit(points[:, :2]).cluster_centers_
@@ -46,6 +45,29 @@ def pillarize_points_kmeans(points, n_clusters=200, bin_size=0.25, pillar_height
 
     return np.array(pillar_points)
 
+
+def voxel_occupancy_map(points, voxel_size=0.25, threshold=5):
+    """
+    Converts point cloud into a 3D occupancy grid using voxelization.
+    
+    Args:
+        points (np.ndarray): N x 3 array of 3D points.
+        voxel_size (float): Size of each voxel (in meters).
+        threshold (int): Minimum number of points to mark a voxel as occupied.
+    
+    Returns:
+        occupied_voxels (np.ndarray): M x 3 array of voxel coordinates that are occupied.
+    """
+    # Discretize points into voxel grid
+    voxel_indices = np.floor(points / voxel_size).astype(int)
+    
+    # Count number of points per voxel
+    unique_voxels, counts = np.unique(voxel_indices, axis=0, return_counts=True)
+    
+    # Filter voxels that exceed the threshold
+    occupied_voxels = unique_voxels[counts >= threshold]
+
+    return occupied_voxels
 
 class DepthToPointCloud(Node):
     def __init__(self):
