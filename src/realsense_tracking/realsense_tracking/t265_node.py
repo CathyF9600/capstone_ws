@@ -225,7 +225,7 @@ class T265Tracker(Node):
             # cv2.waitKey(1)
             # # Display result
             text = f"depth: {depth[v][u]}"
-            if self.pose and self.K_left.any():
+            if self.K_left.any() and self.pose['position'].any(): 
                 M = np.array([u, v, depth[v][u], 1])
                 p_w = pixel_to_world(M, self.K_left, self.pose)
                 text = f"d: {depth[v][u]:.3f}, g: {p_w[0]:.3f} {p_w[1]:.3f} {p_w[2]:.3f}"

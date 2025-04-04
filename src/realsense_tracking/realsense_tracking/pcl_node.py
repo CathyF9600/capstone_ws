@@ -1,3 +1,4 @@
+from sklearn.neighbors import NearestNeighbors
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -10,7 +11,6 @@ from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from rclpy.qos import qos_profile_system_default
 import tf_transformations
-from sklearn.neighbors import NearestNeighbors
 
 def pixel_to_world(M, K, pose):
     # K: 4x4
@@ -154,12 +154,12 @@ class DepthToPointCloud(Node):
         pc_msg.header.stamp = self.get_clock().now().to_msg()
         self.pc_pub.publish(pc_msg)
 
-        # Publish Denoised Pillar Point Cloud
-        self.get_logger().info(f'pcl shape: {pillar_points[:, :3].shape}')
-        d_pc_msg = pc2.create_cloud(header, fields, pillar_points[:, :3])
-        d_pc_msg.header.frame_id = 'odom_frame'
-        d_pc_msg.header.stamp = self.get_clock().now().to_msg()
-        self.denoised_pub(d_pc_msg)
+        # # Publish Denoised Pillar Point Cloud
+        # self.get_logger().info(f'pcl shape: {pillar_points[:, :3].shape}')
+        # d_pc_msg = pc2.create_cloud(header, fields, pillar_points[:, :3])
+        # d_pc_msg.header.frame_id = 'odom_frame'
+        # d_pc_msg.header.stamp = self.get_clock().now().to_msg()
+        # self.denoised_pub(d_pc_msg)
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
