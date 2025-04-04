@@ -266,7 +266,7 @@ class DepthToPointCloud(Node):
         u, v = np.meshgrid(np.arange(width), np.arange(height))
         
         # Apply mask on max distance allowed
-        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 10)
+        valid_mask = (depth_image.ravel() > 0) & (depth_image.ravel() < 5)
         M = np.column_stack((
             u.ravel()[valid_mask], 
             v.ravel()[valid_mask], 
@@ -283,24 +283,24 @@ class DepthToPointCloud(Node):
         # np.save('ppoints.npy', pillar_points)
 
         # # Convert to PointCloud2
-        header = msg.header
-        header = msg.header
-        fields = [
-            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), # offset=0: The x coordinate starts at byte 0.
-            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
-            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1), # offset=8: The z coordinate starts at byte 8.
-        ]
+        # header = msg.header
+        # # header = msg.header
+        # fields = [
+        #     PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1), # offset=0: The x coordinate starts at byte 0.
+        #     PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1), # offset=4: The y coordinate starts at byte 4.
+        #     PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1), # offset=8: The z coordinate starts at byte 8.
+        # ]
 
-        # # Publish Raw Point Cloud
-        self.get_logger().info(f'pcl shape: {points.shape}')
-        pc_msg = pc2.create_cloud(header, fields, points[:, :3])
-        pc_msg.header.frame_id = 'odom_frame'
-        pc_msg.header.stamp = self.get_clock().now().to_msg()
-        self.pc_pub.publish(pc_msg)
-        pc_msg = pc2.create_cloud(header, fields, points[:, :3])
-        pc_msg.header.frame_id = 'odom_frame'
-        pc_msg.header.stamp = self.get_clock().now().to_msg()
-        self.pc_pub.publish(pc_msg)
+        # # # Publish Raw Point Cloud
+        # self.get_logger().info(f'pcl shape: {points.shape}')
+        # pc_msg = pc2.create_cloud(header, fields, points[:, :3])
+        # pc_msg.header.frame_id = 'odom_frame'
+        # pc_msg.header.stamp = self.get_clock().now().to_msg()
+        # self.pc_pub.publish(pc_msg)
+        # pc_msg = pc2.create_cloud(header, fields, points[:, :3])
+        # pc_msg.header.frame_id = 'odom_frame'
+        # pc_msg.header.stamp = self.get_clock().now().to_msg()
+        # self.pc_pub.publish(pc_msg)
 
         # # Publish Denoised Pillar Point Cloud
         # self.get_logger().info(f'pcl shape: {pillar_points[:, :3].shape}')
@@ -312,7 +312,7 @@ class DepthToPointCloud(Node):
         # Compute occupied voxels
         # Set voxelization parameters
         voxel_size = self.resolution   # Each voxel is 0.5m x 0.5m x 0.5m
-        threshold = 10     # A voxel is occupied if it has at least 10 points
+        threshold = 30     # A voxel is occupied if it has at least 10 points
         occupied_voxels = voxel_occupancy_map(points, voxel_size, threshold) # M x 3 array of occupied voxel coordinates
         # Find the voxel index corresponding to height 0.5m
         z_index = int(np.floor(0.5 / voxel_size))
@@ -321,7 +321,7 @@ class DepthToPointCloud(Node):
         self.get_logger().info(f"Number of occupied voxels at height 0.5m: {layer_voxels.shape[0]}")
 
         # Get 2D Binary occupancy grid 
-        grid_size = (50, 50)  # Fixed 2D grid size
+        grid_size = (20,20)  # Fixed 2D grid size
         height = 0.5  # Get occupancy grid at 0.5m height
         occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=self.resolution, height=height, grid_size=grid_size)
         print(f"Occupancy grid at {height}m height:\n", occupancy_grid.shape)
@@ -330,12 +330,12 @@ class DepthToPointCloud(Node):
 
         # Display occupancy_grid
         image = convert_occupancy_to_image(occupancy_grid)
-        resized = cv2.resize(image, (300, 300), interpolation=cv2.INTER_NEAREST)
+        resized = cv2.resize(image, (20, 20), interpolation=cv2.INTER_NEAREST)
 
         # Show image
         cv2.imshow("Occupancy Grid Map", resized)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+        # cv2.destroyAllWindows()
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
