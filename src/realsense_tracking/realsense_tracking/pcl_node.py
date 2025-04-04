@@ -15,6 +15,7 @@ import tf_transformations
 # from octomap_msgs.msg import Octomap
 from scipy.sparse import coo_matrix
 import matplotlib.pyplot as plt
+from std_msgs.msg import Header
 
 
 def pixel_to_world(M, K, pose):
@@ -133,7 +134,7 @@ class DepthToPointCloud(Node):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
-
+        
     def realsense_callback(self, msg):
         self.pose['position'] = np.array([
             msg.pose.pose.position.x,
@@ -215,6 +216,32 @@ class DepthToPointCloud(Node):
         self.P = np.array(msg.p).reshape(3,4)
 
 
+    def publish_grid(self, grid, min_indices):
+        """Publishes the occupancy grid to ROS 2."""
+        if grid is None or min_indices is None:
+            self.get_logger().warn("No grid data available yet.")
+            return
+
+        msg = OccupancyGrid()
+        msg.header = Header()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.frame_id
+
+        msg.info.resolution = self.resolution
+        msg.info.width = grid.shape[1]
+        msg.info.height = grid.shape[0]
+        
+        msg.info.origin.position.x = min_indices[1] * self.resolution
+        msg.info.origin.position.y = min_indices[0] * self.resolution
+        msg.info.origin.position.z = 0.0
+        msg.info.origin.orientation.w = 1.0
+
+        msg.data = [100 if cell == 1 else 0 for cell in grid.flatten()]
+
+        self.occu_pub.publish(msg)
+        self.get_logger().info("Published updated OccupancyGrid.")
+
+
     def depth_callback(self, msg):
         start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
         """Convert depth image to point cloud."""
@@ -285,7 +312,7 @@ class DepthToPointCloud(Node):
         occupancy_grid = create_occupancy_grid(occupied_voxels, voxel_size=0.25, height=height, grid_size=grid_size)
         print(f"Occupancy grid at {height}m height:\n", occupancy_grid)
         min_indices = (0, 0)  # No adjustment, but could be different depending on your data
-        self.visualize_occupancy_grid(occupancy_grid, min_indices)
+        self.publish_grid(occupancy_grid, min_indices)
 
         # Measure Latency
         now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
