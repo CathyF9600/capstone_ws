@@ -1,4 +1,4 @@
-from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import MiniBatchKMeans
 import rclpy
 from rclpy.node import Node
 import numpy as np
@@ -33,21 +33,15 @@ def pixel_to_world(M, K, pose):
     return P_w.T # (N, 3)
 
 
-def remove_outliers(points, radius=0.2, min_neighbors=5):
-    nbrs = NearestNeighbors(radius=radius).fit(points)
-    radii = nbrs.radius_neighbors(points, return_distance=False)
-    mask = np.array([len(r) > min_neighbors for r in radii])
-    return points[mask]
 
+def pillarize_points_kmeans(points, n_clusters=200, bin_size=0.25, pillar_height=2.0):
+    kmeans = MiniBatchKMeans(n_clusters=n_clusters, batch_size=1000, random_state=42)
+    cluster_centers = kmeans.fit(points[:, :2]).cluster_centers_
 
-def pillarize_points(points, bin_size=0.25, pillar_height=2.0):
-    bins = np.floor(points[:, :2] / bin_size).astype(int)
-    unique_bins, indices = np.unique(bins, axis=0, return_index=True)
+    # Generate pillar points
     pillar_points = []
-
-    for idx in indices:
-        x, y = points[idx][:2]
-        for z in np.linspace(0, pillar_height, num=6):  # vertical pillar
+    for x, y in cluster_centers:
+        for z in np.linspace(0, pillar_height, num=6):  # Vertical pillars
             pillar_points.append((x, y, z))
 
     return np.array(pillar_points)
@@ -134,8 +128,8 @@ class DepthToPointCloud(Node):
 
         # Convert camera frame -> world frame
         points = pixel_to_world(M, self.K, self.pose)
-        filtered_points = remove_outliers(points)
-        pillar_points = pillarize_points(filtered_points)
+        # filtered_points = remove_outliers(points)
+        pillar_points = pillarize_points_kmeans(points)
         np.save('gpoints.npy', points)
         np.save('ppoints.npy', pillar_points)
 
