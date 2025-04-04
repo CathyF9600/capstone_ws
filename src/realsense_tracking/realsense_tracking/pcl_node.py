@@ -225,7 +225,7 @@ class DepthToPointCloud(Node):
         msg = OccupancyGrid()
         msg.header = Header()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = self.frame_id
+        msg.header.frame_id ='odom_frame'# self.frame_id
 
         msg.info.resolution = self.resolution
         msg.info.width = grid.shape[1]
