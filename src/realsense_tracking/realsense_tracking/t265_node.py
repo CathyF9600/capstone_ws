@@ -89,6 +89,7 @@ class T265Tracker(Node):
 
         # Create Disparity Publisher
         self.depth_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
+        self.color_pub = self.create_publisher(Image, '/rgb_image', qos_profile_system_default)
 
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
@@ -205,15 +206,16 @@ class T265Tracker(Node):
         # create HxWx4 RGBD for debugging
         depth_image = np.expand_dims(depth, axis=-1)
         rgbd = np.concatenate([color_image, depth_image], axis=-1)
-        np.save('rgbd.npy', rgbd)
 
-        # clipping to 0 and 1
-        depth[depth > 1] = 1
-        depth[depth < 0] = 0
+        # # clipping to 0 and 5 m
+        # depth[depth > 5] = 5
+        # depth[depth < 0] = 0
         # Publish disparity msgs
         depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
         depth_msg.header.stamp = self.get_clock().now().to_msg()
         self.depth_pub.publish(depth_msg)
+        
+        self.color_pub.publish(color_msg)
 
         self.K_left[0][2] = color_image.shape[1] / 2 # cx
         self.K_left[1][2] = color_image.shape[0] / 2 # cy
