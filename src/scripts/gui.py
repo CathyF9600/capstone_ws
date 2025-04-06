@@ -2,7 +2,7 @@ import numpy as np
 import open3d as o3d
 import time
 
-# use sythetic rgbd to demonstrate live 3D mapping
+# use synthetic rgbd to demonstrate live 3D mapping
 
 DISTANCE = 3.0  # Max clipping distance
 

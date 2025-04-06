@@ -8,7 +8,7 @@ DISTANCE = 10.0
 STEP = 0.5
 VOXEL_SIZE = 0.08
 COLOR_THRESHOLD = 0.3 # color
-MAX_DEPTH = 10
+MAX_DEPTH = 15
 
 def build_voxel_index_map(voxels):
     """
@@ -19,6 +19,7 @@ def build_voxel_index_map(voxels):
         voxel_map[tuple(voxel.grid_index)] = voxel  # Using tuple to make the index hashable
     return voxel_map
 
+
 def get_voxel_color_fast(voxel_map, v_idx):
     """
     Returns the color of the voxel at the given index, using the pre-built voxel_map for O(1) lookup.
@@ -26,21 +27,6 @@ def get_voxel_color_fast(voxel_map, v_idx):
     v_idx_tuple = tuple(v_idx)  # Ensure v_idx is hashable (tuple)
     voxel = voxel_map.get(v_idx_tuple)  # O(1) average-time lookup
     return voxel.color[0] if voxel else None
-    
-# Function to get color by voxel index
-def get_voxel_color(voxels, v_idx):
-    """
-    Returns the color of the voxel at the given index, if the voxel exists in voxels. Otherwise return None
-    TODO: optimization with HashMap Direct Lookup or KD-Tree instead of linear search
-    """
-    # Find the corresponding voxel by index
-    for voxel in voxels:
-        # print(voxel.grid_index.shape, v_idx.shape)
-        # input()
-        if np.array_equal(voxel.grid_index, v_idx):
-            return voxel.color[0]  # Return the color of the found voxel
-    
-    return None  # If voxel not found
 
 
 def heuristic(a, b):
@@ -48,72 +34,32 @@ def heuristic(a, b):
     return np.linalg.norm(np.array(a) - np.array(b))
 
 
-def zoom_in(vis):
-    ctr = vis.get_view_control()
-    ctr.scale(1.0 / 1.1)  # Zoom in
-    return False
-
-def zoom_out(vis):
-    ctr = vis.get_view_control()
-    ctr.scale(1.1)  # Zoom out
-    return False
-
-
-def vplot(path, vis):
-    # Ensure path is a list of waypoints
-    for i in range(len(path) - 1):
-        start = path[i]
-        end = path[i + 1]
-        
-        # Calculate the direction vector
-        direction = end - start
-        length = np.linalg.norm(direction)
-        
-        # Normalize the direction
-        direction /= length if length != 0 else 1
-        
-        # Create an arrow geometry
-        arrow = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius=0.02, cone_radius=0.05, 
-                                                      cylinder_height=length, cone_height=0.1)
-        # Set the arrow to point from the start to the end of the segment
-        arrow.rotate(o3d.geometry.get_rotation_matrix_from_xyz([0, np.pi/2, 0]))  # Align arrow with y-axis
-        print('start', start)
-        arrow.translate(np.array(start))  # Translate the arrow to the start position
-        
-        # Add the arrow to the visualizer
-        vis.add_geometry(arrow)
-
-
-def vplot(path, vis):
-    # for i in range(len(path) - 1):
+def vplot(path, vis): # vector plot
     color = [0, 0, 1]
     if len(path) < 2:
         print("Path too short to draw.")
         return
-
     # Convert to Open3D-compatible format
     points = [list(p) for p in path]
     lines = [[i, i + 1] for i in range(len(points) - 1)]
-
     # Create line set object
     line_set = o3d.geometry.LineSet(
         points=o3d.utility.Vector3dVector(points),
         lines=o3d.utility.Vector2iVector(lines)
     )
-
     # Set color of each line
     colors = [color for _ in lines]
     line_set.colors = o3d.utility.Vector3dVector(colors)
-
     # Add to visualizer
     vis.add_geometry(line_set)
         
-def pplot(vis, gpos, color='R'):
+
+def pplot(vis, gpos, color='R'): # point plot
     sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)  # Larger sphere
-    # Plot a point
     sphere.paint_uniform_color([1, 0, 0])  # Green color for the goal position
     sphere.translate(gpos)
     vis.add_geometry(sphere)
+
 
 def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
     rgbd_data = np.load(fp, allow_pickle=True)
@@ -148,9 +94,6 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     # Add point cloud to visualizer
     vis.add_geometry(pcd)
 
-    # vis.register_key_callback(ord('['), zoom_in)   # '+' key
-    # vis.register_key_callback(ord(']'), zoom_out)  # '-' key
-
     # Occupancy map (Voxel grid)
     occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, VOXEL_SIZE)
     voxels = occupancy.get_voxels() # computationally expensive but i have no choice
@@ -183,7 +126,6 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
 
     while open_list:
         _, current_g_score, _, current_pos = heapq.heappop(open_list)
-        current_tuple = tuple(current_pos)
 
         if depth >= MAX_DEPTH:
             print("Max depth reached, stopping the pathfinding.")
@@ -198,23 +140,8 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
             # Axis-aligned neighbors
             current_pos + np.array([STEP, 0, 0]),
             current_pos + np.array([-STEP, 0, 0]),
-            # current_pos + np.array([0, STEP, 0]),
-            # current_pos + np.array([0, -STEP, 0]),
             current_pos + np.array([0, 0, STEP]),
             current_pos + np.array([0, 0, -STEP]),
-            
-            # Diagonal neighbors on xy-plane
-            # current_pos + np.array([STEP, STEP, 0]),
-            # current_pos + np.array([-STEP, STEP, 0]),
-            # current_pos + np.array([STEP, -STEP, 0]),
-            # current_pos + np.array([-STEP, -STEP, 0]),
-            
-            # Diagonal neighbors on yz-plane
-            # current_pos + np.array([0, STEP, STEP]),
-            # current_pos + np.array([0, -STEP, STEP]),
-            # current_pos + np.array([0, STEP, -STEP]),
-            # current_pos + np.array([0, -STEP, -STEP]),
-            
             # Diagonal neighbors on xz-plane
             current_pos + np.array([STEP, 0, STEP]),
             current_pos + np.array([-STEP, 0, STEP]),
