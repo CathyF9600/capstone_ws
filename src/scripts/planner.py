@@ -1,10 +1,86 @@
 import numpy as np
 import open3d as o3d
 import cv2
+import heapq
+from itertools import count
+
 
 DISTANCE = 10.0
+VOXEL_SIZE = 0.2  # Define voxel size
+STEP = 0.5
+def heuristic(a, b):
+    # Heuristic: Euclidean distance between 'a' and 'b'
+    return np.linalg.norm(np.array(a) - np.array(b))
 
-def plan_and_show_waypoint(fp, gpos=np.array([1.0, 0.0, 0.0]), depth_threshold=3.0, occupancy_threshold=10):
+
+def zoom_in(vis):
+    ctr = vis.get_view_control()
+    ctr.scale(1.0 / 1.1)  # Zoom in
+    return False
+
+def zoom_out(vis):
+    ctr = vis.get_view_control()
+    ctr.scale(1.1)  # Zoom out
+    return False
+
+
+def vplot(path, vis):
+    # Ensure path is a list of waypoints
+    for i in range(len(path) - 1):
+        start = path[i]
+        end = path[i + 1]
+        
+        # Calculate the direction vector
+        direction = end - start
+        length = np.linalg.norm(direction)
+        
+        # Normalize the direction
+        direction /= length if length != 0 else 1
+        
+        # Create an arrow geometry
+        arrow = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius=0.02, cone_radius=0.05, 
+                                                      cylinder_height=length, cone_height=0.1)
+        # Set the arrow to point from the start to the end of the segment
+        arrow.rotate(o3d.geometry.get_rotation_matrix_from_xyz([0, np.pi/2, 0]))  # Align arrow with y-axis
+        print('start', start)
+        arrow.translate(np.array(start))  # Translate the arrow to the start position
+        
+        # Add the arrow to the visualizer
+        vis.add_geometry(arrow)
+
+
+def vplot(path, vis):
+    # for i in range(len(path) - 1):
+    color = [0, 0, 1]
+    if len(path) < 2:
+        print("Path too short to draw.")
+        return
+
+    # Convert to Open3D-compatible format
+    points = [list(p) for p in path]
+    lines = [[i, i + 1] for i in range(len(points) - 1)]
+
+    # Create line set object
+    line_set = o3d.geometry.LineSet(
+        points=o3d.utility.Vector3dVector(points),
+        lines=o3d.utility.Vector2iVector(lines)
+    )
+
+    # Set color of each line
+    colors = [color for _ in lines]
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+
+    # Add to visualizer
+    vis.add_geometry(line_set)
+        
+def pplot(vis, gpos, color='R'):
+    sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)  # Larger sphere
+    # Plot a point
+    sphere.paint_uniform_color([1, 0, 0])  # Green color for the goal position
+    sphere.translate(gpos)
+    vis.add_geometry(sphere)
+
+def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
     rgbd_data = np.load(fp, allow_pickle=True)
     color_image = rgbd_data[..., :3]
     depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
@@ -31,14 +107,17 @@ def plan_and_show_waypoint(fp, gpos=np.array([1.0, 0.0, 0.0]), depth_threshold=3
                    [0, 0, 0, 1]])
 
     # Initialize Open3D visualizer
-    vis = o3d.visualization.Visualizer()
+    vis = o3d.visualization.VisualizerWithKeyCallback()
     vis.create_window(window_name="RGB-D Point Cloud", width=800, height=600)
 
     # Add point cloud to visualizer
     vis.add_geometry(pcd)
 
+    vis.register_key_callback(ord('['), zoom_in)   # '+' key
+    vis.register_key_callback(ord(']'), zoom_out)  # '-' key
+
     # Occupancy map (Voxel grid)
-    voxel_size = 0.2
+    voxel_size = 0.1
     occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
     vis.add_geometry(occupancy)
 
@@ -52,47 +131,73 @@ def plan_and_show_waypoint(fp, gpos=np.array([1.0, 0.0, 0.0]), depth_threshold=3
     axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=np.array([0, 0, 0]))
     vis.add_geometry(axis)
 
+    # START of A*
+    waypoint = []
     # Plan waypoint based on gpos
-    direction = gpos / np.linalg.norm(gpos)
-    waypoint = None
-    best_score = -np.inf
-    for i in range(1, 50):  # Search in steps
-        wp_candidate = direction * i * 0.1  # Check point in the gpos direction
+    start = np.array([0.0, 0.0, 0.0])  # Example start position (can be updated)
+    goal = gpos
+    tiebreaker = count()
 
-        # Calculate the voxel grid index for the wp_candidate
-        voxel_index = np.floor(wp_candidate / voxel_size).astype(int)
+    # Initialize A* search variables
+    open_list = []
+    heapq.heappush(open_list, (0 + heuristic(start, goal), 0, next(tiebreaker), start))  # f_score, g_score, position
+    came_from = {}
+    g_score = {tuple(start): 0}
 
-        # Get the voxel center position from the voxel index
-        voxel_position = voxel_index * voxel_size  # center of voxel
-        
-        # Compute distances between the wp_candidate and the voxel center
-        distance = np.linalg.norm(points - voxel_position, axis=1)
 
-        # Count how many points are within the voxel (using a distance threshold)
-        points_in_voxel_count = np.sum(distance < voxel_size)
+    while open_list:
+        _, current_g_score, _, current_pos = heapq.heappop(open_list)
+        current_tuple = tuple(current_pos)
 
-        # Check if the voxel is unoccupied based on the number of points within it
-        if points_in_voxel_count < occupancy_threshold:  # Low points count means unoccupied
-            # Look for a high depth value in the vicinity to ensure there's no obstacle
-            x, y, z = wp_candidate
-            depth_region = depth_image[int(y), int(x)]  # Get depth from depth map
+        if np.linalg.norm(current_pos - goal) < 0.1:
+            print("Path found!")
+            break
 
-            if depth_region > depth_threshold:  # High depth means no obstacle
-                # Compute "score" based on the direction and depth
-                score = np.dot(wp_candidate, direction) * depth_region
-                if score > best_score:
-                    best_score = score
-                    waypoint = wp_candidate
+        # Explore neighbors (simple 6-connected grid movement for 3D)
+        neighbors = [
+            current_pos + np.array([STEP, 0, 0]),
+            current_pos + np.array([-STEP, 0, 0]),
+            current_pos + np.array([0, STEP, 0]),
+            current_pos + np.array([0, -STEP, 0]),
+            current_pos + np.array([0, 0, STEP]),
+            current_pos + np.array([0, 0, -STEP])
+        ]
 
-    # If a valid waypoint is found, plot it
+        for neighbor in neighbors:
+            # pplot(vis, neighbor, color='R')
+            # print('n', neighbor, goal)
+            # if occupancy.get_voxel(neighbor) is not None:  # Skip occupied voxels
+            #     print('skip')
+            #     continue
+
+            tentative_g_score = current_g_score + np.linalg.norm(neighbor - current_pos)
+
+            if tuple(neighbor) not in g_score or tentative_g_score < g_score[tuple(neighbor)]:
+                g_score[tuple(neighbor)] = tentative_g_score
+                f_score = tentative_g_score + heuristic(neighbor, goal)
+                heapq.heappush(open_list, (f_score, tentative_g_score, next(tiebreaker), neighbor)) #https://stackoverflow.com/questions/39504333/python-heapq-heappush-the-truth-value-of-an-array-with-more-than-one-element-is
+                came_from[tuple(neighbor)] = current_pos
+                # print('came_from', came_from)
+    # Backtrack to create the path
+    current_pos = goal
+    while tuple(current_pos) in came_from:
+        waypoint.append(current_pos)
+        current_pos = came_from[tuple(current_pos)]
+    waypoint.append(start)
+
+    # Waypoint visualization
     if waypoint is not None:
-        print(f"Found waypoint at: {waypoint}")
-        waypoint_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)  # Larger sphere for gpos
-        waypoint_sphere.paint_uniform_color([1, 0, 0])  # Red color
-        waypoint_sphere.translate(waypoint)
+        waypoint.reverse()
+        print("Path:", waypoint)
+        vplot(waypoint, vis)
 
-        # Add waypoint sphere to visualizer
-        vis.add_geometry(waypoint_sphere)
+        # # If a valid waypoint is found, plot it
+        # waypoint_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)  # Larger sphere for gpos
+        # waypoint_sphere.paint_uniform_color([1, 0, 0])  # Red color
+        # waypoint_sphere.translate(waypoint)
+
+        # # Add waypoint sphere to visualizer
+        # vis.add_geometry(waypoint_sphere)
         
     else:
         print('Not found!')
