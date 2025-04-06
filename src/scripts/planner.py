@@ -4,10 +4,45 @@ import cv2
 import heapq
 from itertools import count
 
-
 DISTANCE = 10.0
-VOXEL_SIZE = 0.2  # Define voxel size
 STEP = 0.5
+VOXEL_SIZE = 0.08
+VOXEL_THRESHOLD = 0.3 # color
+MAX_DEPTH = 10
+
+def build_voxel_index_map(voxels):
+    """
+    Build a dictionary for fast lookup of voxels by their grid_index.
+    """
+    voxel_map = {}
+    for voxel in voxels:
+        voxel_map[tuple(voxel.grid_index)] = voxel  # Using tuple to make the index hashable
+    return voxel_map
+
+def get_voxel_color_fast(voxel_map, v_idx):
+    """
+    Returns the color of the voxel at the given index, using the pre-built voxel_map for O(1) lookup.
+    """
+    v_idx_tuple = tuple(v_idx)  # Ensure v_idx is hashable (tuple)
+    voxel = voxel_map.get(v_idx_tuple)  # O(1) average-time lookup
+    return voxel.color[0] if voxel else None
+    
+# Function to get color by voxel index
+def get_voxel_color(voxels, v_idx):
+    """
+    Returns the color of the voxel at the given index, if the voxel exists in voxels. Otherwise return None
+    TODO: optimization with HashMap Direct Lookup or KD-Tree instead of linear search
+    """
+    # Find the corresponding voxel by index
+    for voxel in voxels:
+        # print(voxel.grid_index.shape, v_idx.shape)
+        # input()
+        if np.array_equal(voxel.grid_index, v_idx):
+            return voxel.color[0]  # Return the color of the found voxel
+    
+    return None  # If voxel not found
+
+
 def heuristic(a, b):
     # Heuristic: Euclidean distance between 'a' and 'b'
     return np.linalg.norm(np.array(a) - np.array(b))
@@ -80,7 +115,7 @@ def pplot(vis, gpos, color='R'):
     sphere.translate(gpos)
     vis.add_geometry(sphere)
 
-def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
+def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
     rgbd_data = np.load(fp, allow_pickle=True)
     color_image = rgbd_data[..., :3]
     depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
@@ -113,12 +148,13 @@ def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=
     # Add point cloud to visualizer
     vis.add_geometry(pcd)
 
-    vis.register_key_callback(ord('['), zoom_in)   # '+' key
-    vis.register_key_callback(ord(']'), zoom_out)  # '-' key
+    # vis.register_key_callback(ord('['), zoom_in)   # '+' key
+    # vis.register_key_callback(ord(']'), zoom_out)  # '-' key
 
     # Occupancy map (Voxel grid)
-    voxel_size = 0.1
-    occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size)
+    occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, VOXEL_SIZE)
+    voxels = occupancy.get_voxels() # computationally expensive but i have no choice
+    voxel_map = build_voxel_index_map(voxels=voxels)
     vis.add_geometry(occupancy)
 
     # Plot gpos as a bigger sphere (goal position)
@@ -134,7 +170,6 @@ def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=
     # START of A*
     waypoint = []
     # Plan waypoint based on gpos
-    start = np.array([0.0, 0.0, 0.0])  # Example start position (can be updated)
     goal = gpos
     tiebreaker = count()
 
@@ -143,11 +178,16 @@ def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=
     heapq.heappush(open_list, (0 + heuristic(start, goal), 0, next(tiebreaker), start))  # f_score, g_score, position
     came_from = {}
     g_score = {tuple(start): 0}
-
+    depth = 0
+    last_valid_pos = None  # Variable to track the last valid position
 
     while open_list:
         _, current_g_score, _, current_pos = heapq.heappop(open_list)
         current_tuple = tuple(current_pos)
+
+        if depth >= MAX_DEPTH:
+            print("Max depth reached, stopping the pathfinding.")
+            break
 
         if np.linalg.norm(current_pos - goal) < 0.1:
             print("Path found!")
@@ -155,21 +195,47 @@ def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=
 
         # Explore neighbors (simple 6-connected grid movement for 3D)
         neighbors = [
+            # Axis-aligned neighbors
             current_pos + np.array([STEP, 0, 0]),
             current_pos + np.array([-STEP, 0, 0]),
-            current_pos + np.array([0, STEP, 0]),
-            current_pos + np.array([0, -STEP, 0]),
+            # current_pos + np.array([0, STEP, 0]),
+            # current_pos + np.array([0, -STEP, 0]),
             current_pos + np.array([0, 0, STEP]),
-            current_pos + np.array([0, 0, -STEP])
+            current_pos + np.array([0, 0, -STEP]),
+            
+            # Diagonal neighbors on xy-plane
+            # current_pos + np.array([STEP, STEP, 0]),
+            # current_pos + np.array([-STEP, STEP, 0]),
+            # current_pos + np.array([STEP, -STEP, 0]),
+            # current_pos + np.array([-STEP, -STEP, 0]),
+            
+            # Diagonal neighbors on yz-plane
+            # current_pos + np.array([0, STEP, STEP]),
+            # current_pos + np.array([0, -STEP, STEP]),
+            # current_pos + np.array([0, STEP, -STEP]),
+            # current_pos + np.array([0, -STEP, -STEP]),
+            
+            # Diagonal neighbors on xz-plane
+            current_pos + np.array([STEP, 0, STEP]),
+            current_pos + np.array([-STEP, 0, STEP]),
+            current_pos + np.array([STEP, 0, -STEP]),
+            current_pos + np.array([-STEP, 0, -STEP])
         ]
 
         for neighbor in neighbors:
             # pplot(vis, neighbor, color='R')
             # print('n', neighbor, goal)
-            # if occupancy.get_voxel(neighbor) is not None:  # Skip occupied voxels
-            #     print('skip')
-            #     continue
-
+            v_idx = occupancy.get_voxel(neighbor) 
+            if v_idx is not None:  # Skip occupied voxels
+                color = get_voxel_color_fast(voxel_map, v_idx)
+                print('color found', color)
+                if color:
+                    if color > VOXEL_THRESHOLD: # voxel intensity threhold
+                        print('obstacle found at', color)
+                        continue
+                
+            else:
+                print('v_idx is None!!')
             tentative_g_score = current_g_score + np.linalg.norm(neighbor - current_pos)
 
             if tuple(neighbor) not in g_score or tentative_g_score < g_score[tuple(neighbor)]:
@@ -177,9 +243,11 @@ def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=
                 f_score = tentative_g_score + heuristic(neighbor, goal)
                 heapq.heappush(open_list, (f_score, tentative_g_score, next(tiebreaker), neighbor)) #https://stackoverflow.com/questions/39504333/python-heapq-heappush-the-truth-value-of-an-array-with-more-than-one-element-is
                 came_from[tuple(neighbor)] = current_pos
-                # print('came_from', came_from)
+                last_valid_pos = neighbor
+        depth += 1
+
     # Backtrack to create the path
-    current_pos = goal
+    current_pos = last_valid_pos
     while tuple(current_pos) in came_from:
         waypoint.append(current_pos)
         current_pos = came_from[tuple(current_pos)]
@@ -190,14 +258,6 @@ def plan_and_show_waypoint(fp, gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=
         waypoint.reverse()
         print("Path:", waypoint)
         vplot(waypoint, vis)
-
-        # # If a valid waypoint is found, plot it
-        # waypoint_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)  # Larger sphere for gpos
-        # waypoint_sphere.paint_uniform_color([1, 0, 0])  # Red color
-        # waypoint_sphere.translate(waypoint)
-
-        # # Add waypoint sphere to visualizer
-        # vis.add_geometry(waypoint_sphere)
         
     else:
         print('Not found!')
