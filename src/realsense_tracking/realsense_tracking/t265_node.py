@@ -215,6 +215,8 @@ class T265Tracker(Node):
         depth_msg.header.stamp = self.get_clock().now().to_msg()
         self.depth_pub.publish(depth_msg)
         
+        color_msg = BRIDGE.cv2_to_imgmsg(color_image, encoding="rgb8")
+        color_msg.header.stamp = self.get_clock().now().to_msg()
         self.color_pub.publish(color_msg)
 
         self.K_left[0][2] = color_image.shape[1] / 2 # cx
