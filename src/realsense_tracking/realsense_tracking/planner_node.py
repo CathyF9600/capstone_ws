@@ -166,9 +166,9 @@ class RGBDPathPlanner(Node):
         line_path = None
         if waypoint:
             line_path = o3d.geometry.LineSet()
-            vplot(waypoint, self.vis)
+            #vplot(waypoint, self.vis)
 
-        return [pcd, occupancy, sphere, axis]
+        return [pcd, occupancy, sphere, axis, line_path]
 
 def main(args=None):
     rclpy.init(args=args)
@@ -189,6 +189,9 @@ def main(args=None):
                 vis.clear_geometries()
                 for g in geometries:
                     vis.add_geometry(g)
+            ctr = self.vis.get_view_control()
+            ctr.set_zoom(0.5)  # Zoom in (lower is more zoomed)
+            ctr.rotate(0, -45)  # Rotate to look down ~45 deg
             vis.poll_events()
             vis.update_renderer()
     except KeyboardInterrupt:
