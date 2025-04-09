@@ -34,6 +34,13 @@ def heuristic(a, b):
     return np.linalg.norm(np.array(a) - np.array(b))
 
 
+def save_screenshot(vis):
+    filename = "screenshot.png"
+    vis.capture_screen_image(filename)
+    print(f"Screenshot saved to {filename}")
+    return False
+
+
 def vplot(path, vis): # vector plot
     color = [0, 0, 1]
     if len(path) < 2:
@@ -185,9 +192,40 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
         vplot(waypoint, vis)
     else:
         print('Not found!')
+
+    # Register key to save screenshot
+    vis.register_key_callback(ord("S"), save_screenshot)
+
     # Finalize visualization
     vis.run()
     vis.destroy_window()
 
-# Run with default gpos
-plan_and_show_waypoint("/Users/yuchunfeng/Downloads/rgbd.npy")
+# # Run with default gpos
+# plan_and_show_waypoint("/Users/yuchunfeng/Downloads/rgbd.npy")
+
+import os
+import time
+
+X = 5
+
+def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([2.0, 0.0, -5.0])):
+    npy_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".npy")])
+    if not npy_files:
+        print("No .npy files found in the folder.")
+        return
+    print('npy_files', len(npy_files))
+    # input()
+    fname = npy_files[X]
+    # for fname in npy_files:
+    full_path = os.path.join(folder_path, fname)
+    print(f"\nShowing: {full_path}")
+    try:
+        plan_and_show_waypoint(full_path, start=start, gpos=gpos)
+        # input("Press Enter to continue to the next file...")
+    except Exception as e:
+        print(f"Error loading {fname}: {e}")
+
+# Example usage
+if __name__ == "__main__":
+    folder = "/Users/yuchunfeng/Documents/ROB498/capstone_ws/rgbd_npy"  # replace with your folder path
+    run_on_folder(folder)
