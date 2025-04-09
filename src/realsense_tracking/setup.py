@@ -26,7 +26,8 @@ setup(
             'imx219_node = realsense_tracking.imx219_node:main',
             'pcl_node = realsense_tracking.pcl_node:main',
             'planner_node = realsense_tracking.planner_node:main',
-            'gui_node = realsense_tracking.gui_node:main'
+            'gui_node = realsense_tracking.gui_node:main',
+            'save_bag = realsense_tracking.save_bag:main'
 
         ],
     },
