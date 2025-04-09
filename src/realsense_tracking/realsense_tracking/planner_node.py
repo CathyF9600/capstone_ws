@@ -171,22 +171,23 @@ class RGBDPathPlanner(Node):
         return [pcd, occupancy, sphere, axis, line_path]
 
 def set_top_down_view(vis, zoom_level=0.5, distance=3.0):
+    # Get the view control
     ctr = vis.get_view_control()
 
-    # Set zoom level
-    ctr.set_zoom(zoom_level)  # Adjust zoom level (lower value = more zoomed in)
+    # Set zoom level (lower value means zoomed in more)
+    ctr.set_zoom(zoom_level)
 
-    # Set the camera view: position and orientation
-    ctr.set_lookat([0, 0, 0])  # Look at the center of the scene
+    # Set the camera's "look-at" target (the center of the point cloud)
+    ctr.set_lookat([0, 0, 0])
 
-    # Set the up direction to be along the positive Z axis (default) to avoid flipping
-    ctr.set_up([0, 1, 0])  # Camera "up" is along the positive Y axis, so it doesn't flip the point cloud
+    # Set the up vector for the camera to prevent flipping
+    ctr.set_up([0, 1, 0])  # This is the world "up" direction (Y-axis)
 
-    # Set the camera front direction to look down from above
-    ctr.set_front([0, 0, -1])  # Camera front (direction the camera is looking) should point down the Z-axis
+    # Set the front direction to look from above the point cloud
+    ctr.set_front([0, 0, -1])  # Looking down along the negative Z-axis
 
-    # Set distance (camera position relative to the center)
-    ctr.translate([0, 0, distance])  # Adjust distance for zoom-in or zoom-out effect
+    # Set the distance of the camera from the point cloud
+    ctr.translate([0, 0, distance])  # Adjust how far the camera is
 
 
 def main(args=None):
