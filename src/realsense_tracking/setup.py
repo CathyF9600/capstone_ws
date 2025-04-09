@@ -24,8 +24,10 @@ setup(
             't265_node = realsense_tracking.t265_node:main',
             '2dod_node = realsense_tracking.2dod_node:main',
             'imx219_node = realsense_tracking.imx219_node:main',
-            'pcl_node = realsense_tracking.pcl_node:main'
-            'planner_node = realsense_tracking.planner_node:main'
+            'pcl_node = realsense_tracking.pcl_node:main',
+            'planner_node = realsense_tracking.planner_node:main',
+            'gui_node = realsense_tracking.gui_node:main'
+
         ],
     },
 )
