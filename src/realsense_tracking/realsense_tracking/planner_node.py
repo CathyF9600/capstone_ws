@@ -188,7 +188,12 @@ def main(args=None):
     ctr.set_lookat([0, 0, 0])  # Where the camera is looking at (origin in this case)
     ctr.set_up([0, 0, 1])      # The up vector (Z-axis is up)
     ctr.set_front([0, -1, -1]) # Front vector (camera direction)
-    ctr.set_zoom(0.5)
+    # Set zoom level for more zoomed-in view
+    ctr.set_zoom(0.2)  # Zoom in more (lower value, closer to scene)
+    
+    # Rotate to top-down view (45 degrees down along Y-axis)
+    ctr.rotate(90, 0)  # Rotate 90 degrees around the Z-axis to look down
+
     geometry_queue = queue.Queue()
 
     node = RGBDPathPlanner(vis, geometry_queue)
