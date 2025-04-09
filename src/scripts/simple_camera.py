@@ -15,30 +15,22 @@ Default 1920x1080 displayd in a 1/4 size window
 """
 
 def gstreamer_pipeline(
-    sensor_id=0,
-    capture_width=1920,
-    capture_height=1080,
-    display_width=960,
-    display_height=540,
-    framerate=30,
+    capture_width=1280,
+    capture_height=720,
+    display_width=1280,
+    display_height=720,
+    framerate=60,
     flip_method=0,
 ):
     return (
-        "nvarguscamerasrc sensor-id=%d !"
-        "video/x-raw(memory:NVMM), width=(int)%d, height=(int)%d, framerate=(fraction)%d/1 ! "
-        "nvvidconv flip-method=%d ! "
-        "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
+        "nvarguscamerasrc ! "
+        "video/x-raw(memory:NVMM), "
+        f"width=(int){capture_width}, height=(int){capture_height}, "
+        f"format=(string)NV12, framerate=(fraction){framerate}/1 ! "
+        f"nvvidconv flip-method={flip_method} ! "
+        f"video/x-raw, width=(int){display_width}, height=(int){display_height}, format=(string)BGRx ! "
         "videoconvert ! "
         "video/x-raw, format=(string)BGR ! appsink"
-        % (
-            sensor_id,
-            capture_width,
-            capture_height,
-            framerate,
-            flip_method,
-            display_width,
-            display_height,
-        )
     )
 
 
@@ -54,7 +46,7 @@ def show_camera():
             while True:
                 ret_val, frame = video_capture.read()
                 # Check to see if the user closed the window
-                # Under GTK+ (Jetson Default), WND_PROP_VISIBLE does not work correctly. Under Qt it does
+                # Under GTK (Jetson Default), WND_PROP_VISIBLE does not work correctly. Under Qt it does
                 # GTK - Substitute WND_PROP_AUTOSIZE to detect if window has been closed by user
                 if cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE) >= 0:
                     cv2.imshow(window_title, frame)
