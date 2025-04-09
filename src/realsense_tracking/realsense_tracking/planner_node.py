@@ -3,13 +3,11 @@ import open3d as o3d
 import cv2
 import heapq
 from itertools import count
-
+import threading
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
-
-import threading
 
 DISTANCE = 10.0
 STEP = 0.5
@@ -57,6 +55,10 @@ class RGBDPathPlanner(Node):
         self.lock = threading.Lock()
         self.received = False
         self.rgbd_data = None
+        self.vis = None
+        self.data_ready = False
+        self.visualization_thread = threading.Thread(target=self.visualizer_loop, daemon=True)
+        self.visualization_thread.start()
 
     def listener_callback(self, msg):
         with self.lock:
@@ -66,14 +68,13 @@ class RGBDPathPlanner(Node):
             H = W = int(np.sqrt(size))  # assumes square images
             self.rgbd_data = flat.reshape((H, W, 4))
             self.received = True
+            self.data_ready = True
             self.get_logger().info("Received RGBD data.")
-            self.process_and_visualize()
-
+        
     def process_and_visualize(self):
-        with self.lock:
-            rgbd_data = self.rgbd_data.copy()
-            self.received = False
-
+        if not self.rgbd_data:
+            return
+        rgbd_data = self.rgbd_data.copy()
         color_image = rgbd_data[..., :3]
         depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
 
@@ -97,24 +98,27 @@ class RGBDPathPlanner(Node):
                        [0, 0, -1, 0],
                        [0, 0, 0, 1]])
 
-        vis = o3d.visualization.VisualizerWithKeyCallback()
-        vis.create_window(window_name="RGB-D Path Planning", width=800, height=600)
-        vis.add_geometry(pcd)
+        if self.vis is None:
+            self.vis = o3d.visualization.VisualizerWithKeyCallback()
+            self.vis.create_window(window_name="RGB-D Path Planning", width=800, height=600)
+        
+        self.vis.clear_geometries()
+        self.vis.add_geometry(pcd)
 
         occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, VOXEL_SIZE)
         voxels = occupancy.get_voxels()
         voxel_map = build_voxel_index_map(voxels)
-        vis.add_geometry(occupancy)
+        self.vis.add_geometry(occupancy)
 
         start = np.array([0.0, 0.0, 0.0])
         gpos = np.array([2.0, 0.0, -5.0])
         sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)
         sphere.paint_uniform_color([0, 1, 0])
         sphere.translate(gpos)
-        vis.add_geometry(sphere)
+        self.vis.add_geometry(sphere)
 
         axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=np.array([0, 0, 0]))
-        vis.add_geometry(axis)
+        self.vis.add_geometry(axis)
 
         waypoint = []
         goal = gpos
@@ -175,10 +179,17 @@ class RGBDPathPlanner(Node):
 
         if waypoint:
             print("Path:", waypoint)
-            vplot(waypoint, vis)
+            vplot(waypoint, self.vis)
 
-        vis.run()
-        vis.destroy_window()
+    def visualizer_loop(self):
+        while rclpy.ok():
+            if self.data_ready:
+                with self.lock:
+                    self.process_and_visualize()
+                self.data_ready = False
+            if self.vis:
+                self.vis.poll_events()
+                self.vis.update_renderer()
 
 def main(args=None):
     rclpy.init(args=args)
