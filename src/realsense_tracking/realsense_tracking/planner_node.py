@@ -1,73 +1,82 @@
+import numpy as np
+import open3d as o3d
+import cv2
+import heapq
+from itertools import count
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-import numpy as np
-import open3d as o3d
-import heapq
-from itertools import count
-from cv_bridge import CvBridge
-import time
+from std_msgs.msg import Float32MultiArray
+
+import threading
 
 DISTANCE = 10.0
 STEP = 0.5
 VOXEL_SIZE = 0.08
-COLOR_THRESHOLD = 0.3  # color
+COLOR_THRESHOLD = 0.3  # voxel intensity
 MAX_DEPTH = 15
-REFRESH_TIME = 0.5
 
-class PathPlanner(Node):
+def build_voxel_index_map(voxels):
+    voxel_map = {}
+    for voxel in voxels:
+        voxel_map[tuple(voxel.grid_index)] = voxel
+    return voxel_map
+
+def get_voxel_color_fast(voxel_map, v_idx):
+    voxel = voxel_map.get(tuple(v_idx))
+    return voxel.color[0] if voxel else None
+
+def heuristic(a, b):
+    return np.linalg.norm(np.array(a) - np.array(b))
+
+def vplot(path, vis):
+    color = [0, 0, 1]
+    if len(path) < 2:
+        print("Path too short to draw.")
+        return
+    points = [list(p) for p in path]
+    lines = [[i, i + 1] for i in range(len(points) - 1)]
+    line_set = o3d.geometry.LineSet(
+        points=o3d.utility.Vector3dVector(points),
+        lines=o3d.utility.Vector2iVector(lines)
+    )
+    colors = [color for _ in lines]
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+    vis.add_geometry(line_set)
+
+class RGBDPathPlanner(Node):
     def __init__(self):
-        super().__init__('realsense_tracking')
-        self.bridge = CvBridge()
-
-        # Initialize the Open3D visualizer
-        self.vis = o3d.visualization.VisualizerWithKeyCallback()
-        self.vis.create_window(window_name="RGB-D Point Cloud", width=800, height=600)
-
-        # Subscribe to the depth and color image topics
-        self.create_subscription(
-            Image,
-            '/depth_image',
-            self.depth_image_callback,
+        super().__init__('rgbd_planner')
+        self.subscription = self.create_subscription(
+            Float32MultiArray,
+            '/rgbd_data',
+            self.listener_callback,
             10
         )
-        self.create_subscription(
-            Image,
-            '/color_image',
-            self.color_image_callback,
-            10
-        )
+        self.lock = threading.Lock()
+        self.received = False
+        self.rgbd_data = None
 
-        self.timer = self.create_timer(1.0, self.timer_callback)  # Update visualization every 1 second
+    def listener_callback(self, msg):
+        with self.lock:
+            # Assuming msg.data is flattened (H x W x 4)
+            flat = np.array(msg.data, dtype=np.float32)
+            size = int(flat.size // 4)
+            H = W = int(np.sqrt(size))  # assumes square images
+            self.rgbd_data = flat.reshape((H, W, 4))
+            self.received = True
+            self.get_logger().info("Received RGBD data.")
+            self.process_and_visualize()
 
-        # To store the latest depth and color images
-        self.latest_depth_image = None
-        self.latest_color_image = None
-        self.latest_time = time.time()
+    def process_and_visualize(self):
+        with self.lock:
+            rgbd_data = self.rgbd_data.copy()
+            self.received = False
 
-    def depth_image_callback(self, msg):
-        # Convert the depth image from ROS to OpenCV format
-        depth_image = self.bridge.imgmsg_to_cv2(msg, "32FC1")  # 32-bit float depth image
-        self.latest_depth_image = depth_image
+        color_image = rgbd_data[..., :3]
+        depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
 
-    def color_image_callback(self, msg):
-        # Convert the color image from ROS to OpenCV format
-        color_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")  # 8-bit color image (BGR)
-        self.latest_color_image = color_image
-
-    def timer_callback(self):
-        # Check if both depth and color images are available and if enough time has passed
-        if self.latest_depth_image is not None and self.latest_color_image is not None and (time.time() - self.latest_time) >= REFRESH_TIME:
-            self.latest_time = time.time()
-
-            # Process the depth and color images and update the visualization
-            self.process_images(self.latest_depth_image, self.latest_color_image)
-    
-    def process_images(self, depth_image, color_image):
-        # Clip depth image to max distance and convert to numpy array
-        depth_image = np.clip(depth_image, 0, DISTANCE)
-
-        # Camera intrinsic parameters (adjust if necessary)
         fx = fy = 286.1167907714844
         cx, cy = depth_image.shape[1] / 2, depth_image.shape[0] / 2
 
@@ -77,42 +86,107 @@ class PathPlanner(Node):
         Z = depth_image
 
         points = np.stack((X, Y, Z), axis=-1).reshape(-1, 3)
-        # Normalize the color image to [0, 1]
         colors = color_image.reshape(-1, 3) / 255.0
 
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points)
         pcd.colors = o3d.utility.Vector3dVector(colors)
 
-        # Open3D convention: Flip the point cloud to match ROS frame
         pcd.transform([[1, 0, 0, 0],
                        [0, -1, 0, 0],
                        [0, 0, -1, 0],
                        [0, 0, 0, 1]])
 
-        # Add point cloud to visualizer
-        self.vis.clear_geometries()
-        self.vis.add_geometry(pcd)
+        vis = o3d.visualization.VisualizerWithKeyCallback()
+        vis.create_window(window_name="RGB-D Path Planning", width=800, height=600)
+        vis.add_geometry(pcd)
 
-        # Update the voxel grid visualization (you may want to update this logic)
         occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, VOXEL_SIZE)
-        self.vis.add_geometry(occupancy)
+        voxels = occupancy.get_voxels()
+        voxel_map = build_voxel_index_map(voxels)
+        vis.add_geometry(occupancy)
 
-        # Finalize visualization update
-        self.vis.update_geometry(pcd)
-        self.vis.update_geometry(occupancy)
-        self.vis.poll_events()
-        self.vis.update_renderer()
+        start = np.array([0.0, 0.0, 0.0])
+        gpos = np.array([2.0, 0.0, -5.0])
+        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)
+        sphere.paint_uniform_color([0, 1, 0])
+        sphere.translate(gpos)
+        vis.add_geometry(sphere)
 
-    def run(self):
-        # Start the visualization and spin ROS 2 node
-        rclpy.spin(self)
-        self.vis.destroy_window()
+        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=np.array([0, 0, 0]))
+        vis.add_geometry(axis)
+
+        waypoint = []
+        goal = gpos
+        tiebreaker = count()
+        open_list = []
+        heapq.heappush(open_list, (0 + heuristic(start, goal), 0, next(tiebreaker), start))
+        came_from = {}
+        g_score = {tuple(start): 0}
+        depth = 0
+        last_valid_pos = None
+
+        while open_list:
+            _, current_g_score, _, current_pos = heapq.heappop(open_list)
+
+            if depth >= MAX_DEPTH:
+                print("Max depth reached.")
+                break
+
+            if np.linalg.norm(current_pos - goal) < 0.1:
+                print("Goal reached.")
+                break
+
+            neighbors = [
+                current_pos + np.array([STEP, 0, 0]),
+                current_pos + np.array([-STEP, 0, 0]),
+                current_pos + np.array([0, 0, STEP]),
+                current_pos + np.array([0, 0, -STEP]),
+                current_pos + np.array([STEP, 0, STEP]),
+                current_pos + np.array([-STEP, 0, STEP]),
+                current_pos + np.array([STEP, 0, -STEP]),
+                current_pos + np.array([-STEP, 0, -STEP])
+            ]
+
+            for neighbor in neighbors:
+                v_idx = occupancy.get_voxel(neighbor)
+                if v_idx is not None:
+                    color = get_voxel_color_fast(voxel_map, v_idx)
+                    if color and color > COLOR_THRESHOLD:
+                        continue
+                else:
+                    continue
+
+                tentative_g_score = current_g_score + np.linalg.norm(neighbor - current_pos)
+                if tuple(neighbor) not in g_score or tentative_g_score < g_score[tuple(neighbor)]:
+                    g_score[tuple(neighbor)] = tentative_g_score
+                    f_score = tentative_g_score + heuristic(neighbor, goal)
+                    heapq.heappush(open_list, (f_score, tentative_g_score, next(tiebreaker), neighbor))
+                    came_from[tuple(neighbor)] = current_pos
+                    last_valid_pos = neighbor
+            depth += 1
+
+        current_pos = last_valid_pos
+        while tuple(current_pos) in came_from:
+            waypoint.append(current_pos)
+            current_pos = came_from[tuple(current_pos)]
+        waypoint.append(start)
+        waypoint.reverse()
+
+        if waypoint:
+            print("Path:", waypoint)
+            vplot(waypoint, vis)
+
+        vis.run()
+        vis.destroy_window()
 
 def main(args=None):
     rclpy.init(args=args)
-    planner = PathPlanner()
-    planner.run()
-
-if __name__ == '__main__':
-    main()
+    node = RGBDPathPlanner()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
