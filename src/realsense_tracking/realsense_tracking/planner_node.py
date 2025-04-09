@@ -170,30 +170,20 @@ class RGBDPathPlanner(Node):
 
         return [pcd, occupancy, sphere, axis, line_path]
 
-def set_fixed_view(vis):
+def set_top_down_view(vis, zoom_level=0.2, rotation_angle=90):
     ctr = vis.get_view_control()
-    # Set the camera parameters (position, look-at, up vector, field of view)
-    ctr.set_lookat([0, 0, 0])  # Where the camera is looking at (origin in this case)
-    ctr.set_up([0, 0, 1])      # The up vector (Z-axis is up)
-    ctr.set_front([0, -1, -1]) # Front vector (camera direction)
-    ctr.set_zoom(0.5)
+    
+    # Set zoom level
+    ctr.set_zoom(zoom_level)  # Adjust zoom level (lower value = more zoomed in)
+    
+    # Rotate to a top-down view (around Z-axis, typically 90 degrees)
+    ctr.rotate(rotation_angle, 0)  # Rotate 90 degrees around the Z-axis to look down
     
 def main(args=None):
     rclpy.init(args=args)
 
     vis = o3d.visualization.Visualizer()
     vis.create_window("RGBD Path Planner", 800, 600)
-    ctr = vis.get_view_control()
-    # Set the camera parameters (position, look-at, up vector, field of view)
-    ctr.set_lookat([0, 0, 0])  # Where the camera is looking at (origin in this case)
-    ctr.set_up([0, 0, 1])      # The up vector (Z-axis is up)
-    ctr.set_front([0, -1, -1]) # Front vector (camera direction)
-    # Set zoom level for more zoomed-in view
-    ctr.set_zoom(0.2)  # Zoom in more (lower value, closer to scene)
-    
-    # Rotate to top-down view (45 degrees down along Y-axis)
-    ctr.rotate(90, 0)  # Rotate 90 degrees around the Z-axis to look down
-
     geometry_queue = queue.Queue()
 
     node = RGBDPathPlanner(vis, geometry_queue)
@@ -208,6 +198,7 @@ def main(args=None):
                 vis.clear_geometries()
                 for g in geometries:
                     vis.add_geometry(g)
+            set_top_down_view(vis)
             vis.poll_events()
             vis.update_renderer()
     except KeyboardInterrupt:
