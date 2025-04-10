@@ -12,7 +12,7 @@ import queue
 
 DISTANCE = 10.0
 STEP = 0.5
-VOXEL_SIZE = 0.08
+VOXEL_SIZE = 0.3
 COLOR_THRESHOLD = 0.3
 MAX_DEPTH = 15
 H, W = 200, 752
@@ -163,37 +163,39 @@ class RGBDPathPlanner(Node):
         waypoint.append(start)
         waypoint.reverse()
 
-        line_path = None
         if waypoint:
-            line_path = o3d.geometry.LineSet()
+            points = [list(p) for p in waypoint]
+            lines = [[i, i + 1] for i in range(len(points) - 1)]
+            line_set = o3d.geometry.LineSet(
+                points=o3d.utility.Vector3dVector(points),
+                lines=o3d.utility.Vector2iVector(lines)
+            )
+            colors = [[0, 0, 1] for _ in lines]
+            line_set.colors = o3d.utility.Vector3dVector(colors)
             #vplot(waypoint, self.vis)
 
-        return [pcd, occupancy, sphere, axis, line_path]
+            return [pcd, occupancy, sphere, axis, line_set]
+        return [pcd, occupancy, sphere, axis]
 
-def set_top_down_view(vis, zoom_level=0.5, distance=3.0):
-    parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_xxxx.json")
-    ctr.convert_from_pinhole_camera_parameters(parameters)
-    
-    # Get the view control (make sure the visualizer is properly initialized)
+
+def set_top_down_view(vis, zoom_level=0.3, distance=3.0):
+
+    # # Get the view control (make sure the visualizer is properly initialized)
     ctr = vis.get_view_control()
-
-    # Set the front direction to look from above the point cloud
-    ctr.set_front([0, 0, -1])  # Looking down along the negative Z-axis
-
-    # Set the up direction for the camera to prevent flipping
-    ctr.set_up([0, 1, 0])  # Y-axis as the up direction
-
-    # Set the camera's "look-at" target (center of the point cloud)
-    ctr.set_lookat([0, 0, 0])
-
-    # Adjust zoom (lower value zooms in more, higher value zooms out)
     ctr.set_zoom(zoom_level)
+    parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_2025-04-09-19-13-29.json")
+    ctr.convert_from_pinhole_camera_parameters(parameters)
 
-    # Set the camera's position (distance from the point cloud)
-    ctr.translate([0, 0, distance])  # Adjust how far the camera is
+    # # Set the front direction to look from above the point cloud
+    # ctr.set_front([0, 1, 0])  # Looking down along the negative Z-axis
+    # # Set the up direction for the camera to prevent flipping
+    # ctr.set_up([0, 0, 1])  # Y-axis as the up direction
 
-    # Optionally: Set field of view if needed
-    # ctr.set_field_of_view(90.0)  # Adjust FOV if desired (default is 60.0)
+    # # Set the camera's "look-at" target (center of the point cloud)
+    # ctr.set_lookat([0, 0, 0])
+
+    # # Adjust zoom (lower value zooms in more, higher value zooms out)
+    # ctr.set_zoom(zoom_level)
 
 
 

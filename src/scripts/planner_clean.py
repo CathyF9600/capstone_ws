@@ -59,7 +59,7 @@ def vplot(path, vis): # vector plot
     line_set.colors = o3d.utility.Vector3dVector(colors)
     # Add to visualizer
     vis.add_geometry(line_set)
-        
+
 
 def pplot(vis, gpos, color='R'): # point plot
     sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)  # Larger sphere
