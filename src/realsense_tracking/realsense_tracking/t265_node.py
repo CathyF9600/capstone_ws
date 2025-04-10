@@ -14,6 +14,7 @@ from math import tan, pi
 import time
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.time import Time
+from std_msgs.msg import Float32MultiArray
 
 
 WINDOW_TITLE = 'Realsense'
