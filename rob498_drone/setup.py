@@ -16,7 +16,9 @@ setup(
     entry_points={
         "console_scripts": [
             "comm_node = rob498_drone.comm_node:main",
-            "task3 = rob498_drone.task3:main"
+            "task3 = rob498_drone.task3:main",
+            "task3_testing = rob498_drone.task3_testing:main",
+            "task4 = rob498_drone.task4:main"
         ],
     },
 )

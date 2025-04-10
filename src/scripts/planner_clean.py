@@ -7,8 +7,8 @@ from itertools import count
 DISTANCE = 10.0
 STEP = 0.5
 VOXEL_SIZE = 0.08
-COLOR_THRESHOLD = 0.3 # color
-MAX_DEPTH = 15
+COLOR_THRESHOLD = 0.1 # color
+MAX_DEPTH = 5
 
 def build_voxel_index_map(voxels):
     """
@@ -163,6 +163,7 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
             if v_idx is not None:  # Skip occupied voxels
                 color = get_voxel_color_fast(voxel_map, v_idx)
                 if color:
+                    print(f'obstacle found at {color:.2f}')
                     if color > COLOR_THRESHOLD: # voxel intensity threhold
                         print(f'obstacle found at {color:.2f}')
                         continue
@@ -206,26 +207,26 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
 import os
 import time
 
-X = 5
+# X = 5
 
-def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([2.0, 0.0, -5.0])):
+def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-2.0, 0.0, -5.0])):
     npy_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".npy")])
     if not npy_files:
         print("No .npy files found in the folder.")
         return
     print('npy_files', len(npy_files))
     # input()
-    fname = npy_files[X]
-    # for fname in npy_files:
-    full_path = os.path.join(folder_path, fname)
-    print(f"\nShowing: {full_path}")
-    try:
-        plan_and_show_waypoint(full_path, start=start, gpos=gpos)
-        # input("Press Enter to continue to the next file...")
-    except Exception as e:
-        print(f"Error loading {fname}: {e}")
+    # fname = npy_files[X]
+    for fname in npy_files:
+        full_path = os.path.join(folder_path, fname)
+        print(f"\nShowing: {full_path}")
+        try:
+            plan_and_show_waypoint(full_path, start=start, gpos=gpos)
+            # input("Press Enter to continue to the next file...")
+        except Exception as e:
+            print(f"Error loading {fname}: {e}")
 
 # Example usage
 if __name__ == "__main__":
-    folder = "/Users/yuchunfeng/Documents/ROB498/capstone_ws/rgbd_npy"  # replace with your folder path
+    folder = "./rgbd_npy_50"  # replace with your folder path
     run_on_folder(folder)

@@ -14,6 +14,7 @@ STEP = 0.5
 VOXEL_SIZE = 0.08
 COLOR_THRESHOLD = 0.3  # voxel intensity
 MAX_DEPTH = 15
+H, W = 200, 725
 
 def build_voxel_index_map(voxels):
     voxel_map = {}
@@ -65,7 +66,7 @@ class RGBDPathPlanner(Node):
             # Assuming msg.data is flattened (H x W x 4)
             flat = np.array(msg.data, dtype=np.float32)
             size = int(flat.size // 4)
-            H = W = int(np.sqrt(size))  # assumes square images
+            # H, W =   # assumes square images
             self.rgbd_data = flat.reshape((H, W, 4))
             self.received = True
             self.data_ready = True
