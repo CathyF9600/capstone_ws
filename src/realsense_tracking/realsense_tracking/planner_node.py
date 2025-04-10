@@ -175,6 +175,9 @@ def main(args=None):
 
     vis = o3d.visualization.Visualizer()
     vis.create_window("RGBD Path Planner", 800, 600)
+    ctr = vis.get_view_control()
+    ctr.set_zoom(0.5)  # Zoom in (lower is more zoomed)
+    ctr.rotate(0, -45)  # Rotate to look down ~45 deg
     geometry_queue = queue.Queue()
 
     node = RGBDPathPlanner(vis, geometry_queue)
@@ -189,9 +192,6 @@ def main(args=None):
                 vis.clear_geometries()
                 for g in geometries:
                     vis.add_geometry(g)
-            ctr = self.vis.get_view_control()
-            ctr.set_zoom(0.5)  # Zoom in (lower is more zoomed)
-            ctr.rotate(0, -45)  # Rotate to look down ~45 deg
             vis.poll_events()
             vis.update_renderer()
     except KeyboardInterrupt:
