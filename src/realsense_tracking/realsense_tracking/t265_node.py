@@ -90,7 +90,8 @@ class T265Tracker(Node):
         # Create Disparity Publisher
         self.depth_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
         self.color_pub = self.create_publisher(Image, '/rgb_image', qos_profile_system_default)
-
+        self.rgbd_pub = self.create_publisher(Float32MultiArray, '/rgbd_data', qos_profile_system_default)
+      
         # Camera intrinsics
         self.fx = self.fy = self.cx = self.cy = None
 
@@ -206,7 +207,12 @@ class T265Tracker(Node):
         # create HxWx4 RGBD for debugging
         depth_image = np.expand_dims(depth, axis=-1)
         rgbd = np.concatenate([color_image, depth_image], axis=-1)
-
+      
+        msg = Float32MultiArray()
+        msg.data = rgbd.flatten().tolist()
+        self.rgbd_pub.publish(msg)
+        self.get_logger().info(f'Published RGBD data of shape {rgbd.shape}')
+      
         # # clipping to 0 and 5 m
         # depth[depth > 5] = 5
         # depth[depth < 0] = 0
