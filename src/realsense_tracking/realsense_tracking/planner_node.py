@@ -170,21 +170,24 @@ class RGBDPathPlanner(Node):
 
         return [pcd, occupancy, sphere, axis, line_path]
 
-def set_top_down_view(vis, zoom_level=0.2, elevation_angle=45, distance=3.0):
+def set_top_down_view(vis, zoom_level=0.5, distance=3.0):
     ctr = vis.get_view_control()
-    
+
     # Set zoom level
     ctr.set_zoom(zoom_level)  # Adjust zoom level (lower value = more zoomed in)
 
-    # Set the camera view directly: position and orientation
-    # Camera position (distance along the Z-axis)
+    # Set the camera view: position and orientation
     ctr.set_lookat([0, 0, 0])  # Look at the center of the scene
-    ctr.set_up([0, -1, 0])  # Set the camera to look from the top-down perspective (rotate the up vector)
-    
-    # Set the camera position to be above the origin (looking downward at a 45-degree angle)
-    ctr.set_front([0, 0, -1])  # Camera front (direction the camera is looking)
-    ctr.set_zoom(zoom_level)  # Further zoom in if needed
-    ctr.set_lookat([0, 0, 0])  # Focus at the origin
+
+    # Set the up direction to be along the positive Z axis (default) to avoid flipping
+    ctr.set_up([0, 1, 0])  # Camera "up" is along the positive Y axis, so it doesn't flip the point cloud
+
+    # Set the camera front direction to look down from above
+    ctr.set_front([0, 0, -1])  # Camera front (direction the camera is looking) should point down the Z-axis
+
+    # Set distance (camera position relative to the center)
+    ctr.translate([0, 0, distance])  # Adjust distance for zoom-in or zoom-out effect
+
 
 def main(args=None):
     rclpy.init(args=args)
