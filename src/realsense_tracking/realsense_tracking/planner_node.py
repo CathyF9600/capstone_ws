@@ -13,15 +13,12 @@ import queue
 DISTANCE = 10.0
 STEP = 0.5
 VOXEL_SIZE = 0.08
-COLOR_THRESHOLD = 0.3  # voxel intensity
+COLOR_THRESHOLD = 0.3
 MAX_DEPTH = 15
 H, W = 200, 752
 
 def build_voxel_index_map(voxels):
-    voxel_map = {}
-    for voxel in voxels:
-        voxel_map[tuple(voxel.grid_index)] = voxel
-    return voxel_map
+    return {tuple(voxel.grid_index): voxel for voxel in voxels}
 
 def get_voxel_color_fast(voxel_map, v_idx):
     voxel = voxel_map.get(tuple(v_idx))
@@ -31,7 +28,6 @@ def heuristic(a, b):
     return np.linalg.norm(np.array(a) - np.array(b))
 
 def vplot(path, vis):
-    color = [0, 0, 1]
     if len(path) < 2:
         print("Path too short to draw.")
         return
@@ -41,13 +37,18 @@ def vplot(path, vis):
         points=o3d.utility.Vector3dVector(points),
         lines=o3d.utility.Vector2iVector(lines)
     )
-    colors = [color for _ in lines]
+    colors = [[0, 0, 1] for _ in lines]
     line_set.colors = o3d.utility.Vector3dVector(colors)
     vis.add_geometry(line_set)
 
 class RGBDPathPlanner(Node):
-    def __init__(self):
+    def __init__(self, vis, geometry_queue):
         super().__init__('rgbd_planner')
+        self.vis = vis
+        self.geometry_queue = geometry_queue
+        self.rgbd_data = None
+        self.received = False
+
         self.subscription = self.create_subscription(
             Float32MultiArray,
             '/rgbd_data',
@@ -55,43 +56,29 @@ class RGBDPathPlanner(Node):
             10
         )
         self.lock = threading.Lock()
-        self.received = False
-        self.rgbd_data = None
-        self.vis = None
-        self.data_ready = False
-
-        self.geometry_queue = queue.Queue()  # 🔥 thread-safe queue
-        self.vis = o3d.visualization.Visualizer()
-        self.vis.create_window("RGBD Path Planner", 800, 600)
-        self.visualization_thread = threading.Thread(target=self.visualizer_loop, daemon=True)
-        self.visualization_thread.start()
-
 
     def listener_callback(self, msg):
         with self.lock:
-            # 🔥 Process everything here:
-            processed_geometries = self.process_data(msg)
-            self.geometry_queue.put(processed_geometries)
+            geometries = self.process_data(msg)
+            if geometries:
+                self.geometry_queue.put(geometries)
 
     def process_data(self, msg):
-        # Do voxelization, point cloud construction, path planning, etc.
-        # Return a list of Open3D geometries (e.g., [pcd, occupancy, line_path])
         flat = np.array(msg.data, dtype=np.float32)
         self.rgbd_data = flat.reshape((H, W, 4))
         self.received = True
-        self.data_ready = True
         self.get_logger().info("Received RGBD data.")
         if not self.rgbd_data.any():
             return
-        
+
         rgbd_data = self.rgbd_data.copy()
         color_image = rgbd_data[..., :3]
         depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
 
         fx = fy = 286.1167907714844
-        cx, cy = depth_image.shape[1] / 2, depth_image.shape[0] / 2
+        cx, cy = W / 2, H / 2
 
-        xx, yy = np.meshgrid(np.arange(depth_image.shape[1]), np.arange(depth_image.shape[0]))
+        xx, yy = np.meshgrid(np.arange(W), np.arange(H))
         X = (xx - cx) * depth_image / fx
         Y = (yy - cy) * depth_image / fy
         Z = depth_image
@@ -108,23 +95,18 @@ class RGBDPathPlanner(Node):
                        [0, 0, -1, 0],
                        [0, 0, 0, 1]])
 
-        self.vis.clear_geometries()
-        self.vis.add_geometry(pcd)
-
         occupancy = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, VOXEL_SIZE)
         voxels = occupancy.get_voxels()
         voxel_map = build_voxel_index_map(voxels)
-        self.vis.add_geometry(occupancy)
 
         start = np.array([0.0, 0.0, 0.0])
         gpos = np.array([2.0, 0.0, -5.0])
+
         sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.1)
         sphere.paint_uniform_color([0, 1, 0])
         sphere.translate(gpos)
-        self.vis.add_geometry(sphere)
 
-        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=np.array([0, 0, 0]))
-        self.vis.add_geometry(axis)
+        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0)
 
         waypoint = []
         goal = gpos
@@ -140,11 +122,9 @@ class RGBDPathPlanner(Node):
             _, current_g_score, _, current_pos = heapq.heappop(open_list)
 
             if depth >= MAX_DEPTH:
-                print("Max depth reached.")
                 break
 
             if np.linalg.norm(current_pos - goal) < 0.1:
-                print("Goal reached.")
                 break
 
             neighbors = [
@@ -183,33 +163,37 @@ class RGBDPathPlanner(Node):
         waypoint.append(start)
         waypoint.reverse()
 
+        line_path = None
         if waypoint:
-            print("Path:", waypoint)
+            line_path = o3d.geometry.LineSet()
             vplot(waypoint, self.vis)
 
         return [pcd, occupancy, sphere, axis]
 
-    
-    def visualizer_loop(self):
-        while True:
-            try:
-                geometries = self.geometry_queue.get_nowait()
-                self.vis.clear_geometries()
-                for g in geometries:
-                    self.vis.add_geometry(g)
-            except queue.Empty:
-                pass
-            self.vis.poll_events()
-            self.vis.update_renderer()
-
-
 def main(args=None):
     rclpy.init(args=args)
-    node = RGBDPathPlanner()
+
+    vis = o3d.visualization.Visualizer()
+    vis.create_window("RGBD Path Planner", 800, 600)
+    geometry_queue = queue.Queue()
+
+    node = RGBDPathPlanner(vis, geometry_queue)
+
+    ros_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
+    ros_thread.start()
+
     try:
-        rclpy.spin(node)
+        while True:
+            while not geometry_queue.empty():
+                geometries = geometry_queue.get()
+                vis.clear_geometries()
+                for g in geometries:
+                    vis.add_geometry(g)
+            vis.poll_events()
+            vis.update_renderer()
     except KeyboardInterrupt:
         pass
     finally:
         node.destroy_node()
         rclpy.shutdown()
+        vis.destroy_window()
