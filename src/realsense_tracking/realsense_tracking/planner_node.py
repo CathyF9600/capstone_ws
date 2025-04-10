@@ -183,7 +183,12 @@ def main(args=None):
 
     vis = o3d.visualization.Visualizer()
     vis.create_window("RGBD Path Planner", 800, 600)
-    set_fixed_view(vis)
+    ctr = vis.get_view_control()
+    # Set the camera parameters (position, look-at, up vector, field of view)
+    ctr.set_lookat([0, 0, 0])  # Where the camera is looking at (origin in this case)
+    ctr.set_up([0, 0, 1])      # The up vector (Z-axis is up)
+    ctr.set_front([0, -1, -1]) # Front vector (camera direction)
+    ctr.set_zoom(0.5)
     geometry_queue = queue.Queue()
 
     node = RGBDPathPlanner(vis, geometry_queue)
