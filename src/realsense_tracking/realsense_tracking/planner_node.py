@@ -14,7 +14,7 @@ STEP = 0.5
 VOXEL_SIZE = 0.08
 COLOR_THRESHOLD = 0.3  # voxel intensity
 MAX_DEPTH = 15
-H, W = 200, 725
+H, W = 200, 752
 
 def build_voxel_index_map(voxels):
     voxel_map = {}

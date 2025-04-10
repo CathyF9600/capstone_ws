@@ -15,6 +15,7 @@ import time
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.time import Time
 
+from std_msgs.msg import Float32MultiArray
 
 WINDOW_TITLE = 'Realsense'
 cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
