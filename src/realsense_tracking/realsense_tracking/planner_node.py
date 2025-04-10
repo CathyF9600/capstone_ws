@@ -61,6 +61,29 @@ class RGBDPathPlanner(Node):
         self.visualization_thread = threading.Thread(target=self.visualizer_loop, daemon=True)
         self.visualization_thread.start()
 
+class RGBDPathPlanner(Node):
+    def __init__(self):
+        super().__init__('rgbd_planner')
+        self.subscription = self.create_subscription(
+            Float32MultiArray,
+            '/rgbd_data',
+            self.listener_callback,
+            10
+        )
+        self.lock = threading.Lock()
+        self.received = False
+        self.rgbd_data = None
+        self.data_ready = False
+
+        # ✅ Create the visualizer early!
+        self.vis = o3d.visualization.VisualizerWithKeyCallback()
+        self.vis.create_window(window_name="RGB-D Path Planning", width=800, height=600)
+
+        # ✅ Start visualizer thread after window is created
+        self.visualization_thread = threading.Thread(target=self.visualizer_loop, daemon=True)
+        self.visualization_thread.start()
+
+
     def listener_callback(self, msg):
         with self.lock:
             # Assuming msg.data is flattened (H x W x 4)
@@ -99,10 +122,6 @@ class RGBDPathPlanner(Node):
                        [0, 0, -1, 0],
                        [0, 0, 0, 1]])
 
-        if self.vis is None:
-            self.vis = o3d.visualization.VisualizerWithKeyCallback()
-            self.vis.create_window(window_name="RGB-D Path Planning", width=800, height=600)
-        
         self.vis.clear_geometries()
         self.vis.add_geometry(pcd)
 
