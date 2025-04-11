@@ -13,18 +13,13 @@ void loop() {
         String command = Serial.readStringUntil('\n'); // Read the command
         command.trim(); // Remove any whitespace or newlines
         
-        if (command == "ON") {
-            for (int angle = 0; angle <= 180; angle++) {
-                myServo.write(angle);
-                delay(5);  // Adjust speed of movement
-                Serial.println("ON_CONFIRM");
-            }
-        } else if (command == "OFF") {
-            for (int angle = 180; angle >= 0; angle--) {
-                myServo.write(angle);
-                delay(5);  // Adjust speed of movement
-                Serial.println("OFF_CONFIRM");
-            }
+        if (command == "OPEN") {
+            myServo.write(100);  // Move to 100 degrees
+            Serial.println("OPEN_CONFIRM");
+        } 
+        else if (command == "CLOSE") {
+            myServo.write(0);  // Move to 0 degrees
+            Serial.println("CLOSE_CONFIRM");
         }
     }
 }
