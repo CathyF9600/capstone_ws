@@ -4,11 +4,13 @@ import heapq
 import threading
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import PointCloud2
+from std_msgs.msg import Header
 import queue
 import tf_transformations
+import std_msgs.msg
 from nav_msgs.msg import Odometry
+from sensor_msgs_py import point_cloud2
 
 # Constants
 DISTANCE = 10.0
@@ -22,7 +24,6 @@ CAM_POSE = [0, 0, 0, 1, 0, 0, 0]  # Example: Quaternion [qx, qy, qz, qw] and tra
 
 # Function to transform camera frame to world frame
 def transform_cam_to_world(P_c):
-    # Step 1: Camera -> Drone frame
     qx, qy, qz, qw, X_w, Y_w, Z_w = CAM_POSE
     R_cam_to_drone = np.array([
         [ 0,  0, 1],  # X_d = -Z_c
@@ -32,7 +33,6 @@ def transform_cam_to_world(P_c):
     T_cam_to_drone = np.eye(4)
     T_cam_to_drone[:3, :3] = R_cam_to_drone
 
-    # Step 2: Drone -> World frame (from drone pose)
     R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
     t = np.array([X_w, Y_w, Z_w])
     T_drone_to_world = np.block([
@@ -40,10 +40,8 @@ def transform_cam_to_world(P_c):
         [np.zeros((1, 3)), 1]
     ])
 
-    # Step 3: Full transform
     T_cam_to_world = T_drone_to_world @ T_cam_to_drone
 
-    # Step 4: Apply to point(s)
     if P_c.ndim == 1:
         P_c = P_c.reshape(1, 3)
 
@@ -67,11 +65,14 @@ class RGBDPathPlanner(Node):
             self.listener_callback,
             10
         )
+        
+        # PCL PointCloud2 publisher
+        self.pcl_pub = self.create_publisher(PointCloud2, '/rgbd_pointcloud', 10)
+        
         self.lock = threading.Lock()
 
     def pose_callback(self, msg):
         # Extract pose information
-        # Assuming msg contains [qx, qy, qz, qw, X_w, Y_w, Z_w]
         CAM_POSE[0:4] = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
                          msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
         CAM_POSE[4:7] = [msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z]
@@ -108,9 +109,17 @@ class RGBDPathPlanner(Node):
         # Transform points from camera frame to world frame
         points_world = np.array([transform_cam_to_world(p) for p in points])
 
+        # Create Open3D point cloud
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points_world)
         pcd.colors = o3d.utility.Vector3dVector(colors)
+
+        # Publish PointCloud2 message for PCL
+        pcl_msg = self.create_pcl_msg(pcd)
+        self.pcl_pub.publish(pcl_msg)
+
+        # Save to .npy file in global frame
+        np.save("point_cloud_global_frame.npy", points_world)
 
         pcd.transform([[1, 0, 0, 0],
                        [0, -1, 0, 0],
@@ -197,37 +206,13 @@ class RGBDPathPlanner(Node):
             return [pcd, occupancy, sphere, axis, line_set]
         return [pcd, occupancy, sphere, axis]
 
-def set_top_down_view(vis, zoom_level=0.3, distance=3.0):
-    ctr = vis.get_view_control()
-    ctr.set_zoom(zoom_level)
-    parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_2025-04-09-19-13-29.json")
-    ctr.convert_from_pinhole_camera_parameters(parameters)
+    def create_pcl_msg(self, pcd):
+        points = np.asarray(pcd.points)
+        colors = np.asarray(pcd.colors)
+        header = Header()
+        header.stamp = self.get_clock().now().to_msg()
+        header.frame_id = "base_link"  # Or "world", adjust accordingly
 
-def main(args=None):
-    rclpy.init(args=args)
-
-    vis = o3d.visualization.Visualizer()
-    vis.create_window("RGBD Path Planner", 800, 600)
-    geometry_queue = queue.Queue()
-
-    node = RGBDPathPlanner(vis, geometry_queue)
-
-    ros_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
-    ros_thread.start()
-
-    try:
-        while True:
-            while not geometry_queue.empty():
-                geometries = geometry_queue.get()
-                vis.clear_geometries()
-                for g in geometries:
-                    vis.add_geometry(g)
-            set_top_down_view(vis)
-            vis.poll_events()
-            vis.update_renderer()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-        vis.destroy_window()
+        # Convert to PointCloud2
+        pc_data = point_cloud2.create_cloud_xyz32(header, points)
+        return pc_data
