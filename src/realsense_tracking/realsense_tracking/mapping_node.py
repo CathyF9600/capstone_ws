@@ -120,7 +120,7 @@ class RGBDPointCloudPublisher(Node):
         points = np.asarray(pcd.points)
         header = Header()
         header.stamp = self.get_clock().now().to_msg()
-        header.frame_id = "base_link"  # Adjust the frame_id if needed
+        header.frame_id = "map"  # Adjust the frame_id if needed
 
         # Convert to PointCloud2
         pc_data = point_cloud2.create_cloud_xyz32(header, points)
