@@ -8,7 +8,6 @@ from sensor_msgs_py import point_cloud2
 import tf_transformations
 from nav_msgs.msg import Odometry
 import threading
-import msvcrt  # For Windows. On Linux/Mac, use 'curses' or another library
 
 # Constants
 DISTANCE = 10.0
@@ -127,14 +126,13 @@ class RGBDPointCloudPublisher(Node):
         return pc_data
 
     def wait_for_enter_key(self):
-        # Wait for the "Enter" key to stop recording
+        # Wait for the "Enter" key to stop recording using input()
         while True:
-            if msvcrt.kbhit():  # For Windows, use 'curses' for Linux/Mac
-                key = msvcrt.getch()
-                if key == b'\r':  # Enter key
-                    self.recording = False
-                    self.get_logger().info("Recording stopped by Enter key.")
-                    break
+            user_input = input("Press Enter to stop recording...")
+            if user_input == "":  # Enter key
+                self.recording = False
+                self.get_logger().info("Recording stopped by Enter key.")
+                break
 
 def main(args=None):
     rclpy.init(args=args)
