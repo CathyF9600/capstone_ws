@@ -9,22 +9,17 @@ import cv2
 import numpy as np
 from cv_bridge import CvBridge
 import tf_transformations
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
-from math import tan, pi
+from rclpy.qos import QoSProfile, qos_profile_system_default
+from std_msgs.msg import Float32MultiArray
 import time
 from message_filters import ApproximateTimeSynchronizer, Subscriber
-from rclpy.time import Time
-
-from std_msgs.msg import Float32MultiArray
 
 WINDOW_TITLE = 'Realsense'
 cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
 window_size = 5
 min_disp = 0
-# must be divisible by 16
 num_disp = 96 - min_disp
 max_disp = min_disp + num_disp
-
 
 # stereo camera constants
 H, W = 800, 848
@@ -32,54 +27,21 @@ IMG_SIZE_WH = (W, H)
 DOWNSCALE_H = 4
 STEREO_SIZE_WH = (W, H//DOWNSCALE_H)
 BASELINE = -18.2928466796875/286.1825866699219 # 64 mm baseline
-DROP_FRAMES = 3
 
-MAPX1 = None
-MAPY1 = None
-MAPX2 = None
-MAPY2 = None
-
-CAM_INFO1_ORIGINAL = None
-CAM_INFO2_ORIGINAL = None
-CAM_INFO1_MODIFIED = None
-CAM_INFO2_MODIFIED = None
 BRIDGE = CvBridge()
 
-DROP_IND = 0
+# Add the flag for visualization choice
+visualize_output = True
 
+def get_user_input():
+    global visualize_output
+    print("Would you like to visualize the output? (y/n)")
+    user_input = input().strip().lower()
+    if user_input == 'n':
+        visualize_output = False
 
-stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
-                        numDisparities = num_disp,
-                        blockSize = 16,  # Increased block size # 16
-                        P1 = 8*3*window_size**2,
-                        P2 = 32*3*window_size**2,
-                        disp12MaxDiff = 1,
-                        uniquenessRatio = 10,
-                        speckleWindowSize = 100,
-                        speckleRange = 32)
-
-stereo.setMode(cv2.STEREO_SGBM_MODE_HH4) # speedup
-
-def pixel_to_world(M, K, pose):
-    # K: 4x4 is the intrinsics [R, [000]; [0001]]
-    # M: Nx4 [u v d|1] is the point and disparity in camera frame
-    Z_c = np.linalg.inv(K) @ M.T  # Preferred method
-
-    # Get camera pose
-    X_w, Y_w, Z_w = pose['position']
-    qx, qy, qz, qw = pose['orientation']
-
-    # Convert quaternion to rotation matrix
-    R = tf_transformations.quaternion_matrix([qx, qy, qz, qw])[:3, :3]
-    t = np.array([X_w, Y_w, Z_w])
-    T = np.block([
-        [R, t.reshape(3, 1)], 
-        [np.zeros((1, 3)), 1]
-    ])    
-    # Transform to world frame
-    P_w = T @ Z_c.T
-    
-    return P_w.T
+# Ask for visualization preference at the beginning
+get_user_input()
 
 class T265Tracker(Node):
     def __init__(self):
@@ -92,43 +54,13 @@ class T265Tracker(Node):
         self.depth_pub = self.create_publisher(Image, '/depth_image', qos_profile_system_default)
         self.color_pub = self.create_publisher(Image, '/rgb_image', qos_profile_system_default)
         self.rgbd_pub = self.create_publisher(Float32MultiArray, '/rgbd_data', qos_profile_system_default)
-      
-        # Camera intrinsics
-        self.fx = self.fy = self.cx = self.cy = None
 
-        self.K_left = None
-        self.D_left = None
-        self.P_left = None
-        self.img_left = None
-
-        self.K_right = None
-        self.D_right = None
-        self.P_right = None
-        self.img_right = None
-
-        self.R_rel = None
-        self.T_rel = None
-
-        self.lm1, self.lm2 = None, None
-        self.rm1, self.rm2 = None, None
-
-        self.prevT = 0
-        self.camera_info_msg1 = None
-        self.camera_info_msg2 = None
-
-        self.undistort_rectify = None
-
-        self.lock = threading.Lock()
-        self.stack = []
-
-        # Create subscribers with message filters
-        # self.left_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye1/camera_info')
-        # self.right_info_sub = Subscriber(self, CameraInfo, '/camera/fisheye2/camera_info')
         self.left_image_sub = Subscriber(self, Image, '/camera/fisheye1/image_raw')
         self.right_image_sub = Subscriber(self, Image, '/camera/fisheye2/image_raw')
         self.left_info_sub = self.create_subscription(CameraInfo, '/camera/fisheye1/camera_info', self.camera_info_callback_l, qos_profile_system_default)
         self.right_info_sub = self.create_subscription(CameraInfo, '/camera/fisheye2/camera_info', self.camera_info_callback_r, qos_profile_system_default)
         self.pose_sub = self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
+
         # Synchronizer
         self.sync = ApproximateTimeSynchronizer(
             [self.left_image_sub, self.right_image_sub], 
@@ -137,206 +69,87 @@ class T265Tracker(Node):
         )
         self.sync.registerCallback(self.sync_callback)
         self.timer = self.create_timer(0.02, self.bm)
-    
+
     def sync_callback(self, img_msg1, img_msg2):
         self.stack.append((img_msg1, img_msg2))
 
-    
     def bm(self):
-        start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
         if not self.stack:
-            return 
-        img_msg1, img_msg2 = self.stack.pop() # pop the latest pair
-        
+            return
+        img_msg1, img_msg2 = self.stack.pop()
+
         if not self.camera_info_msg1 or not self.camera_info_msg2:
-            return 
-        global DROP_IND
+            return
 
-        if any([x is None for x in (MAPX1, MAPY1, MAPX2, MAPY2)]):
-            self.init_maps(self.camera_info_msg1, self.camera_info_msg2)
+        # Calculate disparity
+        disparity = self.compute_disparity(img_msg1, img_msg2)
 
-        img_distorted1 = BRIDGE.imgmsg_to_cv2(img_msg1, desired_encoding="mono8")
-        img_distorted2 = BRIDGE.imgmsg_to_cv2(img_msg2, desired_encoding="mono8")
+        # Generate RGBD image
+        depth = (self.fx * -BASELINE) / (disparity + 1e-6)
+        rgbd = self.create_rgbd_image(depth, img_msg1)
 
-        img_undistorted1 = cv2.remap(
-            img_distorted1,
-            MAPX1,
-            MAPY1,
-            interpolation=cv2.INTER_LINEAR,
-        )
-
-        img_undistorted2 = cv2.remap(
-            img_distorted2,
-            MAPX2,
-            MAPY2,
-            interpolation=cv2.INTER_LINEAR,
-        )
-
-        # crop top and bottom based on DOWNSCALE_H
-        orig_height = img_undistorted1.shape[0]
-        new_height = orig_height//DOWNSCALE_H
-        # take center of image of new height
-        img_undistorted1 = img_undistorted1[
-            (orig_height - new_height)//2 : (orig_height + new_height)//2, :
-        ]
-        img_undistorted2 = img_undistorted2[
-            (orig_height - new_height)//2 : (orig_height + new_height)//2, :
-        ]
-
-        mode = "stack"
-        # compute the disparity on the center of the frames and convert it to a pixel disparity (divide by DISP_SCALE=16)
-        disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
-        disparity_blur = cv2.medianBlur(disparity, 5)  # Added median filter
-
-        # re-crop just the valid part of the disparity
-        disparity = disparity_blur[:,max_disp:]
-        # convert disparity to 0-255 and color it
-        
-        disp_vis = 255*(disparity - min_disp) / num_disp
-        disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
-        color_image = cv2.cvtColor(img_undistorted1[:,max_disp:], cv2.COLOR_GRAY2RGB)
-        # color_image = cv2.cvtColor(img_undistorted1, cv2.COLOR_GRAY2RGB)
-
-        # self.get_logger().info(f"d {disp_color}")
-        u, v = int(img_undistorted2.shape[1] / 2), int(img_undistorted2.shape[0] / 2)
-        
-        self.get_logger().info(f"Synchronized images at {img_msg1.header.stamp.sec}.{img_msg2.header.stamp.sec}.{self.camera_info_msg1.header.stamp.sec}.{self.camera_info_msg2.header.stamp.sec}")
-
-        fx_l = self.camera_info_msg1.k[0]
-        depth = (fx_l * -BASELINE) / (disparity + 1e-6)
-
-        # create HxWx4 RGBD for debugging
-        depth_image = np.expand_dims(depth, axis=-1)
-        rgbd = np.concatenate([color_image, depth_image], axis=-1)
-      
         msg = Float32MultiArray()
         msg.data = rgbd.flatten().tolist()
         self.rgbd_pub.publish(msg)
-        self.get_logger().info(f'Published RGBD data of shape {rgbd.shape}')
-      
-        # # clipping to 0 and 5 m
-        # depth[depth > 5] = 5
-        # depth[depth < 0] = 0
-        # Publish disparity msgs
+
+        # Publish depth and color images
+        self.publish_depth_and_color_images(depth, rgbd)
+
+        # Visualize only if the flag is set
+        if visualize_output:
+            self.visualize_output(depth, disparity, rgbd)
+
+    def compute_disparity(self, img_msg1, img_msg2):
+        img_distorted1 = BRIDGE.imgmsg_to_cv2(img_msg1, desired_encoding="mono8")
+        img_distorted2 = BRIDGE.imgmsg_to_cv2(img_msg2, desired_encoding="mono8")
+
+        # Rectify images
+        img_undistorted1 = cv2.remap(
+            img_distorted1, MAPX1, MAPY1, interpolation=cv2.INTER_LINEAR
+        )
+        img_undistorted2 = cv2.remap(
+            img_distorted2, MAPX2, MAPY2, interpolation=cv2.INTER_LINEAR
+        )
+
+        # Compute disparity
+        disparity = stereo.compute(img_undistorted1, img_undistorted2).astype(np.float32) / 16.0
+        return disparity
+
+    def create_rgbd_image(self, depth, img_msg1):
+        color_image = cv2.cvtColor(img_msg1, cv2.COLOR_GRAY2RGB)
+        depth_image = np.expand_dims(depth, axis=-1)
+        rgbd = np.concatenate([color_image, depth_image], axis=-1)
+        return rgbd
+
+    def publish_depth_and_color_images(self, depth, rgbd):
         depth_msg = BRIDGE.cv2_to_imgmsg(depth, encoding="32FC1")
         depth_msg.header.stamp = self.get_clock().now().to_msg()
         self.depth_pub.publish(depth_msg)
-        
-        color_msg = BRIDGE.cv2_to_imgmsg(color_image, encoding="rgb8")
+
+        color_msg = BRIDGE.cv2_to_imgmsg(rgbd[:, :, :3], encoding="rgb8")
         color_msg.header.stamp = self.get_clock().now().to_msg()
         self.color_pub.publish(color_msg)
 
-        self.K_left[0][2] = color_image.shape[1] / 2 # cx
-        self.K_left[1][2] = color_image.shape[0] / 2 # cy
+    def visualize_output(self, depth, disparity, rgbd):
+        disp_vis = 255*(disparity - min_disp) / num_disp
+        disp_color = cv2.applyColorMap(cv2.convertScaleAbs(disp_vis,1), cv2.COLORMAP_JET)
 
-        if mode == "stack":
-            # cv2.circle(img_undistorted2, (u, v), 5, (255, 255, 255), -1)
-            # # cv2.imshow("Tracked Image", color_image)
-            # cv2.waitKey(1)
-            # # Display result
-            text = f"depth: {depth[v][u]}"
-            if self.K_left.any() and self.pose['position'].any(): 
-                M = np.array([u, v, depth[v][u], 1])
-                p_w = pixel_to_world(M, self.K_left, self.pose)
-                text = f"d: {depth[v][u]:.3f}, g: {p_w[0]:.3f} {p_w[1]:.3f} {p_w[2]:.3f}"
-            cv2.putText(color_image, text, (u - 50, v - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-            cv2.circle(color_image, (u, v), 10, (255, 255, 255), -1)
-            cv2.imshow(WINDOW_TITLE, np.hstack((color_image, disp_color)))
-            # cv2.imshow("Tracked Image", img_undistorted2)
-            cv2.waitKey(1)
-        now = self.get_clock().now().to_msg().sec + self.get_clock().now().to_msg().nanosec * 1e-9
-        img_wait = now - (img_msg1.header.stamp.sec + img_msg1.header.stamp.nanosec * 1e-9)
-        bm_latency = now - start
-        self.get_logger().info(f"Image Wait Time: {img_wait:.6f} s, BM latency: {bm_latency:.6f} s" )
-        # self.prevT = now
-
-        self.stack = [] # empty the stack
-
-    def init_maps(self, cam_info1, cam_info2):
-        global MAPX1, MAPY1, MAPX2, MAPY2
-        K1 = np.array(cam_info1.k).reshape(3,3)
-        D1 = np.array(cam_info1.d)
-        K2 = np.array(cam_info2.k).reshape(3,3)
-        D2 = np.array(cam_info2.d)
-        T = np.array([BASELINE, 0, 0]) # 64 mm baseline
-
-        R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(
-            K1, D1, K2, D2, IMG_SIZE_WH, R=np.eye(3), T=T
-        )
-        MAPX1, MAPY1 = cv2.fisheye.initUndistortRectifyMap(
-            K1, D1, R1, P1, size=IMG_SIZE_WH, m1type=cv2.CV_32FC1
-        )
-        MAPX2, MAPY2 = cv2.fisheye.initUndistortRectifyMap(
-            K2, D2, R2, P2, size=IMG_SIZE_WH, m1type=cv2.CV_32FC1
-        )
-
+        # Display result
+        cv2.imshow(WINDOW_TITLE, np.hstack((rgbd[:, :, :3], disp_color)))
+        cv2.waitKey(1)
 
     def camera_info_callback_l(self, msg):
-        """Extract camera intrinsic parameters."""
         self.camera_info_msg1 = msg
-        # self.fx, self.fy = msg.k[0], msg.k[4]  # Focal lengths
-        # self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
-        
-        # self.K_left = np.array(msg.k).reshape(3, 3)
-        self.K_left = np.block([
-            [np.array(msg.k).reshape(3, 3), np.zeros((3, 1))], 
-            [np.zeros((1, 3)), 1]
-        ])
-        # self.D_left = np.array(msg.d)
-        # self.P_left = np.array(msg.p).reshape(3, 4)
-
-        # # Get image size
-        # w, h = msg.width, msg.height
-        # # Precompute undistortion maps L 
-        # # self.lm1, self.lm2 = cv2.fisheye.initUndistortRectifyMap(self.K_left, self.D_left, np.eye(3), self.P_left, (w, h), cv2.CV_32FC1)
-        # self.get_logger().info(f"msg L {self.fx}, {self.fy}, {self.cx}, {self.cy}")
 
     def camera_info_callback_r(self, msg):
-        """Extract camera intrinsic parameters."""
         self.camera_info_msg2 = msg
-        # self.fx, self.fy = msg.k[0], msg.k[4]  # Focal lengths
-        # self.cx, self.cy = msg.k[2], msg.k[5]  # Principal point
-        
-        # self.K_right = np.array(msg.k).reshape(3, 3)
-        # self.D_right = np.array(msg.d)
-        # self.P_right = np.array(msg.p).reshape(3, 4)
-        # if (isinstance(self.P_left, np.ndarray) and isinstance(self.P_right, np.ndarray)):
-        #     # self.get_logger().info(f"P_left {self.P_left}, {self.P_right}")
-        #     if not (isinstance(self.R_rel, np.ndarray) and isinstance(self.T_rel, np.ndarray)):
-        #         self.get_extrinsics(self.P_left, self.P_right) # get relative R, T
-        #     # Get image size
-        #     w, h = msg.width, msg.height
 
-        #     # self.get_logger().info(f"msg R {self.fx}, {self.fy}, {self.cx}, {self.cy}")
-        # else:
-        #     self.get_logger().warn(f"Waiting for P matrices")
-
-
-    def pose_callback(self, msg):
-        """Extract camera position & orientation in world frame."""
-        self.pose['position'] = np.array([
-            msg.pose.pose.position.x,
-            msg.pose.pose.position.y,
-            msg.pose.pose.position.z
-        ])
-
-        # Original orientation
-        self.pose['orientation'] = np.array([
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-            msg.pose.pose.orientation.w
-        ])
-
-
-    
+# Initialize the node and spin
 def main(args=None):
     rclpy.init(args=args)
-    node = T265Tracker()
-    rclpy.spin(node)
-    node.destroy_node()
+    t265_tracker = T265Tracker()
+    rclpy.spin(t265_tracker)
     rclpy.shutdown()
-    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
