@@ -171,6 +171,9 @@ class RGBDPathPlanner(Node):
         return [pcd, occupancy, sphere, axis, line_path]
 
 def set_top_down_view(vis, zoom_level=0.5, distance=3.0):
+    parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_xxxx.json")
+    ctr.convert_from_pinhole_camera_parameters(parameters)
+    
     # Get the view control (make sure the visualizer is properly initialized)
     ctr = vis.get_view_control()
 
