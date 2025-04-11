@@ -75,6 +75,6 @@ class ArduinoInterface:
 a = ArduinoInterface(baudrate=9600)
 while True:
     c = input('Enter your command (1/0): ')
-    if c == '1': c = 'ON'
-    elif c == '0': c = 'OFF'
+    if c == '1': c = 'OPEN'
+    elif c == '0': c = 'CLOSE'
     a.send_command(c)
