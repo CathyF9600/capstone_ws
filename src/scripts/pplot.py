@@ -3,13 +3,19 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 # Example: list of global points (x, y, z)
-points = np.array([
-    [0.0, 0.0, 2.0],
-    [2.0, 2.0, 2.0],
-    [4.0, 0.0, 2.0],
-    [2.0, -2.0, 2.0],
-    [0.0, 0.0, 2.0]
-])
+# points = np.array([
+#     [0.0, 0.0, 2.0],
+#     [2.0, 2.0, 2.0],
+#     [4.0, 0.0, 2.0],
+#     [2.0, -2.0, 2.0],
+#     [0.0, 0.0, 2.0]
+# ])
+
+
+points = np.array([(2, 2, 0.5),
+(-0.05, 1.24, 0.5),
+(-1.30, 0.036, 0.5),
+(-1.84, -1.71, 0.5)])
 
 x = points[:, 0]
 y = points[:, 1]
