@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # MIT License
 # Copyright (c) 2019-2022 JetsonHacks
 
@@ -32,8 +34,9 @@ def gstreamer_pipeline(
         "videoconvert ! "
         "video/x-raw, format=(string)BGR ! appsink"
     )
-
-
+'''
+nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)1280, height=(int)720, format=(string)NV12, framerate=(fraction)60/1 ! nvvidconv flip-method=0 ! video/x-raw, width=(int)1280, height=(int)720, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink
+'''
 def show_camera():
     window_title = "CSI Camera"
 

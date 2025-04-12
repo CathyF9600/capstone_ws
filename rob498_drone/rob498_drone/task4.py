@@ -361,20 +361,19 @@ class WaypointPublisher(Node):
 
     def publish_waypoints(self):
         # Define waypoints (x, y, z)
+        # waypoints = [
+        #     (0.0, 0.0, 0.5),
+        #     (2.0, 2.0, 0.5),
+        #     (4.0, 0.0, 0.5),
+        #     (2.0, -2.0, 0.5),
+        #     (0.0, 0.0, 0.5)
+        # ]
         waypoints = [
-            (0.0, 0.0, 2.0),
-            (2.0, 2.0, 2.0),
-            (4.0, 0.0, 2.0),
-            (2.0, -2.0, 2.0),
-            (0.0, 0.0, 2.0)
+            (2, 2, 0.5),
+            (-0.05, 1.24, 0.5),
+            (-1.30, 0.036, 0.5),
+            (-1.84, -1.71, 0.5)
         ]
-        # waypoints = [( 0. ,  0. , -0.5),
-        #          (-0.5,  0. , -1. ),
-        #          (-1. ,  0. , -1.5),
-        #          (-1,  0., -2.),
-        #          (-1,  0., -4.),
-        #          (0.,  0., -5.)
-        #          ]
         
         # Create PoseArray message
         pose_array = PoseArray()
@@ -407,7 +406,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     publisher_node = WaypointPublisher()
-    subscriber_node = DroneCommNodeTask3()
+    subscriber_node = DroneCommNodeTask4()
 
     executor = MultiThreadedExecutor()
     executor.add_node(publisher_node)
@@ -423,7 +422,7 @@ def main(args=None):
 
 # def main(args=None):
 #     rclpy.init(args=args)
-#     node = DroneCommNodeTask3()
+#     node = DroneCommNodeTask4()
 #     rclpy.spin(node)
 #     offboard_control.destroy_node()
 #     rclpy.shutdown()

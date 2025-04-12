@@ -320,11 +320,10 @@ class WaypointPublisher(Node):
     def publish_waypoints(self):
         # Define waypoints (x, y, z)
         waypoints = [
-            (0.0, 0.0, 2.0),
-            (2.0, 2.0, 2.0),
-            (4.0, 0.0, 2.0),
-            (2.0, -2.0, 2.0),
-            (0.0, 0.0, 2.0)
+            (2, 2, 0.5),
+            (-0.05, 1.24, 0.5),
+            (-1.30, 0.036, 0.5),
+            (-1.84, -1.71, 0.5)
         ]
         
         # Create PoseArray message
