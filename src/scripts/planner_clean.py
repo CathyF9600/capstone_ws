@@ -165,13 +165,24 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
             # print('n', neighbor, goal)
             v_idx = occupancy.get_voxel(neighbor) 
             if v_idx is not None:  # Skip occupied voxels
-                color = get_voxel_color_fast(voxel_map, v_idx)
-                if color:
-                    print(f'obstacle found at {neighbor} {color:.2f}')
-                    pplot(vis, neighbor, color='R')
-                    if color > COLOR_THRESHOLD: # voxel intensity threhold
-                        print(f'obstacle confirmed')
-                        continue
+                # color = get_voxel_color_fast(voxel_map, v_idx)
+                # if color:
+                #     print(f'obstacle found at {color:.2f}')
+                #     if color > COLOR_THRESHOLD: # voxel intensity threhold
+                #         print(f'obstacle found at {color:.2f}')
+                #         continue
+                is_near_obstacle = False
+                for dx in range(-PAD_DIST, PAD_DIST+1):
+                    for dy in range(-PAD_DIST, PAD_DIST+1):
+                        for dz in range(-PAD_DIST, PAD_DIST+1):
+                            neighbor_idx = (v_idx[0]+dx, v_idx[1]+dy, v_idx[2]+dz)
+                            if neighbor_idx in voxel_map:
+                                if get_voxel_color_fast(voxel_map, neighbor_idx)[0] < COLOR_THRESHOLD:
+                                    is_near_obstacle = True
+                                    break
+                if is_near_obstacle:
+                    print(f'obstacle found near {neighbor}')
+                    continue  # Skip this neighbor – treated as inflated obstacle
             else:
                 print('v_idx is None!!')
                 
@@ -216,7 +227,7 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
 import os
 import time
 
-# X = 5
+X = 5
 
 def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-2.0, 0.0, -5.0])):
     npy_files = sorted([f for f in os.listdir(folder_path) if f.endswith(".npy")])
@@ -231,7 +242,7 @@ def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-
         print(f"\nShowing: {full_path}")
         try:
             plan_and_show_waypoint(full_path, start=start, gpos=gpos)
-            # input("Press Enter to continue to the next file...")
+            input("Press Enter to continue to the next file...")
         except Exception as e:
             print(f"Error loading {fname}: {e}")
 
