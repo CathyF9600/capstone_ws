@@ -5,10 +5,14 @@ import heapq
 from itertools import count
 
 DISTANCE = 10.0
-STEP = 0.5
+STEP = 0.2
 VOXEL_SIZE = 0.08
 COLOR_THRESHOLD = 0.1 # color
-MAX_DEPTH = 5
+MAX_DEPTH = 15
+
+solution = [[0., 0., 0.], [ 0. ,  0. , -0.5], \
+            [ 0.,  0., -1.], [-0.5,  0. , -1.5], [-0.5,  0. , -2. ], \
+            [-1. ,  0. , -2.5], [-1.,  0., -3.], [-1.5,  0. , -3.5]]
 
 def build_voxel_index_map(voxels):
     """
@@ -163,12 +167,16 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
             if v_idx is not None:  # Skip occupied voxels
                 color = get_voxel_color_fast(voxel_map, v_idx)
                 if color:
-                    print(f'obstacle found at {color:.2f}')
+                    print(f'obstacle found at {neighbor} {color:.2f}')
+                    pplot(vis, neighbor, color='R')
                     if color > COLOR_THRESHOLD: # voxel intensity threhold
-                        print(f'obstacle found at {color:.2f}')
+                        print(f'obstacle confirmed')
                         continue
             else:
                 print('v_idx is None!!')
+                
+            # pplot(vis, neighbor, color='R')
+
             tentative_g_score = current_g_score + np.linalg.norm(neighbor - current_pos)
 
             if tuple(neighbor) not in g_score or tentative_g_score < g_score[tuple(neighbor)]:
@@ -191,6 +199,7 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
         waypoint.reverse()
         print("Path:", waypoint)
         vplot(waypoint, vis)
+
     else:
         print('Not found!')
 

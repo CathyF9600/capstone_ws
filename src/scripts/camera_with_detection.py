@@ -100,7 +100,7 @@ def show_camera():
             window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             while True:
                 ret_val, frame = video_capture.read()
-                frame = blur_frame_like_low_res(frame, downscale_factor=4)
+                # frame = blur_frame_like_low_res(frame, downscale_factor=4)
 
                 print('frame', type(frame))
                 # Check to see if the user closed the window
@@ -122,7 +122,7 @@ def show_camera():
 
 if __name__ == "__main__":
     model_path = "src/scripts/best.pt"  # Update with your actual model path
-    # show_camera()
-    model = load_model(model_path)
-    show_camera_with_detection(model)
+    show_camera()
+    # model = load_model(model_path)
+    # show_camera_with_detection(model)
 

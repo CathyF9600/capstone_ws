@@ -149,6 +149,15 @@ def a_star(pcd, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([0.0, 0.0, -5.0]))
         return None
 
 
+def set_top_down_view(vis, zoom_level=0.1, distance=3.0):
+
+    # # Get the view control (make sure the visualizer is properly initialized)
+    ctr = vis.get_view_control()
+    ctr.set_zoom(0.3)
+    parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_2025-04-11-23-27-55.json")
+    ctr.convert_from_pinhole_camera_parameters(parameters)
+
+
 # --- Visualization Class ---
 class LiveVisualizer:
     def __init__(self):
@@ -183,8 +192,7 @@ class LiveVisualizer:
         if waypoint:
             vplot(waypoint, self.vis)
         
-        self.load_camera_view("ScreenCamera_2025-04-11-17-10-46.json")
-
+        set_top_down_view(self.vis)
         self.vis.poll_events()
         self.vis.update_renderer()
 
@@ -223,12 +231,11 @@ def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-
                 points = np.stack((X, Y, Z), axis=-1).reshape(-1, 3)
                 colors = color_image.reshape(-1, 3) / 255.0
 
-
                 vis.update(points, colors)
-                ctr = vis.vis.get_view_control()
-                parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_2025-04-11-17-10-46.json")
-                ctr.convert_from_pinhole_camera_parameters(parameters)
-                ctr.set_zoom(0.3)
+                # ctr = vis.vis.get_view_control()
+                # ctr.set_zoom(0.3)
+                # parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_2025-04-11-23-27-55.json")
+                # ctr.convert_from_pinhole_camera_parameters(parameters)
                 # if counter == 0:
                 #     print('Press Enter to start moving...')
                 #     while True:
@@ -237,7 +244,7 @@ def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-
                 #         if cv2.waitKey(10) == 13:  # Enter key
                 #             break
                 # else:
-                time.sleep(1)
+                # time.sleep(1)
             # counter += 1
 
 
