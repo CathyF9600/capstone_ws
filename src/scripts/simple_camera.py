@@ -24,6 +24,9 @@ def gstreamer_pipeline(
     framerate=60,
     flip_method=0,
 ):
+    # return(
+    #     "gst-launch-1.0 nvarguscamerasrc ! nvvidconv flip-method=2 ! xvimagesink"
+    # )
     return (
         "nvarguscamerasrc ! "
         "video/x-raw(memory:NVMM), "

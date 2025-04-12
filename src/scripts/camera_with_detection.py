@@ -47,14 +47,12 @@ def draw_boxes(frame, results):
 
 def show_camera_with_detection(model):
     window_title = "YOLOv8 CSI Camera"
-    print(gstreamer_pipeline(flip_method=2))
     # video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
     video_capture = cv2.VideoCapture(
         gstreamer_pipeline(capture_width=640, capture_height=360, display_width=640, display_height=360, flip_method=2),
         cv2.CAP_GSTREAMER
     )
     if video_capture.isOpened():
-        print('hello')
         try:
             cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             while True:
@@ -87,7 +85,6 @@ def show_camera():
     window_title = "CSI Camera"
 
     # To flip the image, modify the flip_method parameter (0 and 2 are the most common)
-    print(gstreamer_pipeline(flip_method=2))
     video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
     if video_capture.isOpened():
         try:
@@ -114,7 +111,7 @@ def show_camera():
 
 if __name__ == "__main__":
     model_path = "src/scripts/best.pt"  # Update with your actual model path
-    show_camera()
-    # model = load_model(model_path)
-    # show_camera_with_detection(model)
+    # show_camera()
+    model = load_model(model_path)
+    show_camera_with_detection(model)
 
