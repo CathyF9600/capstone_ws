@@ -6,13 +6,12 @@ from itertools import count
 
 DISTANCE = 10.0
 STEP = 0.2
-VOXEL_SIZE = 0.08
+VOXEL_SIZE = 0.1
 COLOR_THRESHOLD = 0.1 # color
-MAX_DEPTH = 15
+MAX_DEPTH = 50
+PAD_DIST = 0.2
 
-solution = [[0., 0., 0.], [ 0. ,  0. , -0.5], \
-            [ 0.,  0., -1.], [-0.5,  0. , -1.5], [-0.5,  0. , -2. ], \
-            [-1. ,  0. , -2.5], [-1.,  0., -3.], [-1.5,  0. , -3.5]]
+solution = [[0., 0., 0.], [ 0. ,  0. , -0.5], [-0.2,  0. , -0.7], [-0.4,  0. , -0.9], [-0.6,  0. , -0.9], [-0.8,  0. , -1.1], [-0.8,  0. , -1.3], [-0.8,  0. , -1.5], [-1. ,  0. , -1.7], [-1. ,  0. , -1.9], [-1.2,  0. , -2.1], [-1.2,  0. , -2.3], [-1.2,  0. , -2.5], [-1.2,  0. , -2.7], [-1.4,  0. , -2.9]]
 
 def build_voxel_index_map(voxels):
     """
@@ -71,6 +70,19 @@ def pplot(vis, gpos, color='R'): # point plot
     sphere.translate(gpos)
     vis.add_geometry(sphere)
 
+def pad(current_pos):
+    return [
+        # Axis-aligned neighbors
+        current_pos + np.array([PAD_DIST, 0, 0]),
+        current_pos + np.array([-PAD_DIST, 0, 0]),
+        current_pos + np.array([0, 0, PAD_DIST]),
+        current_pos + np.array([0, 0, -PAD_DIST]),
+        # Diagonal neighbors on xz-plane
+        current_pos + np.array([PAD_DIST, 0, PAD_DIST]),
+        current_pos + np.array([-PAD_DIST, 0, PAD_DIST]),
+        current_pos + np.array([PAD_DIST, 0, -PAD_DIST]),
+        current_pos + np.array([-PAD_DIST, 0, -PAD_DIST])
+    ]
 
 def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
     rgbd_data = np.load(fp, allow_pickle=True)
@@ -145,47 +157,68 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
         if np.linalg.norm(current_pos - goal) < 0.1:
             print("Path found!")
             break
-
+        
+        if tuple(current_pos) == tuple(start): # larger step to skip its own voxel
+            init_step = 2.5 * VOXEL_SIZE
+            neighbors = [
+                # Axis-aligned neighbors
+                # current_pos + np.array([init_step, 0, 0]),
+                # current_pos + np.array([-init_step, 0, 0]),
+                # current_pos + np.array([0, 0, init_step]),
+                current_pos + np.array([0, 0, -0.5]),
+                # # Diagonal neighbors on xz-plane
+                # current_pos + np.array([init_step, 0, init_step]),
+                # current_pos + np.array([-init_step, 0, init_step]),
+                # current_pos + np.array([init_step, 0, -init_step]),
+                # current_pos + np.array([-init_step, 0, -init_step])
+            ]
+        else:
         # Explore neighbors (simple 6-connected grid movement for 3D)
-        neighbors = [
-            # Axis-aligned neighbors
-            current_pos + np.array([STEP, 0, 0]),
-            current_pos + np.array([-STEP, 0, 0]),
-            current_pos + np.array([0, 0, STEP]),
-            current_pos + np.array([0, 0, -STEP]),
-            # Diagonal neighbors on xz-plane
-            current_pos + np.array([STEP, 0, STEP]),
-            current_pos + np.array([-STEP, 0, STEP]),
-            current_pos + np.array([STEP, 0, -STEP]),
-            current_pos + np.array([-STEP, 0, -STEP])
-        ]
+            neighbors = [
+                # Axis-aligned neighbors
+                current_pos + np.array([STEP, 0, 0]),
+                current_pos + np.array([-STEP, 0, 0]),
+                current_pos + np.array([0, 0, STEP]),
+                current_pos + np.array([0, 0, -STEP]),
+                # Diagonal neighbors on xz-plane
+                current_pos + np.array([STEP, 0, STEP]),
+                current_pos + np.array([-STEP, 0, STEP]),
+                current_pos + np.array([STEP, 0, -STEP]),
+                current_pos + np.array([-STEP, 0, -STEP])
+            ]
 
         for neighbor in neighbors:
             # pplot(vis, neighbor, color='R')
             # print('n', neighbor, goal)
             v_idx = occupancy.get_voxel(neighbor) 
             if v_idx is not None:  # Skip occupied voxels
-                # color = get_voxel_color_fast(voxel_map, v_idx)
-                # if color:
-                #     print(f'obstacle found at {color:.2f}')
-                #     if color > COLOR_THRESHOLD: # voxel intensity threhold
-                #         print(f'obstacle found at {color:.2f}')
-                #         continue
+                # check cell
+                color = get_voxel_color_fast(voxel_map, v_idx)
+                if color:
+                    print(f'obstacle found at {color:.2f}')
+                    if color > COLOR_THRESHOLD: # voxel intensity threhold
+                        print(f'obstacle found at {color:.2f}')
+                        continue
+                # check cell padded surroundings
                 is_near_obstacle = False
-                for dx in range(-PAD_DIST, PAD_DIST+1):
-                    for dy in range(-PAD_DIST, PAD_DIST+1):
-                        for dz in range(-PAD_DIST, PAD_DIST+1):
-                            neighbor_idx = (v_idx[0]+dx, v_idx[1]+dy, v_idx[2]+dz)
-                            if neighbor_idx in voxel_map:
-                                if get_voxel_color_fast(voxel_map, neighbor_idx)[0] < COLOR_THRESHOLD:
-                                    is_near_obstacle = True
-                                    break
+                for padded_neighbor in pad(neighbor):
+                    neighbor_idx = occupancy.get_voxel(padded_neighbor)
+                    # print('padded_neighbor', neighbor, padded_neighbor)
+                    if neighbor_idx is not None:
+                        color = get_voxel_color_fast(voxel_map, neighbor_idx)
+                        if color:
+                            print(f'obstacle found at {color:.2f}')
+                            if color > COLOR_THRESHOLD:
+                                is_near_obstacle = True
+                                cached_voxel = o3d.geometry.Voxel(neighbor_idx, (np.array([color,color,color])))
+                                voxel_map[tuple(neighbor_idx)] = cached_voxel # caching
+                                break
                 if is_near_obstacle:
                     print(f'obstacle found near {neighbor}')
                     continue  # Skip this neighbor – treated as inflated obstacle
             else:
                 print('v_idx is None!!')
-                
+            vplot(solution, vis)
             # pplot(vis, neighbor, color='R')
 
             tentative_g_score = current_g_score + np.linalg.norm(neighbor - current_pos)
