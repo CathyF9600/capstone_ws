@@ -100,7 +100,7 @@ def show_camera():
             window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             while True:
                 ret_val, frame = video_capture.read()
-                frame = downscale_frame(frame)
+                frame = blur_frame_like_low_res(frame, downscale_factor=4)
 
                 print('frame', type(frame))
                 # Check to see if the user closed the window
