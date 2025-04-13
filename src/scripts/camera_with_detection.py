@@ -45,12 +45,11 @@ def draw_boxes(frame, results):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     return frame
 
-def downscale_frame(frame):
+def blur_frame_like_low_res(frame, downscale_factor=4):
     h, w = frame.shape[:2]
-    crop_height = h // DOWNSCALE_H
-    y_start = (h - crop_height) // 2
-    y_end = y_start + crop_height
-    return frame[y_start:y_end, :]
+    small = cv2.resize(frame, (w // downscale_factor, h // downscale_factor), interpolation=cv2.INTER_LINEAR)
+    blurred = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+    return blurred
 
 
 def show_camera_with_detection(model):
@@ -65,7 +64,7 @@ def show_camera_with_detection(model):
             cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             while True:
                 ret_val, frame = video_capture.read()
-                frame = downscale_frame(frame)
+                frame = blur_frame_like_low_res(frame, downscale_factor=4)
 
                 # if not ret_val:
                 #     print("Failed to read frame")
