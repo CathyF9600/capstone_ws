@@ -46,9 +46,12 @@ def draw_boxes(frame, results):
     return frame
 
 def downscale_frame(frame):
-    H, W = frame.shape[:2]
-    resized_frame = cv2.resize(frame, (W, H // DOWNSCALE_H), interpolation=cv2.INTER_AREA)
-    return resized_frame
+    h, w = frame.shape[:2]
+    crop_height = h // DOWNSCALE_H
+    y_start = (h - crop_height) // 2
+    y_end = y_start + crop_height
+    return frame[y_start:y_end, :]
+
 
 def show_camera_with_detection(model):
     window_title = "YOLOv8 CSI Camera"
