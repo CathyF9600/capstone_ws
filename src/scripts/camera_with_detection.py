@@ -45,6 +45,11 @@ def draw_boxes(frame, results):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     return frame
 
+def downscale_frame(frame):
+    H, W = frame.shape[:2]
+    resized_frame = cv2.resize(frame, (W, H // DOWNSCALE_H), interpolation=cv2.INTER_AREA)
+    return resized_frame
+
 def show_camera_with_detection(model):
     window_title = "YOLOv8 CSI Camera"
     print(gstreamer_pipeline(flip_method=2))
@@ -59,6 +64,8 @@ def show_camera_with_detection(model):
             cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             while True:
                 ret_val, frame = video_capture.read()
+                frame = downscale_frame(frame)
+
                 # if not ret_val:
                 #     print("Failed to read frame")
                 #     break
@@ -94,6 +101,8 @@ def show_camera():
             window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             while True:
                 ret_val, frame = video_capture.read()
+                frame = downscale_frame(frame)
+
                 print('frame', type(frame))
                 # Check to see if the user closed the window
                 # Under GTK (Jetson Default), WND_PROP_VISIBLE does not work correctly. Under Qt it does
