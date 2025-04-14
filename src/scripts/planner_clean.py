@@ -84,6 +84,24 @@ def pad(current_pos):
         current_pos + np.array([-PAD_DIST, 0, -PAD_DIST])
     ]
 
+def is_line_free(p1, p2, occupancy, voxel_map, step=0.1):
+    direction = p2 - p1
+    distance = np.linalg.norm(direction)
+    direction /= distance
+    steps = int(distance / step)
+    for i in range(1, steps + 1):
+        point = p1 + i * step * direction
+        v_idx = occupancy.get_voxel(point)
+        if v_idx is not None:
+            for dx in range(-int(PAD_DIST), int(PAD_DIST)+1):
+                for dy in range(-int(PAD_DIST), int(PAD_DIST)+1):
+                    for dz in range(-int(PAD_DIST), int(PAD_DIST)+1):
+                        neighbor_idx = (v_idx[0]+dx, v_idx[1]+dy, v_idx[2]+dz)
+                        if neighbor_idx in voxel_map:
+                            if get_voxel_color_fast(voxel_map, neighbor_idx)[0] < COLOR_THRESHOLD:
+                                return False  # obstacle detected
+    return True
+
 def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
     rgbd_data = np.load(fp, allow_pickle=True)
     color_image = rgbd_data[..., :3]
@@ -241,11 +259,25 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     # Waypoint visualization
     if waypoint is not None:
         waypoint.reverse()
-        print("Path:", waypoint)
-        vplot(waypoint, vis)
-
+        print("Original Path:", len(waypoint))
+    
+        # Path pruning
+        pruned_path = [waypoint[0]]
+        i = 0
+        while i < len(waypoint) - 1:
+            j = len(waypoint) - 1
+            while j > i + 1:
+                if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
+                    break
+                j -= 1
+            pruned_path.append(waypoint[j])
+            i = j
+    
+        print("Pruned Path:", len(pruned_path))
+        vplot(pruned_path, vis)
     else:
         print('Not found!')
+
 
     # Register key to save screenshot
     vis.register_key_callback(ord("S"), save_screenshot)
