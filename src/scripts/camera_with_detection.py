@@ -8,11 +8,11 @@ from ultralytics import YOLO
 import torch
 
 def gstreamer_pipeline(
-    capture_width=1280,
-    capture_height=720,
-    display_width=1280,
-    display_height=720,
-    framerate=60,
+    capture_width=320,
+    capture_height=240,
+    display_width=320,
+    display_height=240,
+    framerate=15,
     flip_method=0,
 ):
     return (
@@ -56,24 +56,33 @@ def show_camera_with_detection(model):
     window_title = "YOLOv8 CSI Camera"
     # video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
     video_capture = cv2.VideoCapture(
-        gstreamer_pipeline(capture_width=640, capture_height=360, display_width=640, display_height=360, flip_method=2),
+        gstreamer_pipeline(capture_width=320, capture_height=240, display_width=640, display_height=360, framerate=15, flip_method=2),
         cv2.CAP_GSTREAMER
     )
     if video_capture.isOpened():
         try:
             cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
+            frame_count =0
+            inference_interval = 5
+
             while True:
                 ret_val, frame = video_capture.read()
-                frame = blur_frame_like_low_res(frame, downscale_factor=4)
+                #frame = blur_frame_like_low_res(frame, downscale_factor=4)
 
-                # if not ret_val:
-                #     print("Failed to read frame")
-                #     break
+                if not ret_val:
+                    print("Failed to read frame")
+                    break
 
                 # Run YOLOv8 inference
-                results = model(frame)
+                #results = model(frame)
                 # Draw bounding boxes
-                frame = draw_boxes(frame, results)
+                #frame = draw_boxes(frame, results)
+
+                if frame_count % inference_interval == 0:
+                    results = model.predict(frame, verbose=False)
+                    frame = draw_boxes(frame, results, model)
+                frame_count+=1
+
 
                 if cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE) >= 0:
                     cv2.imshow(window_title, frame)
@@ -92,12 +101,17 @@ def show_camera_with_detection(model):
 
 def show_camera():
     window_title = "CSI Camera"
-
-    # To flip the image, modify the flip_method parameter (0 and 2 are the most common)
-    video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
+    # video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(
+        gstreamer_pipeline(capture_width=320, capture_height=240, display_width=640, display_height=360, framerate=15, flip_method=2),
+        cv2.CAP_GSTREAMER
+    )
     if video_capture.isOpened():
         try:
-            window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
+            cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
+            frame_count =0
+            inference_interval = 5
+            
             while True:
                 ret_val, frame = video_capture.read()
                 # frame = blur_frame_like_low_res(frame, downscale_factor=4)
@@ -114,11 +128,15 @@ def show_camera():
                 # Stop the program on the ESC key or 'q'
                 if keyCode == 27 or keyCode == ord('q'):
                     break
+
+                
         finally:
             video_capture.release()
             cv2.destroyAllWindows()
     else:
         print("Error: Unable to open camera")
+
+
 
 if __name__ == "__main__":
     model_path = "src/scripts/best.pt"  # Update with your actual model path
