@@ -218,7 +218,7 @@ def main(args=None):
                 vis.clear_geometries()
                 for g in geometries:
                     vis.add_geometry(g)
-            set_top_down_view(vis)
+            #set_top_down_view(vis)
             vis.poll_events()
             vis.update_renderer()
     except KeyboardInterrupt:
