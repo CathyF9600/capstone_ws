@@ -141,6 +141,6 @@ def show_camera():
 if __name__ == "__main__":
     model_path = "src/scripts/best.pt"  # Update with your actual model path
     show_camera()
-    # model = load_model(model_path)
-    # show_camera_with_detection(model)
+    model = load_model(model_path)
+    show_camera_with_detection(model)
 
