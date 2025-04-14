@@ -53,7 +53,7 @@ def blur_frame_like_low_res(frame, downscale_factor=4):
 
 
 def show_camera_with_detection(model):
-    window_title = "YOLOv8 CSI Camera"
+    window_title = "YOLOv11n CSI Camera"
     # video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
     video_capture = cv2.VideoCapture(
         gstreamer_pipeline(capture_width=320, capture_height=240, display_width=640, display_height=360, framerate=15, flip_method=2),
@@ -139,7 +139,7 @@ def show_camera():
 
 
 if __name__ == "__main__":
-    model_path = "src/scripts/best.pt"  # Update with your actual model path
+    model_path = "src/scripts/best_v11.pt"  # Update with your actual model path
     show_camera()
     model = load_model(model_path)
     show_camera_with_detection(model)
