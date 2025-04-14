@@ -56,14 +56,14 @@ def show_camera_with_detection(model):
     window_title = "YOLOv11n CSI Camera"
     # video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
     video_capture = cv2.VideoCapture(
-        gstreamer_pipeline(capture_width=320, capture_height=240, display_width=640, display_height=360, framerate=15, flip_method=2),
+        gstreamer_pipeline(capture_width=320, capture_height=240, display_width=320, display_height=240, framerate=15, flip_method=2),
         cv2.CAP_GSTREAMER
     )
     if video_capture.isOpened():
         try:
             cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
             frame_count =0
-            inference_interval = 5
+            inference_interval = 2
 
             while True:
                 ret_val, frame = video_capture.read()
@@ -80,7 +80,7 @@ def show_camera_with_detection(model):
 
                 if frame_count % inference_interval == 0:
                     results = model.predict(frame, verbose=False)
-                    frame = draw_boxes(frame, results, model)
+                    frame = draw_boxes(frame, results)
                 frame_count+=1
 
 
@@ -140,7 +140,7 @@ def show_camera():
 
 if __name__ == "__main__":
     model_path = "src/scripts/best_v11.pt"  # Update with your actual model path
-    show_camera()
+    #show_camera()
     model = load_model(model_path)
     show_camera_with_detection(model)
 
