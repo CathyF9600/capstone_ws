@@ -100,8 +100,11 @@ def is_centered(box, frame_shape, tolerance_ratio=0.2):
     tolerance = tolerance_ratio * frame_shape[1]
     return abs(box_center_x - frame_center_x) < tolerance
 
-def draw_boxes_and_check_center(frame, results, model, arduino):
+def draw_boxes_and_check_center(frame, results, model):
     detected_and_centered = False
+    best_detection = None
+    hightest_conf = 0.0
+
     for r in results:
         boxes = r.boxes.xyxy.cpu().numpy()
         confidences = r.boxes.conf.cpu().numpy()
@@ -113,15 +116,20 @@ def draw_boxes_and_check_center(frame, results, model, arduino):
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(frame, label, (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            if is_centered((x1, y1, x2, y2), frame.shape):
-                detected_and_centered = True
+            """if is_centered((x1, y1, x2, y2), frame.shape):
+                detected_and_centered = True"""
+            if conf > highest_conf and is_centered((x1, y1, x2, y2), frame.shape):
+                highest_conf = conf
+                best_detection = (box, conf, cls_id)
 
-    if detected_and_centered:
+    return frame, best_detection
+
+    """if detected_and_centered:
         arduino.send_command("OPEN")
     else:
         arduino.send_command("CLOSE")
 
-    return frame
+    return frame"""
 
 def show_camera_with_detection(model, arduino):
     window_title = "YOLOv11n CSI Camera"
@@ -129,6 +137,11 @@ def show_camera_with_detection(model, arduino):
         gstreamer_pipeline(capture_width=320, capture_height=240, display_width=320, display_height=240, framerate=15, flip_method=2),
         cv2.CAP_GSTREAMER
     )
+
+    gripper_state = "OPEN"
+    last_centered_time = time.time()
+
+
     if video_capture.isOpened():
         try:
             cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
@@ -143,7 +156,24 @@ def show_camera_with_detection(model, arduino):
 
                 if frame_count % inference_interval == 0:
                     results = model.predict(frame, verbose=False)
-                    frame = draw_boxes_and_check_center(frame, results, model, arduino)
+                    frame, best_detection = draw_boxes_and_check_center(frame, results, model)
+
+                    current_time = time.time()
+
+                    if best_detection:
+                        _, conf, _ = best_detection
+                        if conf > 0.9:
+                            if gripper_state != "CLOSE":
+                                arduino.send_command("CLOSE")
+                                gripper_state = "CLOSE"
+                            last_centered_time = current_time
+                        else:
+                            if gripper_state != "OPEN" and (current_time - last_centered_time >5):
+                                arduino.send_command("OPEN")
+                                gripper_state = "OPEN"
+                    
+
+
                 frame_count += 1
 
                 if cv2.getWindowProperty(window_title, cv2.WND_PROP_AUTOSIZE) >= 0:
@@ -167,4 +197,6 @@ if __name__ == "__main__":
     model_path = "src/scripts/best_v11.pt"  # Update path as needed
     model = load_model(model_path)
     arduino = ArduinoInterface(port='/dev/ttyACM0', baudrate=9600)
+    time.sleep(1)
+    arduino.send_command("OPEN")
     show_camera_with_detection(model, arduino)

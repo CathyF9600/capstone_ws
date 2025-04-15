@@ -3,7 +3,7 @@ import threading
 import time
 
 class ArduinoInterface:
-    def __init__(self, port='/dev/ttyACM0', baudrate=115200):
+    def __init__(self, port='/dev/ttyACM0', baudrate=9600):
         self.ser = None  # Initialize as None
         try:
             self.ser = serial.Serial(port, baudrate, timeout=0.1)
@@ -74,7 +74,7 @@ class ArduinoInterface:
 
 a = ArduinoInterface(baudrate=9600)
 while True:
-    c = input('Enter your command (1/0): ')
-    if c == '1': c = 'OPEN'
-    elif c == '0': c = 'CLOSE'
+    c = input('Enter your command (o (open)/ c (close)): ')
+    if c == 'o': c = 'ON'
+    elif c == 'c': c = 'OFF'
     a.send_command(c)
