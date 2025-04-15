@@ -26,14 +26,14 @@ class RGBDRecorder(Node):
         self.sync = ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub, self.pose_sub, self.vicon_sub], queue_size=10, slop=0.1)
         self.sync.registerCallback(self.callback)
 
-        self.output_dir = 'rgbd_npy_apr14_2'
+        self.output_dir = 'rgbd_npy_full'
         os.makedirs(self.output_dir, exist_ok=True)
 
     def callback(self, rgb_msg, depth_msg, pose_msg, vicon_msg):
         now = self.get_clock().now()
         time_since_last = (now - self.last_saved_time).nanoseconds / 1e9
         print(f'{rgb_msg.header.stamp.sec}, {depth_msg.header.stamp.sec}')
-        if time_since_last < 1.0:
+        if time_since_last < 0.1:
             return  # Only save every 1 second
 
         try:
