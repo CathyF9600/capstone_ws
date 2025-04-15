@@ -11,9 +11,8 @@ VOXEL_SIZE = 0.1
 COLOR_THRESHOLD = 0.4 # color
 MAX_DEPTH = 100
 PAD_DIST = 0.2
-
 solution = [[0., 0., 0.], [ 0. ,  0. , -0.5], [-0.2,  0. , -0.7], [-0.4,  0. , -0.9], [-0.6,  0. , -0.9], [-0.8,  0. , -1.1], [-0.8,  0. , -1.3], [-0.8,  0. , -1.5], [-1. ,  0. , -1.7], [-1. ,  0. , -1.9], [-1.2,  0. , -2.1], [-1.2,  0. , -2.3], [-1.2,  0. , -2.5], [-1.2,  0. , -2.7], [-1.4,  0. , -2.9]]
-
+HUMAN_PATH = []
 GLOBAL_SOLUTION = []
 
 # Function to transform camera frame to world frame using broadcasting
@@ -163,8 +162,6 @@ def is_line_free(p1, p2, occupancy, voxel_map, step=0.1):
                             if color and color < COLOR_THRESHOLD:
                                 return False  # obstacle detected
     return True
-
-HUMAN_PATH = []
 
 
 def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), world_frame=True):
