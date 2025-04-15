@@ -103,9 +103,16 @@ def is_line_free(p1, p2, occupancy, voxel_map, step=0.1):
     return True
 
 def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), depth_threshold=3.0, occupancy_threshold=10):
-    rgbd_data = np.load(fp, allow_pickle=True)
+    # rgbd_data = np.load(fp, allow_pickle=True)
+    # color_image = rgbd_data[..., :3]
+    # depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
+
+    data = np.load(fp, allow_pickle=True).item()
+    print(data.keys())
+    rgbd_data = data["rgbd"]  # Shape: (H, W, 4)
     color_image = rgbd_data[..., :3]
     depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
+    pose = data["pose"] 
 
     fx = fy = 286.1167907714844
     cx, cy = depth_image.shape[1] / 2, depth_image.shape[0] / 2
@@ -313,5 +320,5 @@ def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-
 
 # Example usage
 if __name__ == "__main__":
-    folder = "./rgbd_npy_50"  # replace with your folder path
+    folder = "./rgbd_npy_apr14"  # replace with your folder path
     run_on_folder(folder)
