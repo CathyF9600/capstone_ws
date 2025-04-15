@@ -5,10 +5,10 @@ from sensor_msgs.msg import Image
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
+import cv2
 from cv_bridge import CvBridge
 import numpy as np
 import open3d as o3d
-import cv2
 import heapq
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
@@ -24,7 +24,6 @@ VOXEL_SIZE = 0.1
 COLOR_THRESHOLD = 0.4 # color
 MAX_DEPTH = 100
 PAD_DIST = 0.2
-GLOBAL_SOLUTION = []
 
 # Helper functions
 # Function to transform camera frame to world frame using broadcasting
@@ -165,7 +164,7 @@ class PlannerNode(Node):
 
         # Variables
         self.current_pose = None
-        self.goal = np.array([10.0, 10.0])  # Set your goal here
+        self.goal = np.array([ 4.68302441, -4.71768856,  1.1455164 ])  # Set your goal here
         self.global_path = []
         self.waiting_for_input = False
         self.next_waypoint = None
@@ -181,6 +180,7 @@ class PlannerNode(Node):
         if self.waiting_for_input:
             return
         try:
+            print('synched')
             rgb_image = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')  # HxWx3
             depth_image = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')  # HxW
             if depth_image.ndim == 3:
@@ -199,13 +199,18 @@ class PlannerNode(Node):
                 pose_msg.pose.pose.position.y,
                 pose_msg.pose.pose.position.z,
             ]
+            self.current_pose = np.array([pose_msg.pose.pose.position.x,
+                pose_msg.pose.pose.position.y,
+                pose_msg.pose.pose.position.z,])
             # Simulate planner result (replace with your planner call)
             next_wp = self.planner(color_image, depth_image, pose)
     
             if next_wp is not None:
                 self.next_waypoint = next_wp
-                self.waiting_for_input = True
-                self.plot_state()
+                # self.waiting_for_input = True
+                # self.plot_state()
+            else:
+                self.get_logger().error(f"No path reported!")
         
         except Exception as e:
             self.get_logger().error(f"Callback error: {e}")
@@ -238,7 +243,7 @@ class PlannerNode(Node):
             # START of A*
             waypoint = []
             # Plan waypoint based on gpos
-            start = pose
+            start = self.current_pose
             goal = self.goal
             tiebreaker = count()
 
@@ -366,8 +371,10 @@ class PlannerNode(Node):
             print("Pruned Path:", pruned_path)
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
-            if new_points:
+            if new_points.all():
                 print('new_points', new_points)
+                input('press enter to conmtinue')
+                self.waiting_for_input = False
                 return new_points
                 
     def on_key(self, event: KeyEvent):

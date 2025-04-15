@@ -27,6 +27,13 @@ fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 ax.plot(x, y, z, linestyle='--', marker='o', color='blue')
 
+test = [(1.74855479e-04,-3.76146381e-05 , 6.60237638e-05)]
+test = np.array(test)
+x = test[:, 0]
+y = test[:, 1]
+z = test[:, 2]
+ax.plot(x, y, z, linestyle='--', marker='o', color='red')
+
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
