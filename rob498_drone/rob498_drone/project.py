@@ -8,6 +8,7 @@ from std_srvs.srv import Trigger
 from std_msgs.msg import Header
 import cv2
 from cv_bridge import CvBridge
+from geometry_msgs.msg import PoseStamped, Quaternion, PoseArray
 import numpy as np
 import open3d as o3d
 import heapq
@@ -160,23 +161,33 @@ class PlannerNode(Node):
 
         self.rgb_sub = Subscriber(self, Image, '/rgb_image')
         self.depth_sub = Subscriber(self, Image, '/depth_image')
-        self.pose_sub = Subscriber(self, Odometry, '/camera/pose/sample')
-        self.sync = ApproximateTimeSynchronizer(
-            [self.rgb_sub, self.depth_sub, self.pose_sub],
-            queue_size=10, slop=0.1
-        )
-        self.sync.registerCallback(self.callback)
+        # self.pose_sub = Subscriber(self, Odometry, '/camera/pose/sample')
+        self.pose_sub = self.create_subscription(Odometry, '/camera/pose/sample', self.pose_callback, qos_profile_system_default)
+        self.pose = {'position':None, 'orientation':None}
 
+        self.sync = ApproximateTimeSynchronizer(
+            [self.rgb_sub, self.depth_sub],
+            queue_size=10, slop=1
+        )
+        self.stack = []
+        self.sync.registerCallback(self.sync_callback)
+        self.timer = self.create_timer(0.02, self.stack_reader)
         # self.path_pub = self.create_publisher(Path, '/planned_path', 10)
         self.setpoint_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile_system_default)
         self.hover_pose = PoseStamped()
         self.update_hover_pose(0.0, 0.0, 0.0)
         self.create_timer(1/20, self.publish_target_waypoint)
-
+        self.vision_pose = None
         # Create service servers
         self.srv_launch = self.create_service(Trigger, "rob498_drone_3/comm/launch", self.handle_launch)
         self.srv_land = self.create_service(Trigger, "rob498_drone_3/comm/land", self.handle_land)
         self.srv_test = self.create_service(Trigger, "rob498_drone_3/comm/test", self.handle_test)
+        self.srv_confirm = self.create_service(Trigger, "rob498_drone_3/comm/confirm", self.handle_confirm)
+
+
+        self.ego_pub = self.create_publisher(PoseStamped,'/mavros/vision_pose/pose', qos_profile_system_default) # "/vicon/ROB498_Drone/ROB498_Drone", 10)
+        # Timer to publish waypoints at 20 Hz
+        self.create_timer(1/20, self.publish_vision_pose)
 
         # Variables
         self.current_pose = None
@@ -193,6 +204,63 @@ class PlannerNode(Node):
         plt.ion()
         
         self.get_logger().info("PlannerNode initialized and waiting for data...")
+
+    def pose_callback(self, msg):
+        """Extract camera position & orientation in world frame."""
+        self.pose['position'] = np.array([
+            msg.pose.pose.position.x,
+            msg.pose.pose.position.y,
+            msg.pose.pose.position.z
+        ])
+
+        # Original orientation
+        self.pose['orientation'] = np.array([
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w
+        ])
+        self.current_pose = self.pose['position']
+
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "map"
+
+        current_pose_d = PoseStamped()
+        current_pose_d.header.stamp = self.get_clock().now().to_msg()
+        current_pose_d.header.frame_id = "map"
+        current_pose_d.pose = msg.pose.pose
+
+        # Original orientation
+        q_orig = np.array([
+            msg.pose.pose.orientation.w,
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z
+        ])
+        # self.get_logger().info(f"Cam Original: x={msg.pose.pose.orientation.x:.3f}, y={msg.pose.pose.orientation.y:.3f}, z={msg.pose.pose.orientation.z:.3f}")
+        # 90-degree yaw quaternion (0, 0, sin(π/4), cos(π/4))
+        # q_yaw = np.array([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
+
+        # Apply rotation
+        q_new = q_orig #quaternion_multiply(q_yaw, q_orig)
+
+        # Update orientation
+        current_pose_d.pose.orientation = Quaternion(
+            w=float(q_new[0]),
+            x=float(q_new[1]),
+            y=float(q_new[2]),
+            z=float(q_new[3])
+        )
+
+        self.vision_pose = current_pose_d
+
+    def publish_vision_pose(self):
+        if self.vision_pose is not None:
+
+            self.ego_pub.publish(self.vision_pose)
+            # self.get_logger().info(f"Published itself's pose from {self.source}.")
+        # else:
+        #     self.get_logger().info(f"Published itself's pose from nowhere!")
 
 
     def update_hover_pose(self, x, y, z):
@@ -238,11 +306,21 @@ class PlannerNode(Node):
         response.success = True
         self.land = True
         return response
-
+    
+    def handle_confirm(self, request, response): # special for task3
+        """Handles the TEST command by navigating through waypoints."""
+        if not self.next_waypoint:
+            self.get_logger().error("No next_waypoint received.")
+            response.success = False
+            response.message = "No next_waypoint available."
+            return response
+        self.waiting_for_input = False
+        return response
+    
     def is_within_waypoint(self, waypoint): # special for task3
         """Checks if the drone is within the target waypoint radius."""
         if not self.current_pose:
-            self.get_logger().info(f"self.latest_pose is null")
+            self.get_logger().info(f"self.current_pose is null")
             return False
 
         dx = self.current_pose.pose.position.x - waypoint.position.x
@@ -269,19 +347,29 @@ class PlannerNode(Node):
             self.setpoint_publisher.publish(self.hover_pose) # 0,0,0
 
         
-        elif self.next_waypoint is not None:
+        elif self.next_waypoint is not None and not self.waiting_for_input:
             if self.is_within_waypoint(self.next_waypoint):
                 self.get_logger().info(f"Reached current_goal {self.next_waypoint}")
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.hover_pose.pose = self.next_waypoint
             self.setpoint_publisher.publish(self.hover_pose)
-        else: # self.next_waypoint is None
+        else: # self.next_waypoint is None, o waitng for inut -> hover at current position
+            self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+            self.hover_pose.pose = self.vision_pose
             self.setpoint_publisher.publish(self.hover_pose)
     
 
-    def callback(self, rgb_msg, depth_msg, pose_msg):
-        if self.waiting_for_input:
-            return
+    def sync_callback(self, rgb_msg, depth_msg):
+        self.get_logger().info(f"Gettin synched")
+        self.stack.append((rgb_msg, depth_msg))
+
+    
+    def stack_reader(self):
+        # start = self.get_clock().now().to_msg().sec +  self.get_clock().now().to_msg().nanosec * 1e-9
+        if not self.stack:
+            return 
+        rgb_msg, depth_msg = self.stack.pop() # pop the latest pair
+
         try:
             print('synched')
             rgb_image = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')  # HxWx3
@@ -293,29 +381,19 @@ class PlannerNode(Node):
             color_image = cv2.resize(rgb_image, (w, h))
             depth_image = np.clip(depth_image, 0, DISTANCE)
             # Get drone pose
-            pose = [
-                pose_msg.pose.pose.orientation.x,
-                pose_msg.pose.pose.orientation.y,
-                pose_msg.pose.pose.orientation.z,
-                pose_msg.pose.pose.orientation.w,
-                pose_msg.pose.pose.position.x,
-                pose_msg.pose.pose.position.y,
-                pose_msg.pose.pose.position.z,
-            ]
-            self.current_pose = np.array([pose_msg.pose.pose.position.x,
-                pose_msg.pose.pose.position.y,
-                pose_msg.pose.pose.position.z,])
+            pose = np.hstack([self.pose['position'], self.pose['orientation']])
             # Simulate planner result (replace with your planner call)
             next_wp = self.planner(color_image, depth_image, pose)
     
             if next_wp is not None:
                 self.next_waypoint = next_wp
-                print('next_wp', next_wp)
-                input('Press ENTER to continue: ')
-                # self.waiting_for_input = True
+                print('Confirm to go to the next_wp:', next_wp)
+                # input('Press ENTER to continue: ')
+                self.waiting_for_input = True
                 # self.plot_state()
             else:
                 self.get_logger().error(f"No path reported!")
+            self.stack = [] # empty the stack
         
         except Exception as e:
             self.get_logger().error(f"Callback error: {e}")
@@ -477,7 +555,6 @@ class PlannerNode(Node):
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
             if new_points is not None and new_points.all():
-                self.waiting_for_input = False
                 return new_points
             return None
                 
