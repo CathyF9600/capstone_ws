@@ -46,12 +46,14 @@ def add_progress_point(current_plan, full_goal):
     than the last point in GLOBAL_SOLUTION.
     """
     if not current_plan:
-        return
+        return None
 
+    new_points = []
     # If GLOBAL_SOLUTION is empty, just add the first point
     if not GLOBAL_SOLUTION:
-        GLOBAL_SOLUTION.append(current_plan[0])
-        return
+        GLOBAL_SOLUTION.append(tuple(current_plan[0]))
+        new_points.append(current_plan[0])
+        return new_points
 
     last_point = np.array(GLOBAL_SOLUTION[-1])
     goal = np.array(full_goal)
@@ -63,7 +65,9 @@ def add_progress_point(current_plan, full_goal):
         new_dist = np.linalg.norm(goal - pt)
         if new_dist < last_dist:
             GLOBAL_SOLUTION.append(tuple(pt))
+            new_points.append(pt)
             break
+    return new_points
 
 def build_voxel_index_map(voxels):
     """
@@ -260,35 +264,66 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
         if dist_to_goal < best_dist:
             best_dist = dist_to_goal
             best_pos = current_pos
-            
-        if tuple(current_pos) == tuple(start): # larger step to skip its own voxel
-            init_step = 2.5 * VOXEL_SIZE
-            neighbors = [
-                # Axis-aligned neighbors
-                # current_pos + np.array([init_step, 0, 0]),
-                # current_pos + np.array([-init_step, 0, 0]),
-                # current_pos + np.array([0, 0, init_step]),
-                current_pos + np.array([0, 0, -0.5]),
-                # # Diagonal neighbors on xz-plane
-                # current_pos + np.array([init_step, 0, init_step]),
-                # current_pos + np.array([-init_step, 0, init_step]),
-                # current_pos + np.array([init_step, 0, -init_step]),
-                # current_pos + np.array([-init_step, 0, -init_step])
-            ]
-        else:
-        # Explore neighbors (simple 6-connected grid movement for 3D)
-            neighbors = [
-                # Axis-aligned neighbors
-                current_pos + np.array([STEP, 0, 0]),
-                current_pos + np.array([-STEP, 0, 0]),
-                current_pos + np.array([0, 0, STEP]),
-                current_pos + np.array([0, 0, -STEP]),
-                # Diagonal neighbors on xz-plane
-                current_pos + np.array([STEP, 0, STEP]),
-                current_pos + np.array([-STEP, 0, STEP]),
-                current_pos + np.array([STEP, 0, -STEP]),
-                current_pos + np.array([-STEP, 0, -STEP])
-            ]
+        
+        if not world_frame:
+            if tuple(current_pos) == tuple(start): # larger step to skip its own voxel
+                init_step = 2.5 * VOXEL_SIZE
+                neighbors = [
+                    # Axis-aligned neighbors
+                    # current_pos + np.array([init_step, 0, 0]),
+                    # current_pos + np.array([-init_step, 0, 0]),
+                    # current_pos + np.array([0, 0, init_step]),
+                    current_pos + np.array([0, 0, -init_step]), # first step going into the page
+                    # # Diagonal neighbors on xz-plane
+                    # current_pos + np.array([init_step, 0, init_step]),
+                    # current_pos + np.array([-init_step, 0, init_step]),
+                    # current_pos + np.array([init_step, 0, -init_step]),
+                    # current_pos + np.array([-init_step, 0, -init_step])
+                ]
+            else:
+            # Explore neighbors (simple 6-connected grid movement for 3D)
+                neighbors = [
+                    # Axis-aligned neighbors
+                    current_pos + np.array([STEP, 0, 0]),
+                    current_pos + np.array([-STEP, 0, 0]),
+                    current_pos + np.array([0, 0, STEP]),
+                    current_pos + np.array([0, 0, -STEP]),
+                    # Diagonal neighbors on xz-plane
+                    current_pos + np.array([STEP, 0, STEP]),
+                    current_pos + np.array([-STEP, 0, STEP]),
+                    current_pos + np.array([STEP, 0, -STEP]),
+                    current_pos + np.array([-STEP, 0, -STEP])
+                ]
+        else: # world frame planning - z is up, x cant be neg, y cant be pos (based on myhal room map)
+            if tuple(current_pos) == tuple(start): # larger step to skip its own voxel
+                init_step = 2.5 * VOXEL_SIZE
+                neighbors = [
+                    # Axis-aligned neighbors
+                    current_pos + np.array([init_step, 0, 0]),
+                    current_pos + np.array([0, -init_step, 0]),
+                    # current_pos + np.array([-init_step, 0, 0]),
+                    current_pos + np.array([0, 0, init_step]),
+                    # current_pos + np.array([0, 0, -0.5]),
+                    # # Diagonal neighbors on xz-plane
+                    # current_pos + np.array([init_step, 0, init_step]),
+                    # current_pos + np.array([-init_step, 0, init_step]),
+                    # current_pos + np.array([init_step, 0, -init_step]),
+                    # current_pos + np.array([-init_step, 0, -init_step])
+                ]
+            else:
+            # Explore neighbors (simple 6-connected grid movement for 3D)
+                neighbors = [
+                    # Axis-aligned neighbors
+                    current_pos + np.array([STEP, 0, 0]),
+                    current_pos + np.array([0, -STEP, 0]),
+                    current_pos + np.array([0, 0, STEP]),
+                    current_pos + np.array([0, 0, -STEP]),
+                    # Diagonal neighbors on xz-plane
+                    current_pos + np.array([STEP, 0, STEP]),
+                    current_pos + np.array([0, -STEP, STEP]),
+                    current_pos + np.array([STEP, 0, -STEP]),
+                    current_pos + np.array([0, -STEP, -STEP])
+                ]
 
         for neighbor in neighbors:
             if tuple(neighbor) in visited:
@@ -369,8 +404,9 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     print("Pruned Path:", pruned_path)
     vplot(pruned_path, vis)
     vplot(waypoint, vis)
-    add_progress_point(waypoint, full_goal=gpos)
-
+    new_points = add_progress_point(waypoint, full_goal=gpos)
+    if new_points:
+        print('new_points', new_points)
 
     # Register key to save screenshot
     vis.register_key_callback(ord("S"), save_screenshot)
@@ -415,5 +451,5 @@ if __name__ == "__main__":
     run_on_folder(folder, gpos=gpos)
 
     HUMAN_PATH  = [[ 0.00012787, -0.00011229,  0.00012751], [ 1.11442685e-04, -1.23162768e-04,  5.89193769e-05], [ 0.00024432, -0.00010595,  0.00027408], [ 9.74470604e-05, -3.07552837e-05,  3.20040010e-04], [ 1.62076525e-04, -5.60154513e-05,  7.93393046e-05], [ 9.70318870e-05,  9.15840094e-04, -4.60401876e-04], [0.03030516, 0.03377176, 0.73864961], [0.27824649, 0.02021859, 0.98899406], [ 1.16685236, -0.37907165,  0.96617979], [ 2.60115337, -1.29060638,  0.9212203 ], [ 3.43631577, -1.99861574,  0.93947977], [ 4.10659027, -3.21163154,  1.03390253], [ 4.30790472, -3.9677403 ,  1.05536342], [ 4.51330376, -4.51858091,  1.09060323], [ 4.6246624 , -4.67107677,  1.0722518 ], [ 4.64444876, -4.68503332,  1.12046719], [ 4.67224598, -4.6869812 ,  1.14548445], [ 4.63720417, -4.71124887,  1.16978383], [ 4.66125822, -4.69160557,  1.1283747 ], [ 4.68302441, -4.71768856,  1.1455164 ]]
-
-    print('HUMAN_PATH', HUMAN_PATH, GLOBAL_SOLUTION)
+    # GLOBAL_SOLUTION = [(0.00012787, -0.00011229,  0.00012751), (0.20011144268501085, -0.00012316276843193918, -0.4999410806231026), (0.20024432127247566, -0.00010595106869004667, -0.4997259246301837), (0.40009744706039785, -3.075528366025537e-05, -0.499679959990317), (0.6001620765251574, -5.601545126410201e-05, -0.4999206606953521), (0.8000970318869804, 0.0009158400935120881, -0.5004604018758982), (0.6303051620721818, 0.033771760761737823, 0.23864960670471191), (0.6782464921474457, 0.020218592137098312, 0.4889940619468689), (1.166852355003357, -0.3790716528892517, 0.9661797881126404), (2.6011533737182617, -1.2906063795089722, 0.9212203025817871), (3.4363157749176025, -1.9986157417297363, 0.9394797682762146), (4.106590270996094, -3.2116315364837646, 1.0339025259017944), (4.3079047203063965, -3.967740297317505, 1.055363416671753), (4.513303756713867, -4.518580913543701, 1.090603232383728), (4.424662399291992, -4.671076774597168, 1.172251796722412), (4.444448757171631, -4.685033321380615, 1.220467185974121)]
+    print('HUMAN_PATH', HUMAN_PATH, '\n', GLOBAL_SOLUTION)
