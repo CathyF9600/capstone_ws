@@ -3,7 +3,7 @@ import threading
 import time
 
 class ArduinoInterface:
-    def __init__(self, port='/dev/ttyACM0', baudrate=115200):
+    def __init__(self, port='/dev/ttyACM0', baudrate=9600):
         self.ser = None  # Initialize as None
         try:
             self.ser = serial.Serial(port, baudrate, timeout=0.1)
