@@ -27,7 +27,8 @@ fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 ax.plot(x, y, z, linestyle='--', marker='o', color='blue')
 
-test = [(1.74855479e-04,-3.76146381e-05 , 6.60237638e-05)]
+test = [(1.74855479e-04,-3.76146381e-05 , 6.60237638e-05),
+        [ 2.14283466, -0.96262795,  0.93171269]]
 test = np.array(test)
 x = test[:, 0]
 y = test[:, 1]

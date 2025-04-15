@@ -4,6 +4,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
+from std_srvs.srv import Trigger
 from std_msgs.msg import Header
 import cv2
 from cv_bridge import CvBridge
@@ -24,7 +25,7 @@ VOXEL_SIZE = 0.1
 COLOR_THRESHOLD = 0.4 # color
 MAX_DEPTH = 100
 PAD_DIST = 0.2
-
+WAYPOINT_RADIUS = 0.20
 # Helper functions
 # Function to transform camera frame to world frame using broadcasting
 def transform_cam_to_world(P_c, pose): # [N, 4]
@@ -161,6 +162,14 @@ class PlannerNode(Node):
 
         # self.path_pub = self.create_publisher(Path, '/planned_path', 10)
         self.setpoint_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile_system_default)
+        self.hover_pose = PoseStamped()
+        self.update_hover_pose(0.0, 0.0, 0.0)
+        self.create_timer(1/20, self.publish_target_waypoint)
+
+        # Create service servers
+        self.srv_launch = self.create_service(Trigger, "rob498_drone_3/comm/launch", self.handle_launch)
+        self.srv_land = self.create_service(Trigger, "rob498_drone_3/comm/land", self.handle_land)
+        self.srv_test = self.create_service(Trigger, "rob498_drone_3/comm/test", self.handle_test)
 
         # Variables
         self.current_pose = None
@@ -168,13 +177,99 @@ class PlannerNode(Node):
         self.global_path = []
         self.waiting_for_input = False
         self.next_waypoint = None
-
+        self.test_start = False
+        self.land = False
         # Visualization
         self.fig, self.ax = plt.subplots()
         self.cid = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         plt.ion()
         
         self.get_logger().info("PlannerNode initialized and waiting for data...")
+
+
+    def update_hover_pose(self, x, y, z):
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        self.hover_pose.header.frame_id = "map"
+        self.hover_pose.pose.position.x = x
+        self.hover_pose.pose.position.y = y
+        self.hover_pose.pose.position.z = z
+
+
+    def handle_test(self, request, response): # special for task3
+        """Handles the TEST command by navigating through waypoints."""
+        if not self.waypoints:
+            self.get_logger().error("No waypoints received.")
+            response.success = False
+            response.message = "No waypoints available."
+            return response
+        self.test_start = True
+        return response
+    
+    def handle_launch(self, request, response):
+        self.get_logger().info("Launch command received. Taking off...")
+
+        if self.state.mode != "OFFBOARD":
+            self.set_mode("OFFBOARD")
+        if not self.state.armed:
+            self.arm(True)
+        # Change the altitude
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        # Ascend to 1.5 meters upon launching
+        target_height = 1
+        self.hover_pose.pose.position.z = target_height
+        # Ensure a response is returned
+        response.success = True
+        response.message = "Takeoff initiated."
+        return response
+ 
+    def handle_land(self, request, response):
+        self.get_logger().info("Land command received. Landing...")
+        self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+        self.hover_pose.pose.position.z = 0.05
+        # self.get_logger().info("Landing mode request sent.")
+        response.success = True
+        self.land = True
+        return response
+
+    def is_within_waypoint(self, waypoint): # special for task3
+        """Checks if the drone is within the target waypoint radius."""
+        if not self.current_pose:
+            self.get_logger().info(f"self.latest_pose is null")
+            return False
+
+        dx = self.current_pose.pose.position.x - waypoint.position.x
+        dy = self.current_pose.pose.position.y - waypoint.position.y
+        dz = self.current_pose.pose.position.z - waypoint.position.z
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+        self.get_logger().info(f"Distance to "
+                    f"({waypoint.position.x:.1f}, {waypoint.position.y:.1f}, {waypoint.position.z:.1f}) is "
+                    #    f"x={self.latest_pose.pose.position.x:.3f}, y={self.latest_pose.pose.position.y:.3f}, z={self.latest_pose.pose.position.z:.3f}
+                    f"{distance:.1f}")
+        return distance <= WAYPOINT_RADIUS
+
+
+    def publish_target_waypoint(self): # special for task3
+        """Publishes the given waypoint to MAVROS."""
+        if self.land:
+            self.setpoint_publisher.publish(self.hover_pose)
+        if not self.test_start:
+            self.setpoint_publisher.publish(self.hover_pose) # 0,0,0
+            return
+        if self.is_within_waypoint(self.goal):
+            self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+            self.hover_pose.pose = self.goal
+            self.setpoint_publisher.publish(self.hover_pose) # 0,0,0
+
+        
+        elif self.next_waypoint is not None:
+            if self.is_within_waypoint(self.next_waypoint):
+                self.get_logger().info(f"Reached current_goal {self.next_waypoint}")
+            self.hover_pose.header.stamp = self.get_clock().now().to_msg()
+            self.hover_pose.pose = self.next_waypoint
+            self.setpoint_publisher.publish(self.hover_pose)
+        else: # self.next_waypoint is None
+            self.setpoint_publisher.publish(self.hover_pose)
+    
 
     def callback(self, rgb_msg, depth_msg, pose_msg):
         if self.waiting_for_input:
@@ -371,11 +466,12 @@ class PlannerNode(Node):
             print("Pruned Path:", pruned_path)
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
-            if new_points.all():
+            if new_points is not None and new_points.all():
                 print('new_points', new_points)
                 input('press enter to conmtinue')
                 self.waiting_for_input = False
                 return new_points
+            return None
                 
     def on_key(self, event: KeyEvent):
         if event.key == 'enter' and self.waiting_for_input:
