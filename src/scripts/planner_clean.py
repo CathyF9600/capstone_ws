@@ -14,6 +14,8 @@ PAD_DIST = 0.2
 
 solution = [[0., 0., 0.], [ 0. ,  0. , -0.5], [-0.2,  0. , -0.7], [-0.4,  0. , -0.9], [-0.6,  0. , -0.9], [-0.8,  0. , -1.1], [-0.8,  0. , -1.3], [-0.8,  0. , -1.5], [-1. ,  0. , -1.7], [-1. ,  0. , -1.9], [-1.2,  0. , -2.1], [-1.2,  0. , -2.3], [-1.2,  0. , -2.5], [-1.2,  0. , -2.7], [-1.4,  0. , -2.9]]
 
+GLOBAL_SOLUTION = []
+
 # Function to transform camera frame to world frame using broadcasting
 def transform_cam_to_world(P_c, pose): # [N, 4]
     qx, qy, qz, qw, X_w, Y_w, Z_w = pose
@@ -37,6 +39,31 @@ def transform_cam_to_world(P_c, pose): # [N, 4]
     P_c_h = np.hstack([P_c, np.ones((P_c.shape[0], 1))])  # [N, 4]
     P_w_h = (T_cam_to_world @ P_c_h.T).T  # [N, 4]
     return P_w_h[:, :3]  # Drop the homogeneous part
+
+def add_progress_point(current_plan, full_goal):
+    """
+    Adds the first point from current_plan that is closer to full_goal
+    than the last point in GLOBAL_SOLUTION.
+    """
+    if not current_plan:
+        return
+
+    # If GLOBAL_SOLUTION is empty, just add the first point
+    if not GLOBAL_SOLUTION:
+        GLOBAL_SOLUTION.append(current_plan[0])
+        return
+
+    last_point = np.array(GLOBAL_SOLUTION[-1])
+    goal = np.array(full_goal)
+
+    last_dist = np.linalg.norm(goal - last_point)
+
+    for pt in current_plan:
+        pt = np.array(pt)
+        new_dist = np.linalg.norm(goal - pt)
+        if new_dist < last_dist:
+            GLOBAL_SOLUTION.append(tuple(pt))
+            break
 
 def build_voxel_index_map(voxels):
     """
@@ -132,7 +159,7 @@ HUMAN_PATH = []
 
 
 def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), world_frame=True):
-    global HUMAN_PATH
+    global HUMAN_PATH, GLOBAL_SOLUTION
     # rgbd_data = np.load(fp, allow_pickle=True)
     # color_image = rgbd_data[..., :3]
     # depth_image = np.clip(rgbd_data[..., 3], 0, DISTANCE)
@@ -342,6 +369,8 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     print("Pruned Path:", pruned_path)
     vplot(pruned_path, vis)
     vplot(waypoint, vis)
+    add_progress_point(waypoint, full_goal=gpos)
+
 
     # Register key to save screenshot
     vis.register_key_callback(ord("S"), save_screenshot)
@@ -387,4 +416,4 @@ if __name__ == "__main__":
 
     HUMAN_PATH  = [[ 0.00012787, -0.00011229,  0.00012751], [ 1.11442685e-04, -1.23162768e-04,  5.89193769e-05], [ 0.00024432, -0.00010595,  0.00027408], [ 9.74470604e-05, -3.07552837e-05,  3.20040010e-04], [ 1.62076525e-04, -5.60154513e-05,  7.93393046e-05], [ 9.70318870e-05,  9.15840094e-04, -4.60401876e-04], [0.03030516, 0.03377176, 0.73864961], [0.27824649, 0.02021859, 0.98899406], [ 1.16685236, -0.37907165,  0.96617979], [ 2.60115337, -1.29060638,  0.9212203 ], [ 3.43631577, -1.99861574,  0.93947977], [ 4.10659027, -3.21163154,  1.03390253], [ 4.30790472, -3.9677403 ,  1.05536342], [ 4.51330376, -4.51858091,  1.09060323], [ 4.6246624 , -4.67107677,  1.0722518 ], [ 4.64444876, -4.68503332,  1.12046719], [ 4.67224598, -4.6869812 ,  1.14548445], [ 4.63720417, -4.71124887,  1.16978383], [ 4.66125822, -4.69160557,  1.1283747 ], [ 4.68302441, -4.71768856,  1.1455164 ]]
 
-    print('HUMAN_PATH', HUMAN_PATH)
+    print('HUMAN_PATH', HUMAN_PATH, GLOBAL_SOLUTION)
