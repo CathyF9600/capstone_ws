@@ -170,10 +170,16 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     came_from = {}
     g_score = {tuple(start): 0}
     depth = 0
-    last_valid_pos = None  # Variable to track the last valid position
-
+    # anytime A*
+    found = False
+    best_pos = None
+    best_dist = float('inf')
+    visited = set()
+    
     while open_list:
         _, current_g_score, _, current_pos = heapq.heappop(open_list)
+        visited.add(tuple(current_pos))
+        dist_to_goal = np.linalg.norm(current_pos - goal)
 
         if depth >= MAX_DEPTH:
             print("Max depth reached, stopping the pathfinding.")
@@ -181,8 +187,14 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
 
         if np.linalg.norm(current_pos - goal) < 0.1:
             print("Path found!")
+            found = True
             break
-        
+            
+        # Track best position seen so far - anytime A*
+        if dist_to_goal < best_dist:
+            best_dist = dist_to_goal
+            best_pos = current_pos
+            
         if tuple(current_pos) == tuple(start): # larger step to skip its own voxel
             init_step = 2.5 * VOXEL_SIZE
             neighbors = [
@@ -213,6 +225,9 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
             ]
 
         for neighbor in neighbors:
+            if tuple(neighbor) in visited:
+                continue
+            visited.add(tuple(neighbor))
             # pplot(vis, neighbor, color='R')
             # print('n', neighbor, goal)
             v_idx = occupancy.get_voxel(neighbor) 
@@ -243,7 +258,6 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
                     continue  # Skip this neighbor – treated as inflated obstacle
             else:
                 print('v_idx is None!!')
-            vplot(solution, vis)
             # pplot(vis, neighbor, color='R')
 
             tentative_g_score = current_g_score + np.linalg.norm(neighbor - current_pos)
@@ -256,35 +270,37 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
                 last_valid_pos = neighbor
         depth += 1
 
-    # Backtrack to create the path
-    current_pos = last_valid_pos
-    while tuple(current_pos) in came_from:
-        waypoint.append(current_pos)
-        current_pos = came_from[tuple(current_pos)]
-    waypoint.append(start)
+    # Use found path or fallback
+    if found:
+        target_pos = current_pos
+        print("Reached goal!")
+    else:
+        target_pos = best_pos
+        print(f"Depth limit reached — using best-effort path (dist {best_dist:.2f})")
+    
+    # Reconstruct path - anytime planner
+    waypoint = [target_pos]
+    while tuple(path[-1]) in came_from:
+        waypoint.append(came_from[tuple(path[-1])])
 
     # Waypoint visualization
-    if waypoint is not None:
-        waypoint.reverse()
-        print("Original Path:", len(waypoint))
-    
-        # Path pruning
-        pruned_path = [waypoint[0]]
-        i = 0
-        while i < len(waypoint) - 1:
-            j = len(waypoint) - 1
-            while j > i + 1:
-                if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
-                    break
-                j -= 1
-            pruned_path.append(waypoint[j])
-            i = j
-    
-        print("Pruned Path:", len(pruned_path))
-        vplot(pruned_path, vis)
-    else:
-        print('Not found!')
+    waypoint.reverse()
+    print("Original Path:", len(waypoint))
 
+    # Path pruning
+    pruned_path = [waypoint[0]]
+    i = 0
+    while i < len(waypoint) - 1:
+        j = len(waypoint) - 1
+        while j > i + 1:
+            if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
+                break
+            j -= 1
+        pruned_path.append(waypoint[j])
+        i = j
+
+    print("Pruned Path:", len(pruned_path))
+    vplot(pruned_path, vis)
 
     # Register key to save screenshot
     vis.register_key_callback(ord("S"), save_screenshot)
