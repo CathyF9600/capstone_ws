@@ -14,6 +14,8 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy, qos_profile_system_default
 import tf_transformations
 from itertools import count
+import matplotlib.pyplot as plt
+from matplotlib.backend_bases import KeyEvent
 
 # Constants
 DISTANCE = 10.0 
@@ -50,7 +52,7 @@ def transform_cam_to_world(P_c, pose): # [N, 4]
     return P_w_h[:, :3]  # Drop the homogeneous part
 
 
-def add_progress_point(current_plan, full_goal, min_progress_distance=0.3):
+def add_progress_point(current_plan, global_path, full_goal, min_progress_distance=0.3):
     """
     Adds the first point from current_plan that is:
     - closer to the goal than the last point in global_path
@@ -61,12 +63,12 @@ def add_progress_point(current_plan, full_goal, min_progress_distance=0.3):
     if not current_plan:
         return None
 
-    if not GLOBAL_SOLUTION:
+    if not global_path:
         first_pt = tuple(current_plan[0])
-        GLOBAL_SOLUTION.append(first_pt)
+        global_path.append(first_pt)
         return current_plan[0]
 
-    last_point = np.array(GLOBAL_SOLUTION[-1])
+    last_point = np.array(global_path[-1])
     goal = np.array(full_goal)
     last_dist_to_goal = np.linalg.norm(goal - last_point)
 
@@ -77,7 +79,7 @@ def add_progress_point(current_plan, full_goal, min_progress_distance=0.3):
 
         if dist_to_goal < last_dist_to_goal and dist_to_last > min_progress_distance:
             new_pt = tuple(pt)
-            GLOBAL_SOLUTION.append(new_pt)
+            global_path.append(new_pt)
             return pt
 
     return None
@@ -161,6 +163,18 @@ class PlannerNode(Node):
         # self.path_pub = self.create_publisher(Path, '/planned_path', 10)
         self.setpoint_publisher = self.create_publisher(PoseStamped, "/mavros/setpoint_position/local", qos_profile_system_default)
 
+        # Variables
+        self.current_pose = None
+        self.goal = np.array([10.0, 10.0])  # Set your goal here
+        self.global_path = []
+        self.waiting_for_input = False
+        self.next_waypoint = None
+
+        # Visualization
+        self.fig, self.ax = plt.subplots()
+        self.cid = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+        plt.ion()
+        
         self.get_logger().info("PlannerNode initialized and waiting for data...")
 
     def callback(self, rgb_msg, depth_msg, pose_msg):
@@ -185,6 +199,13 @@ class PlannerNode(Node):
                 pose_msg.pose.pose.position.y,
                 pose_msg.pose.pose.position.z,
             ]
+            # Simulate planner result (replace with your planner call)
+            next_wp = self.planner(color_image, depth_image, pose)
+    
+            if next_wp is not None:
+                self.next_waypoint = next_wp
+                self.waiting_for_input = True
+                self.plot_state()
         
         except Exception as e:
             self.get_logger().error(f"Callback error: {e}")
@@ -217,7 +238,7 @@ class PlannerNode(Node):
             # START of A*
             waypoint = []
             # Plan waypoint based on gpos
-            start = self.start
+            start = pose
             goal = self.goal
             tiebreaker = count()
 
@@ -344,12 +365,37 @@ class PlannerNode(Node):
                 i = j
             print("Pruned Path:", pruned_path)
 
-            new_points = add_progress_point(waypoint, full_goal=self.goal)
+            new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
             if new_points:
                 print('new_points', new_points)
                 return new_points
+                
+    def on_key(self, event: KeyEvent):
+        if event.key == 'enter' and self.waiting_for_input:
+            self.global_path.append(tuple(self.next_waypoint))
+            self.waiting_for_input = False
+            self.plot_state()
+        elif event.key == 'escape':
+            rclpy.shutdown()
+            
+    def plot_state(self):
+        self.ax.clear()
+        self.ax.plot(self.goal[0], self.goal[1], 'ro', label='Goal')
+        if self.current_pose is not None:
+            self.ax.plot(self.current_pose[0], self.current_pose[1], 'bo', label='Current')
+        if self.global_path:
+            path = np.array(self.global_path)
+            self.ax.plot(path[:, 0], path[:, 1], 'g--', label='Global Path')
+        if self.next_waypoint is not None:
+            self.ax.plot(self.next_waypoint[0], self.next_waypoint[1], 'kx', label='Next Waypoint')
 
-
+        self.ax.set_title("Press ENTER to accept waypoint, ESC to quit")
+        self.ax.set_xlim(-1, 15)
+        self.ax.set_ylim(-1, 15)
+        self.ax.legend()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        
     def publish_path(self, path, header):
         ros_path = Path()
         ros_path.header = Header()
@@ -368,7 +414,15 @@ class PlannerNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = PlannerNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    planner = PlannerNode()
+    try:
+        while rclpy.ok():
+            rclpy.spin_once(planner, timeout_sec=0.1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        planner.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
