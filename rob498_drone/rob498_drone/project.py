@@ -26,6 +26,13 @@ COLOR_THRESHOLD = 0.4 # color
 MAX_DEPTH = 100
 PAD_DIST = 0.2
 WAYPOINT_RADIUS = 0.20
+#
+H = np.array([
+        [ 0,  0, 1, -3.035],  # X_d = -Z_c
+        [-1,  -1,  0, -3.073],  # Y_d = -X_c
+        [ 0, 0,  1, 0],  # Z_d = -Y_c
+        [0, 0, 0, 1]
+    ])
 # Helper functions
 # Function to transform camera frame to world frame using broadcasting
 def transform_cam_to_world(P_c, pose): # [N, 4]
@@ -173,7 +180,8 @@ class PlannerNode(Node):
 
         # Variables
         self.current_pose = None
-        self.goal = np.array([ 4.68302441, -4.71768856,  1.1455164 ])  # Set your goal here
+        # self.goal = np.array([ 4.68302441, -4.71768856,  1.1455164 ])  # Set your goal here
+        self.goal = np.array([1.317+3.035, -0.848-3.07,  1.5 ])  # Set your goal here
         self.global_path = []
         self.waiting_for_input = False
         self.next_waypoint = None
@@ -302,6 +310,8 @@ class PlannerNode(Node):
     
             if next_wp is not None:
                 self.next_waypoint = next_wp
+                print('next_wp', next_wp)
+                input('Press ENTER to continue: ')
                 # self.waiting_for_input = True
                 # self.plot_state()
             else:
@@ -467,8 +477,6 @@ class PlannerNode(Node):
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
             if new_points is not None and new_points.all():
-                print('new_points', new_points)
-                input('press enter to conmtinue')
                 self.waiting_for_input = False
                 return new_points
             return None
