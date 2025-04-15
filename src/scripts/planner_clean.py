@@ -41,7 +41,7 @@ def transform_cam_to_world(P_c, pose): # [N, 4]
     return P_w_h[:, :3]  # Drop the homogeneous part
 
 
-def add_progress_point(current_plan, global_path, full_goal, min_progress_distance=0.1):
+def add_progress_point(current_plan, full_goal, min_progress_distance=0.3):
     """
     Adds the first point from current_plan that is:
     - closer to the goal than the last point in global_path
@@ -52,12 +52,12 @@ def add_progress_point(current_plan, global_path, full_goal, min_progress_distan
     if not current_plan:
         return None
 
-    if not global_path:
+    if not GLOBAL_SOLUTION:
         first_pt = tuple(current_plan[0])
-        global_path.append(first_pt)
+        GLOBAL_SOLUTION.append(first_pt)
         return first_pt
 
-    last_point = np.array(global_path[-1])
+    last_point = np.array(GLOBAL_SOLUTION[-1])
     goal = np.array(full_goal)
     last_dist_to_goal = np.linalg.norm(goal - last_point)
 
@@ -68,7 +68,7 @@ def add_progress_point(current_plan, global_path, full_goal, min_progress_distan
 
         if dist_to_goal < last_dist_to_goal and dist_to_last > min_progress_distance:
             new_pt = tuple(pt)
-            global_path.append(new_pt)
+            GLOBAL_SOLUTION.append(new_pt)
             return new_pt
 
     return None
