@@ -40,34 +40,39 @@ def transform_cam_to_world(P_c, pose): # [N, 4]
     P_w_h = (T_cam_to_world @ P_c_h.T).T  # [N, 4]
     return P_w_h[:, :3]  # Drop the homogeneous part
 
-def add_progress_point(current_plan, full_goal):
+
+def add_progress_point(current_plan, global_path, full_goal, min_progress_distance=0.1):
     """
-    Adds the first point from current_plan that is closer to full_goal
-    than the last point in GLOBAL_SOLUTION.
+    Adds the first point from current_plan that is:
+    - closer to the goal than the last point in global_path
+    - AND sufficiently far from the last point (to avoid jittering).
+    
+    Returns the point added to global_path, or None if no point was added.
     """
     if not current_plan:
         return None
 
-    new_points = []
-    # If GLOBAL_SOLUTION is empty, just add the first point
-    if not GLOBAL_SOLUTION:
-        GLOBAL_SOLUTION.append(tuple(current_plan[0]))
-        new_points.append(current_plan[0])
-        return new_points
+    if not global_path:
+        first_pt = tuple(current_plan[0])
+        global_path.append(first_pt)
+        return first_pt
 
-    last_point = np.array(GLOBAL_SOLUTION[-1])
+    last_point = np.array(global_path[-1])
     goal = np.array(full_goal)
-
-    last_dist = np.linalg.norm(goal - last_point)
+    last_dist_to_goal = np.linalg.norm(goal - last_point)
 
     for pt in current_plan:
         pt = np.array(pt)
-        new_dist = np.linalg.norm(goal - pt)
-        if new_dist < last_dist:
-            GLOBAL_SOLUTION.append(tuple(pt))
-            new_points.append(pt)
-            break
-    return new_points
+        dist_to_goal = np.linalg.norm(goal - pt)
+        dist_to_last = np.linalg.norm(pt - last_point)
+
+        if dist_to_goal < last_dist_to_goal and dist_to_last > min_progress_distance:
+            new_pt = tuple(pt)
+            global_path.append(new_pt)
+            return new_pt
+
+    return None
+
 
 def build_voxel_index_map(voxels):
     """
