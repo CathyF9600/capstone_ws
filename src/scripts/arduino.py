@@ -24,33 +24,51 @@ class ArduinoInterface:
             self.confirm_thread.start()
 
     def _listen_for_confirmations(self):
-        """Background thread to read serial and check for confirmations."""
+        last_check_time = time.time()
+        TIMEOUT = 3.0  # seconds
+
         while self.ser and self.ser.is_open:
             try:
                 if self.ser.in_waiting > 0:
-                    line = self.ser.readline().decode().strip()
-                    if line == "{}_CONFIRM".format(self.last_command):
+                    line = self.ser.readline().decode(errors="ignore").strip()
+                    print(f"[Arduino → Jetson] Received: '{line}'")
+
+                    expected = f"{self.last_command}_CONFIRM" if self.last_command else None
+                    if expected and line.upper() == expected.upper():
                         with self.lock:
                             self.waiting_for_confirm = False
                             self.last_command = None
+                            last_check_time = time.time()  # Reset timer
+                    else:
+                        print(f"Unexpected response: '{line}' (expected: '{expected}')")
+                else:
+                    # Check timeout
+                    if self.waiting_for_confirm and (time.time() - last_check_time > TIMEOUT):
+                        with self.lock:
+                            print("Timeout waiting for confirmation. Resetting state.")
+                            self.waiting_for_confirm = False
+                            self.last_command = None
+                            last_check_time = time.time()
             except serial.SerialException:
                 print("Error: Lost connection to Arduino.")
-                self.ser = None  # Mark as disconnected
+                self.ser = None
                 break
             time.sleep(0.05)
 
+
     def send_command(self, command):
-        """Send a command only if no other command is pending confirmation."""
         if not self.is_connected():
             print("Error: Arduino is not connected.")
             return False
 
+        should_wait_for_confirm = command.upper() in ["ON", "OFF"]
+
         with self.lock:
-            if self.waiting_for_confirm:
+            if should_wait_for_confirm and self.waiting_for_confirm:
                 print("Waiting for confirmation before sending another command.")
                 return False
-            self.last_command = command
-            self.waiting_for_confirm = True
+            self.last_command = command if should_wait_for_confirm else None
+            self.waiting_for_confirm = should_wait_for_confirm
 
         full_command = "{}\n".format(command)
         try:
@@ -59,8 +77,9 @@ class ArduinoInterface:
             return True
         except serial.SerialException:
             print("Error: Failed to send command.")
-            self.ser = None  # Mark as disconnected
+            self.ser = None
             return False
+
 
     def is_connected(self):
         """Check if the Arduino is connected."""

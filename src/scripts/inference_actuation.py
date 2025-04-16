@@ -31,14 +31,31 @@ class ArduinoInterface:
             self.confirm_thread.start()
 
     def _listen_for_confirmations(self):
+        last_check_time = time.time()
+        TIMEOUT = 3.0  # seconds
+
         while self.ser and self.ser.is_open:
             try:
                 if self.ser.in_waiting > 0:
-                    line = self.ser.readline().decode().strip()
-                    if line == "{}_CONFIRM".format(self.last_command):
+                    line = self.ser.readline().decode(errors="ignore").strip()
+                    print(f"[Arduino → Jetson] Received: '{line}'")
+
+                    expected = f"{self.last_command}_CONFIRM" if self.last_command else None
+                    if expected and line.upper() == expected.upper():
                         with self.lock:
                             self.waiting_for_confirm = False
                             self.last_command = None
+                            last_check_time = time.time()  # Reset timer
+                    else:
+                        print(f"Unexpected response: '{line}' (expected: '{expected}')")
+                else:
+                    # Check timeout
+                    if self.waiting_for_confirm and (time.time() - last_check_time > TIMEOUT):
+                        with self.lock:
+                            print("Timeout waiting for confirmation. Resetting state.")
+                            self.waiting_for_confirm = False
+                            self.last_command = None
+                            last_check_time = time.time()
             except serial.SerialException:
                 print("Error: Lost connection to Arduino.")
                 self.ser = None
@@ -50,12 +67,14 @@ class ArduinoInterface:
             print("Error: Arduino is not connected.")
             return False
 
+        should_wait_for_confirm = command.upper() in ["ON", "OFF"]
+
         with self.lock:
-            if self.waiting_for_confirm:
+            if should_wait_for_confirm and self.waiting_for_confirm:
                 print("Waiting for confirmation before sending another command.")
                 return False
-            self.last_command = command
-            self.waiting_for_confirm = True
+            self.last_command = command if should_wait_for_confirm else None
+            self.waiting_for_confirm = should_wait_for_confirm
 
         full_command = "{}\n".format(command)
         try:
@@ -93,7 +112,7 @@ def gstreamer_pipeline(capture_width=320, capture_height=240, display_width=320,
 def load_model(model_path):
     return YOLO(model_path)
 
-def is_centered(box, frame_shape, tolerance_ratio=0.2):
+def is_centered(box, frame_shape, tolerance_ratio=0.1):
     x1, y1, x2, y2 = box
     box_center_x = (x1 + x2) / 2
     frame_center_x = frame_shape[1] / 2
@@ -103,7 +122,7 @@ def is_centered(box, frame_shape, tolerance_ratio=0.2):
 def draw_boxes_and_check_center(frame, results, model):
     detected_and_centered = False
     best_detection = None
-    hightest_conf = 0.0
+    highest_conf = 0.0
 
     for r in results:
         boxes = r.boxes.xyxy.cpu().numpy()
@@ -139,7 +158,9 @@ def show_camera_with_detection(model, arduino):
     )
 
     gripper_state = "OPEN"
+    arduino.send_command("OFF")
     last_centered_time = time.time()
+    last_action_time = time.time()
 
 
     if video_capture.isOpened():
@@ -160,18 +181,17 @@ def show_camera_with_detection(model, arduino):
 
                     current_time = time.time()
 
-                    if best_detection:
-                        _, conf, _ = best_detection
-                        if conf > 0.9:
-                            if gripper_state != "CLOSE":
-                                arduino.send_command("CLOSE")
-                                gripper_state = "CLOSE"
-                            last_centered_time = current_time
-                        else:
-                            if gripper_state != "OPEN" and (current_time - last_centered_time >5):
-                                arduino.send_command("OPEN")
-                                gripper_state = "OPEN"
-                    
+                    if best_detection and best_detection[1] > 0.7:
+                        if gripper_state == "OPEN" and (current_time - last_centered_time > 2):
+                            arduino.send_command("ON")
+                            gripper_state = "CLOSE"
+                            last_action_time = current_time
+                        last_centered_time = current_time
+                    else:
+                        if gripper_state == "CLOSE" and (current_time - last_centered_time > 2):
+                            arduino.send_command("OFF")
+                            gripper_state = "OPEN"
+                            last_action_time = current_time
 
 
                 frame_count += 1
@@ -194,9 +214,8 @@ def show_camera_with_detection(model, arduino):
 ### ---------- Main ----------
 
 if __name__ == "__main__":
-    model_path = "src/scripts/best_v11.pt"  # Update path as needed
+    model_path = "src/scripts/best_lime_v11.pt"  # Update path as needed
     model = load_model(model_path)
     arduino = ArduinoInterface(port='/dev/ttyACM0', baudrate=9600)
     time.sleep(1)
-    arduino.send_command("OPEN")
     show_camera_with_detection(model, arduino)
