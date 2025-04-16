@@ -3,7 +3,7 @@ import open3d as o3d
 import cv2
 import heapq
 from itertools import count
-import tf_transformations
+# import tf_transformations
 
 DISTANCE = 10.0 
 STEP = 0.2
@@ -164,7 +164,7 @@ def is_line_free(p1, p2, occupancy, voxel_map, step=0.1):
     return True
 
 
-def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), world_frame=True):
+def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.0, 0.0, -5.0]), world_frame=False, prune=True):
     global HUMAN_PATH, GLOBAL_SOLUTION
     # rgbd_data = np.load(fp, allow_pickle=True)
     # color_image = rgbd_data[..., :3]
@@ -390,21 +390,22 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     waypoint.reverse()
     print("Original Path:", len(waypoint))
 
-    # Path pruning
-    pruned_path = [waypoint[0]]
-    i = 0
-    while i < len(waypoint) - 1:
-        j = len(waypoint) - 1
-        while j > i + 1:
-            if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
-                break
-            j -= 1
-        pruned_path.append(waypoint[j])
-        i = j
+    if prune:
+        # Path pruning
+        pruned_path = [waypoint[0]]
+        i = 0
+        while i < len(waypoint) - 1:
+            j = len(waypoint) - 1
+            while j > i + 1:
+                if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
+                    break
+                j -= 1
+            pruned_path.append(waypoint[j])
+            i = j
 
-    # trans_path = transform_cam_to_world(np.array(pruned_path).reshape(-1, 3), pose)
-    print("Pruned Path:", pruned_path)
-    vplot(pruned_path, vis)
+        # trans_path = transform_cam_to_world(np.array(pruned_path).reshape(-1, 3), pose)
+        print("Pruned Path:", pruned_path)
+        vplot(pruned_path, vis)
     vplot(waypoint, vis)
     new_points = add_progress_point(waypoint, full_goal=gpos)
     if new_points:
@@ -450,7 +451,7 @@ if __name__ == "__main__":
 
     # folder = "./rgbd_npy_apr14_2"  # replace with your folder path
     # gpos = [4.68302441, -4.71768856,  1.1455164 ]
-    run_on_folder(folder, gpos=gpos)
+    run_on_folder(folder)
 
     HUMAN_PATH  = [[ 0.00012787, -0.00011229,  0.00012751], [ 1.11442685e-04, -1.23162768e-04,  5.89193769e-05], [ 0.00024432, -0.00010595,  0.00027408], [ 9.74470604e-05, -3.07552837e-05,  3.20040010e-04], [ 1.62076525e-04, -5.60154513e-05,  7.93393046e-05], [ 9.70318870e-05,  9.15840094e-04, -4.60401876e-04], [0.03030516, 0.03377176, 0.73864961], [0.27824649, 0.02021859, 0.98899406], [ 1.16685236, -0.37907165,  0.96617979], [ 2.60115337, -1.29060638,  0.9212203 ], [ 3.43631577, -1.99861574,  0.93947977], [ 4.10659027, -3.21163154,  1.03390253], [ 4.30790472, -3.9677403 ,  1.05536342], [ 4.51330376, -4.51858091,  1.09060323], [ 4.6246624 , -4.67107677,  1.0722518 ], [ 4.64444876, -4.68503332,  1.12046719], [ 4.67224598, -4.6869812 ,  1.14548445], [ 4.63720417, -4.71124887,  1.16978383], [ 4.66125822, -4.69160557,  1.1283747 ], [ 4.68302441, -4.71768856,  1.1455164 ]]
     # GLOBAL_SOLUTION = [(0.00012787, -0.00011229,  0.00012751), (0.20011144268501085, -0.00012316276843193918, -0.4999410806231026), (0.20024432127247566, -0.00010595106869004667, -0.4997259246301837), (0.40009744706039785, -3.075528366025537e-05, -0.499679959990317), (0.6001620765251574, -5.601545126410201e-05, -0.4999206606953521), (0.8000970318869804, 0.0009158400935120881, -0.5004604018758982), (0.6303051620721818, 0.033771760761737823, 0.23864960670471191), (0.6782464921474457, 0.020218592137098312, 0.4889940619468689), (1.166852355003357, -0.3790716528892517, 0.9661797881126404), (2.6011533737182617, -1.2906063795089722, 0.9212203025817871), (3.4363157749176025, -1.9986157417297363, 0.9394797682762146), (4.106590270996094, -3.2116315364837646, 1.0339025259017944), (4.3079047203063965, -3.967740297317505, 1.055363416671753), (4.513303756713867, -4.518580913543701, 1.090603232383728), (4.424662399291992, -4.671076774597168, 1.172251796722412), (4.444448757171631, -4.685033321380615, 1.220467185974121)]
