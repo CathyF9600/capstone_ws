@@ -35,6 +35,20 @@ H = np.array([
         [0, 0, 0, 1]
     ])
 # Helper functions
+
+def transform_rs_to_vicon(P_c):
+    # R{cam axis in vicon} t{cam pos in vicon}
+    R_cam_to_vicon = np.array([
+        [ 0,  0, 1],  # X_d = -Z_c
+        [-1,  0,  0],  # Y_d = -X_c
+        [ 0, 1,  0],  # Z_d = -Y_c
+    ])
+    t = np.array([3.07, 3.04, 0.0])
+    T_cam_to_vicon = np.block([
+        [R_cam_to_vicon, t.reshape(3, 1)], 
+        [np.zeros((1, 3)), 1]
+    ])
+
 # Function to transform camera frame to world frame using broadcasting
 def transform_cam_to_world(P_c, pose): # [N, 4]
     qx, qy, qz, qw, X_w, Y_w, Z_w = pose
@@ -88,7 +102,7 @@ def add_progress_point(current_plan, global_path, full_goal, min_progress_distan
         if dist_to_goal < last_dist_to_goal and dist_to_last > min_progress_distance:
             new_pt = tuple(pt)
             global_path.append(new_pt)
-            return pt
+            return new_pt
 
     return None
 
@@ -194,7 +208,7 @@ class PlannerNode(Node):
         # self.goal = np.array([ 4.68302441, -4.71768856,  1.1455164 ])  # Set your goal here
         self.goal = np.array([1.317+3.035, -0.848-3.07,  1.5 ])  # Set your goal here
         self.global_path = []
-        self.waiting_for_input = False
+        self.waiting_for_input = True
         self.next_waypoint = None
         self.test_start = False
         self.land = False
@@ -256,7 +270,7 @@ class PlannerNode(Node):
 
     def publish_vision_pose(self):
         if self.vision_pose is not None:
-
+            self.vision_pose.header.stamp = self.get_clock().now().to_msg()
             self.ego_pub.publish(self.vision_pose)
             # self.get_logger().info(f"Published itself's pose from {self.source}.")
         # else:
@@ -273,7 +287,7 @@ class PlannerNode(Node):
 
     def handle_test(self, request, response): # special for task3
         """Handles the TEST command by navigating through waypoints."""
-        if not self.waypoints:
+        if self.next_waypoint is not None:
             self.get_logger().error("No waypoints received.")
             response.success = False
             response.message = "No waypoints available."
@@ -283,15 +297,12 @@ class PlannerNode(Node):
     
     def handle_launch(self, request, response):
         self.get_logger().info("Launch command received. Taking off...")
-
-        if self.state.mode != "OFFBOARD":
-            self.set_mode("OFFBOARD")
-        if not self.state.armed:
-            self.arm(True)
+        self.test_start = True
         # Change the altitude
+        self.hover_pose.pose = self.vision_pose.pose
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # Ascend to 1.5 meters upon launching
-        target_height = 1
+        target_height = 1.0
         self.hover_pose.pose.position.z = target_height
         # Ensure a response is returned
         response.success = True
@@ -300,6 +311,7 @@ class PlannerNode(Node):
  
     def handle_land(self, request, response):
         self.get_logger().info("Land command received. Landing...")
+        self.hover_pose.pose = self.vision_pose.pose
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         self.hover_pose.pose.position.z = 0.05
         # self.get_logger().info("Landing mode request sent.")
@@ -333,29 +345,56 @@ class PlannerNode(Node):
                     f"{distance:.1f}")
         return distance <= WAYPOINT_RADIUS
 
+    def update_waypoint_pose(self, next_position_np):
+        """
+        Given a position and the next position, create a PoseStamped facing toward the next point.
+        """
+        position_np = np.array([
+            self.vision_pose.pose.position.x,
+            self.vision_pose.pose.position.y,
+            self.vision_pose.pose.position.z
+        ])
+        # Step 1: Compute direction
+        direction = next_position_np - position_np
+        yaw = np.arctan2(direction[1], direction[0])  # only x, y
+
+        # Step 2: Convert yaw to quaternion
+        q = tf_transformations.quaternion_from_euler(0, 0, yaw)  # roll, pitch, yaw
+
+        # Step 3: Create PoseStamped
+        self.hover_pose.pose.position.x = position_np[0]
+        self.hover_pose.pose.position.y = position_np[1]
+        self.hover_pose.pose.position.z = position_np[2]
+
+        self.hover_pose.pose.orientation.x = q[0]
+        self.hover_pose.pose.orientation.y = q[1]
+        self.hover_pose.pose.orientation.z = q[2]
+        self.hover_pose.pose.orientation.w = q[3]
+
+        # return pose_msg
 
     def publish_target_waypoint(self): # special for task3
         """Publishes the given waypoint to MAVROS."""
+        
         if self.land:
             self.setpoint_publisher.publish(self.hover_pose)
-        if not self.test_start:
+        if not self.test_start: # need waypoint published to go offboard mode
             self.setpoint_publisher.publish(self.hover_pose) # 0,0,0
             return
-        if self.is_within_waypoint(self.goal):
+        if self.is_within_waypoint(self.goal): # hover
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-            self.hover_pose.pose = self.goal
+            self.hover_pose.pose = self.vision_pose.pose
             self.setpoint_publisher.publish(self.hover_pose) # 0,0,0
 
-        
         elif self.next_waypoint is not None and not self.waiting_for_input:
             if self.is_within_waypoint(self.next_waypoint):
                 self.get_logger().info(f"Reached current_goal {self.next_waypoint}")
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-            self.hover_pose.pose = self.next_waypoint
+            self.update_waypoint_pose(self.next_waypoint)
             self.setpoint_publisher.publish(self.hover_pose)
         else: # self.next_waypoint is None, o waitng for inut -> hover at current position
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
-            self.hover_pose.pose = self.vision_pose
+            self.hover_pose.pose = self.vision_pose.pose
             self.setpoint_publisher.publish(self.hover_pose)
     
 
