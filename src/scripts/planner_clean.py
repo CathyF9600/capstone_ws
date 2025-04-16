@@ -7,10 +7,12 @@ from itertools import count
 
 DISTANCE = 10.0 
 STEP = 0.2
-VOXEL_SIZE = 0.1
+VOXEL_SIZE = 0.2
 COLOR_THRESHOLD = 0.4 # color
+COLOR_THRESHOLD_PRUNE = 0.8
+
 MAX_DEPTH = 100
-PAD_DIST = 0.2
+PAD_DIST = 0.1
 solution = [[0., 0., 0.], [ 0. ,  0. , -0.5], [-0.2,  0. , -0.7], [-0.4,  0. , -0.9], [-0.6,  0. , -0.9], [-0.8,  0. , -1.1], [-0.8,  0. , -1.3], [-0.8,  0. , -1.5], [-1. ,  0. , -1.7], [-1. ,  0. , -1.9], [-1.2,  0. , -2.1], [-1.2,  0. , -2.3], [-1.2,  0. , -2.5], [-1.2,  0. , -2.7], [-1.4,  0. , -2.9]]
 HUMAN_PATH = []
 GLOBAL_SOLUTION = []
@@ -159,7 +161,7 @@ def is_line_free(p1, p2, occupancy, voxel_map, step=0.1):
                         neighbor_idx = (v_idx[0]+dx, v_idx[1]+dy, v_idx[2]+dz)
                         if neighbor_idx in voxel_map:
                             color = get_voxel_color_fast(voxel_map, neighbor_idx)
-                            if color and color < COLOR_THRESHOLD:
+                            if color and color < COLOR_THRESHOLD_PRUNE:
                                 return False  # obstacle detected
     return True
 
@@ -210,7 +212,7 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     # Initialize Open3D visualizer
     vis = o3d.visualization.VisualizerWithKeyCallback()
     vis.create_window(window_name="RGB-D Point Cloud", width=800, height=600)
-    pplot(vis, position)
+    pplot(vis, start)
     # Add point cloud to visualizer
     vis.add_geometry(pcd)
 
@@ -390,22 +392,22 @@ def plan_and_show_waypoint(fp, start=np.array([0.0, 0.0, 0.0]),gpos=np.array([2.
     waypoint.reverse()
     print("Original Path:", len(waypoint))
 
-    if prune:
-        # Path pruning
-        pruned_path = [waypoint[0]]
-        i = 0
-        while i < len(waypoint) - 1:
-            j = len(waypoint) - 1
-            while j > i + 1:
-                if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
-                    break
-                j -= 1
-            pruned_path.append(waypoint[j])
-            i = j
+    # if prune:
+    # Path pruning
+    pruned_path = [waypoint[0]]
+    i = 0
+    while i < len(waypoint) - 1:
+        j = len(waypoint) - 1
+        while j > i + 1:
+            if is_line_free(waypoint[i], waypoint[j], occupancy, voxel_map):
+                break
+            j -= 1
+        pruned_path.append(waypoint[j])
+        i = j
 
-        # trans_path = transform_cam_to_world(np.array(pruned_path).reshape(-1, 3), pose)
-        print("Pruned Path:", pruned_path)
-        vplot(pruned_path, vis)
+    # trans_path = transform_cam_to_world(np.array(pruned_path).reshape(-1, 3), pose)
+    print("Pruned Path:", pruned_path)
+    vplot(pruned_path, vis)
     vplot(waypoint, vis)
     new_points = add_progress_point(waypoint, full_goal=gpos)
     if new_points:
@@ -446,8 +448,8 @@ def run_on_folder(folder_path, start=np.array([0.0, 0.0, 0.0]), gpos=np.array([-
 
 # Example usage
 if __name__ == "__main__":
-    folder = "./rgbd_npy_apr14"  # replace with your folder path
-    gpos = [ 4.68302441, -4.71768856,  1.1455164 ]
+    folder = "./rgbd_npy_mock"  # replace with your folder path
+    # gpos = [ 4.68302441, -4.71768856,  1.1455164 ]
 
     # folder = "./rgbd_npy_apr14_2"  # replace with your folder path
     # gpos = [4.68302441, -4.71768856,  1.1455164 ]
