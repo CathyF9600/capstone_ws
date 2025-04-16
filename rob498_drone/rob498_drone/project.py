@@ -689,11 +689,16 @@ def live_plot(planner_node):
         time.sleep(0.1)  # Avoid high CPU usage
 
 
+import threading
+import rclpy
+from my_planner import PlannerNode
+from my_plotter import live_plot  # <- this is your custom function
+
 def main(args=None):
     rclpy.init(args=args)
     planner = PlannerNode()
 
-    # Start plotting in background
+    # Start live plotting in a background thread
     plot_thread = threading.Thread(target=live_plot, args=(planner,), daemon=True)
     plot_thread.start()
 
@@ -705,7 +710,8 @@ def main(args=None):
     finally:
         planner.destroy_node()
         rclpy.shutdown()
-
+        print("Shutdown complete.")
 
 if __name__ == '__main__':
     main()
+
