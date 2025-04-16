@@ -653,65 +653,44 @@ class PlannerNode(Node):
 #         rclpy.shutdown()
 
 
-
-import matplotlib.pyplot as plt
-import numpy as np
-import threading
-import time
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — needed for 3D projection
-
-def live_plot(planner_node):
-    plt.ion()
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    while rclpy.ok():
-        ax.cla()  # Clear the plot
-
-        points = np.array(planner_node.path_points)  # Get 3D points
-
-        if points.size > 0 and points.shape[1] == 3:
-            x = points[:, 0]
-            y = points[:, 1]
-            z = points[:, 2]
-
-            ax.plot(x, y, z, linestyle='--', marker='o', color='red')
-
-        # Set labels and view
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_title('3D Global Path Visualization')
-        ax.view_init(elev=30, azim=45)
-
-        plt.tight_layout()
-        plt.pause(0.1)
-        time.sleep(0.1)  # Avoid high CPU usage
-
-
-import threading
 import rclpy
-from my_planner import PlannerNode
-from my_plotter import live_plot  # <- this is your custom function
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
 def main(args=None):
     rclpy.init(args=args)
     planner = PlannerNode()
 
-    # Start live plotting in a background thread
-    plot_thread = threading.Thread(target=live_plot, args=(planner,), daemon=True)
-    plot_thread.start()
+    # Set up interactive plot
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
     try:
         while rclpy.ok():
             rclpy.spin_once(planner, timeout_sec=0.1)
+
+            # --- Plotting inside the loop
+            new_points = np.array(planner.path_points)
+            if new_points.shape[0] >= 2:
+                ax.clear()
+                ax.plot(new_points[:,0], new_points[:,1], new_points[:,2], linestyle='--', marker='o', color='red')
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_zlabel('Z')
+                ax.set_title('3D Global Path Visualization')
+                ax.view_init(elev=30, azim=45)
+                plt.draw()
+                plt.pause(0.01)
+
     except KeyboardInterrupt:
         pass
     finally:
         planner.destroy_node()
         rclpy.shutdown()
-        print("Shutdown complete.")
 
 if __name__ == '__main__':
     main()
+
 
