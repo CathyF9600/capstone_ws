@@ -102,7 +102,7 @@ def add_progress_point(current_plan, global_path, full_goal, min_progress_distan
         if dist_to_goal < last_dist_to_goal and dist_to_last > min_progress_distance:
             new_pt = tuple(pt)
             global_path.append(new_pt)
-            return new_pt
+            return pt
 
     return None
 
@@ -212,10 +212,8 @@ class PlannerNode(Node):
         self.next_waypoint = None
         self.test_start = False
         self.land = False
-        # Visualization
-        self.fig, self.ax = plt.subplots()
-        self.cid = self.fig.canvas.mpl_connect('key_press_event', self.on_key)
-        plt.ion()
+
+        self.path_points = []
         
         self.get_logger().info("PlannerNode initialized and waiting for data...")
 
@@ -594,6 +592,7 @@ class PlannerNode(Node):
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
             if new_points is not None and new_points.all():
+                self.path_points.append(new_points)
                 return new_points
             return None
                 
@@ -639,9 +638,63 @@ class PlannerNode(Node):
         self.path_pub.publish(ros_path)
         self.get_logger().info(f"Published path with {len(path)} points.")
 
+# def main(args=None):
+#     rclpy.init(args=args)
+#     planner = PlannerNode()
+#     try:
+#         while rclpy.ok():
+#             rclpy.spin_once(planner, timeout_sec=0.1)
+#     except KeyboardInterrupt:
+#         pass
+#     finally:
+#         planner.destroy_node()
+#         rclpy.shutdown()
+
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+import threading
+import time
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — needed for 3D projection
+
+def live_plot(planner_node):
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    while rclpy.ok():
+        ax.cla()  # Clear the plot
+
+        points = np.array(planner_node.path_points)  # Get 3D points
+
+        if points.size > 0 and points.shape[1] == 3:
+            x = points[:, 0]
+            y = points[:, 1]
+            z = points[:, 2]
+
+            ax.plot(x, y, z, linestyle='--', marker='o', color='red')
+
+        # Set labels and view
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title('3D Global Path Visualization')
+        ax.view_init(elev=30, azim=45)
+
+        plt.tight_layout()
+        plt.pause(0.1)
+        time.sleep(0.1)  # Avoid high CPU usage
+
+
 def main(args=None):
     rclpy.init(args=args)
     planner = PlannerNode()
+
+    # Start plotting in background
+    plot_thread = threading.Thread(target=live_plot, args=(planner,), daemon=True)
+    plot_thread.start()
+
     try:
         while rclpy.ok():
             rclpy.spin_once(planner, timeout_sec=0.1)
@@ -650,6 +703,7 @@ def main(args=None):
     finally:
         planner.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
