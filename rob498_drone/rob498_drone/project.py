@@ -22,7 +22,7 @@ from matplotlib.backend_bases import KeyEvent
 # Constants
 DISTANCE = 10.0 
 STEP = 0.2
-VOXEL_SIZE = 0.1
+VOXEL_SIZE = 0.5
 COLOR_THRESHOLD = 0.4 # color
 MAX_DEPTH = 100
 PAD_DIST = 0.2
@@ -205,9 +205,10 @@ class PlannerNode(Node):
 
         # Variables
         self.current_pose = None
-        # self.goal = np.array([ 4.68302441, -4.71768856,  1.1455164 ])  # Set your goal here
-        self.goal = np.array([1.317+3.035, -0.848-3.07,  1.5 ])  # Set your goal here
+        self.goal = np.array([ 4.68302441, -4.71768856,  1.0 ])  # Set your goal here
+        # self.goal = np.array([1.317+3.035, -0.848-3.07,  1.5 ])  # Set your goal here
         self.global_path = []
+
         self.waiting_for_input = True
         self.next_waypoint = None
         self.test_start = False
@@ -487,7 +488,7 @@ class PlannerNode(Node):
                 dist_to_goal = np.linalg.norm(current_pos - goal)
 
                 if depth >= MAX_DEPTH:
-                    print("Max depth reached, stopping the pathfinding.")
+                    # print("Max depth reached, stopping the pathfinding.")
                     break
 
                 if np.linalg.norm(current_pos - goal) < 0.1:
@@ -577,7 +578,7 @@ class PlannerNode(Node):
 
             # Waypoint visualization
             waypoint.reverse()
-            print("Original Path:", len(waypoint))
+            # print("Original Path:", len(waypoint))
 
             # Path pruning
             pruned_path = [waypoint[0]]
@@ -590,7 +591,7 @@ class PlannerNode(Node):
                     j -= 1
                 pruned_path.append(waypoint[j])
                 i = j
-            print("Pruned Path:", pruned_path)
+            # print("Pruned Path:", pruned_path)
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
             if new_points is not None and new_points.all():
