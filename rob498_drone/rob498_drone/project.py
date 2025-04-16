@@ -102,7 +102,7 @@ def add_progress_point(current_plan, global_path, full_goal, min_progress_distan
         if dist_to_goal < last_dist_to_goal and dist_to_last > min_progress_distance:
             new_pt = tuple(pt)
             global_path.append(new_pt)
-            return new_pt
+            return pt
 
     return None
 
@@ -364,7 +364,7 @@ class PlannerNode(Node):
         # Step 3: Create PoseStamped
         self.hover_pose.pose.position.x = position_np[0]
         self.hover_pose.pose.position.y = position_np[1]
-        self.hover_pose.pose.position.z = position_np[2]
+        self.hover_pose.pose.position.z = 1.0
 
         self.hover_pose.pose.orientation.x = q[0]
         self.hover_pose.pose.orientation.y = q[1]
@@ -384,6 +384,7 @@ class PlannerNode(Node):
         if self.is_within_waypoint(self.goal): # hover
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.hover_pose.pose = self.vision_pose.pose
+            self.hover_pose.pose.position.z = 1.0
             self.setpoint_publisher.publish(self.hover_pose) # 0,0,0
 
         elif self.next_waypoint is not None and not self.waiting_for_input:
@@ -395,6 +396,7 @@ class PlannerNode(Node):
         else: # self.next_waypoint is None, o waitng for inut -> hover at current position
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.hover_pose.pose = self.vision_pose.pose
+            self.hover_pose.pose.position.z = 1.0
             self.setpoint_publisher.publish(self.hover_pose)
     
 
