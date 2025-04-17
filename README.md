@@ -111,3 +111,4 @@ K_left = [[286.1167907714844, 0.0, 421.62689208984375, 0.0],
 ]
 
 `ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_full`
+ros2 bag record /depth_image /rgb_image /camera/pose/sample -o rosbag_mock
