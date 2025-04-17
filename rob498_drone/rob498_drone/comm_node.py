@@ -209,7 +209,7 @@ class DroneCommNode(Node):
         # Change the altitude
         self.hover_pose.header.stamp = self.get_clock().now().to_msg()
         # for testing purpose, set it to 0.5 for now.
-        self.hover_pose.pose.position.z = 0.5   # Force drone to hover at 1.5 meters   
+        self.hover_pose.pose.position.z = 0.9   # Force drone to hover at 1.5 meters   
         #if self.source == 'realsense':
             #self.hover_pose.pose.position.z = 1.5
         

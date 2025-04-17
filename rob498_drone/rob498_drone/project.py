@@ -215,7 +215,7 @@ class PlannerNode(Node):
         self.next_waypoint = None
         self.test_start = False
         self.land = False
-
+        self.can_plan = True
         self.path_points = []
         
         self.get_logger().info("PlannerNode initialized and waiting for data...")
@@ -391,10 +391,13 @@ class PlannerNode(Node):
         elif self.next_waypoint is not None and not self.waiting_for_input:
             if self.is_within_waypoint(self.next_waypoint):
                 self.get_logger().info(f"Reached current_goal {self.next_waypoint}")
+                self.can_plan = True
+            else:
+                self.can_plan = False
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.update_waypoint_pose(self.next_waypoint)
             self.setpoint_publisher.publish(self.hover_pose)
-        else: # self.next_waypoint is None, o waitng for inut -> hover at current position
+        else: # self.next_waypoint is None / waitng for input -> hover at current position
             self.hover_pose.header.stamp = self.get_clock().now().to_msg()
             self.hover_pose.pose = self.vision_pose.pose
             self.hover_pose.pose.position.z = 1.0
@@ -402,7 +405,7 @@ class PlannerNode(Node):
     
 
     def sync_callback(self, rgb_msg, depth_msg):
-        self.get_logger().info(f"Gettin synched")
+        # self.get_logger().info(f"Gettin synched")
         self.stack.append((rgb_msg, depth_msg))
 
     
@@ -412,8 +415,8 @@ class PlannerNode(Node):
             return 
         rgb_msg, depth_msg = self.stack.pop() # pop the latest pair
 
-        try:
-            print('synched')
+        if self.can_plan:
+            # print('synched')
             rgb_image = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='rgb8')  # HxWx3
             depth_image = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')  # HxW
             if depth_image.ndim == 3:
@@ -438,10 +441,10 @@ class PlannerNode(Node):
                 self.get_logger().error(f"No path reported!")
             self.stack = [] # empty the stack
         
-        except Exception as e:
-            self.get_logger().error(f"Callback error: {e}")
+        # except Exception as e:
+        #     self.get_logger().error(f"Callback error: {e}")
 
-    def planner(self, color_image, depth_image, pose):
+    def planner(self, color_image, depth_image, pose, prune=False):
             fx = fy = 286.1167907714844
             cx, cy = depth_image.shape[1] / 2, depth_image.shape[0] / 2
 
@@ -451,7 +454,9 @@ class PlannerNode(Node):
             Z = depth_image
 
             points = np.stack((X, Y, Z), axis=-1).reshape(-1, 3)
-
+            # Filter to keep only points with Z in [1.0, 1.5] meters
+            mask = (points[:, 2] >= 1.0) & (points[:, 2] <= 1.5)
+            points = points[mask]
             # Transform point cloud to world frame
             points_world = transform_cam_to_world(points, pose)
 
@@ -495,9 +500,9 @@ class PlannerNode(Node):
                     break
 
                 if np.linalg.norm(current_pos - goal) < 0.1:
-                    print("Path found!")
+                    # print("Path found!")
                     found = True
-                    print('self.path_points', self.path_points)
+                    # print('self.path_points', self.path_points)
                     break
                     
                 # Track best position seen so far - anytime A*
@@ -585,17 +590,19 @@ class PlannerNode(Node):
             # print("Original Path:", len(waypoint))
 
             # Path pruning
-            pruned_path = [waypoint[0]]
-            i = 0
-            while i < len(waypoint) - 1:
-                j = len(waypoint) - 1
-                while j > i + 1:
-                    if is_line_free(waypoint[i], waypoint[j], voxel_grid, voxel_map):
-                        break
-                    j -= 1
-                pruned_path.append(waypoint[j])
-                i = j
-            print("Pruned Path:", pruned_path)
+            if prune:
+                pruned_path = [waypoint[0]]
+                i = 0
+                while i < len(waypoint) - 1:
+                    j = len(waypoint) - 1
+                    while j > i + 1:
+                        if is_line_free(waypoint[i], waypoint[j], voxel_grid, voxel_map):
+                            break
+                        j -= 1
+                    pruned_path.append(waypoint[j])
+                    i = j
+                print("Pruned Path:", pruned_path)
+                waypoint = pruned_path
 
             new_points = add_progress_point(waypoint, self.global_path, full_goal=self.goal)
             if new_points is not None and new_points.all():
