@@ -31,15 +31,15 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
    - `ros2 service call rob498_drone_3/comm/abort std_srvs/srv/Trigger`
 
 ## Exercise 3:
-ros2 launch px4_autonomy_modules mavros.launch.py
+`ros2 launch px4_autonomy_modules mavros.launch.py`
 1. realsense to mavros
-ros2 topic echo /mavros/vision_pose/pose
+`ros2 topic echo /mavros/vision_pose/pose`
 
 2. vicon to mavros
-ros2 topic echo /mavros/local_position/pose
+`ros2 topic echo /mavros/local_position/pose`
 
 3. start task3 node 
-ros2 run rob498_drone comm_node_task3
+`ros2 run rob498_drone task3`
 
 
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy
@@ -68,13 +68,20 @@ ros2 run rob498_drone comm_node_task3
 ![image](https://github.com/user-attachments/assets/fbd46d9b-0250-4550-bcc9-7ee5bf4b6224)
 
 ## Project
-`ros2 launch realsense_tracking realsense_t265.launch.py`
-
 `ros2 launch realsense2_camera rs_launch.py`
 
-`ros2 run realsense_tracking tracking_node`
+`ros2 run realsense_tracking t265_node` --> RGB-D Map
 
-### Using image_pipeline
+`ros2 run rob498_drone project` --> Planner
+
+### Point Cloud Reconstruction:
+`ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_1`
+Replay the bag and run `ros2 run realsense_tracking save_bag` whic generates a folder with *.npy files
+Then you can visualize it by running `python3 src/scripts/planner_clean.py` 
+
+
+# Other notes (not important)
+## Using image_pipeline
 - `https://github.com/ros-perception/image_pipeline.git`
 - `ros2 launch stereo_image_proc stereo_image_proc.launch.py namespace:=stereo`
 - `ros2 run image_view stereo_view stereo:=/stereo image:=image_rect_color`
@@ -83,10 +90,6 @@ bug: terminate called after throwing an instance of 'rclcpp::exceptions::Invalid
   '/stereo/left//image'
 
 - `ros2 run image_view image_view image:=/stereo/left/image_rect_color`
-
-### Self-made launch file for depth
-`ros2 launch realsense_tracking stereo.launch.py`
-pops up a black window and do nothing
 
 ## Install VS Code on Ubuntu 20.04 arm64
 - `sudo add-apt-repository "deb [arch=arm64] https://packages.microsoft.com/repos/vscode stable main"`
@@ -110,5 +113,3 @@ K_left = [[286.1167907714844, 0.0, 421.62689208984375, 0.0],
           [0.0, 0.0, 0.0, 1.0]
 ]
 
-`ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_full`
-ros2 bag record /depth_image /rgb_image /camera/pose/sample -o rosbag_mock
