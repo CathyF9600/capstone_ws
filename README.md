@@ -53,6 +53,9 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
 Replay the bag and run `ros2 run realsense_tracking save_bag` whic generates a folder with *.npy files
 Then you can visualize it by running `python3 src/scripts/planner_clean.py` 
 
+### RBG Camera with Gripper Actuation
+`python3 src/scripts/inference_actuation.py`
+
 # Other notes (not using)
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy
 - (For Micro XRCE-DDS only) Upgrade your cmake to above 3.22 (https://answers.ros.org/question/293119/)
