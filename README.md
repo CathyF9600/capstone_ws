@@ -49,12 +49,12 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
 `ros2 run rob498_drone project` --> Planner
 
 ### Point Cloud Reconstruction:
-`ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_1`
-Replay the bag and run `ros2 run realsense_tracking save_bag` whic generates a folder with *.npy files
-Then you can visualize it by running `python3 src/scripts/planner_clean.py` 
+1. `ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_1`
+2. Replay the bag and run `ros2 run realsense_tracking save_bag` which generates a folder with *.npy files
+3. Then you can visualize it by running `python3 src/scripts/planner_clean.py` 
 
-### RBG Camera with Gripper Actuation
-`python3 src/scripts/inference_actuation.py`
+### RBG Camera with Gripper Actuation (Plug in Arduino to Jetson)
+`python3 src/scripts/inference_actuation.py` --> actuates the Arduino code
 
 # Other notes (not using)
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy
