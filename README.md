@@ -41,7 +41,19 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
 3. start task3 node 
 `ros2 run rob498_drone task3`
 
+## Project
+`ros2 launch realsense2_camera rs_launch.py`
 
+`ros2 run realsense_tracking t265_node` --> RGB-D Map
+
+`ros2 run rob498_drone project` --> Planner
+
+### Point Cloud Reconstruction:
+`ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_1`
+Replay the bag and run `ros2 run realsense_tracking save_bag` whic generates a folder with *.npy files
+Then you can visualize it by running `python3 src/scripts/planner_clean.py` 
+
+# Other notes (not using)
 ## Get PX4-Autopilot Gazebo-Classic on Ubuntu 20.04 arm64 with ROS2 foxy
 - (For Micro XRCE-DDS only) Upgrade your cmake to above 3.22 (https://answers.ros.org/question/293119/)
     - tar -xzvf cmake-3.30.8.tar.gz # source tar.gz (no distro)
@@ -67,20 +79,6 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generati
     - you don't need the Micro XRCE-DDS Agent unless you are running ROS 2 on a microcontroller (using Micro-ROS)
 ![image](https://github.com/user-attachments/assets/fbd46d9b-0250-4550-bcc9-7ee5bf4b6224)
 
-## Project
-`ros2 launch realsense2_camera rs_launch.py`
-
-`ros2 run realsense_tracking t265_node` --> RGB-D Map
-
-`ros2 run rob498_drone project` --> Planner
-
-### Point Cloud Reconstruction:
-`ros2 bag record /depth_image /rgb_image /camera/pose/sample /vicon/ROB498_Drone/ROB498_Drone -o rosbag_1`
-Replay the bag and run `ros2 run realsense_tracking save_bag` whic generates a folder with *.npy files
-Then you can visualize it by running `python3 src/scripts/planner_clean.py` 
-
-
-# Other notes (not important)
 ## Using image_pipeline
 - `https://github.com/ros-perception/image_pipeline.git`
 - `ros2 launch stereo_image_proc stereo_image_proc.launch.py namespace:=stereo`
