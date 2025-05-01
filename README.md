@@ -1,5 +1,5 @@
 # rob489-capstone
-![](https://github.com/CathyF9600/capstone_ws/blob/main/capstone_clip2.gif)
+![](https://github.com/CathyF9600/capstone_ws/blob/main/capstone_clip4%20(1).gif)
 ## Clone this repository
 https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 ## Setup Notes:
